@@ -20,6 +20,45 @@ async function canUseSecureStore(): Promise<boolean> {
   return secureStoreAvailable;
 }
 
+function webStorage(): Storage | null {
+  try {
+    return globalThis.localStorage ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function persistWebTokens(tokens: AuthTokens): void {
+  const storage = webStorage();
+  if (!storage) {
+    return;
+  }
+  storage.setItem(ACCESS_TOKEN_KEY, tokens.accessToken);
+  storage.setItem(REFRESH_TOKEN_KEY, tokens.refreshToken);
+}
+
+function loadWebTokens(): AuthTokens | null {
+  const storage = webStorage();
+  if (!storage) {
+    return null;
+  }
+  const accessToken = storage.getItem(ACCESS_TOKEN_KEY);
+  const refreshToken = storage.getItem(REFRESH_TOKEN_KEY);
+  if (!accessToken || !refreshToken) {
+    return null;
+  }
+  return { accessToken, refreshToken };
+}
+
+function clearWebTokens(): void {
+  const storage = webStorage();
+  if (!storage) {
+    return;
+  }
+  storage.removeItem(ACCESS_TOKEN_KEY);
+  storage.removeItem(REFRESH_TOKEN_KEY);
+}
+
 export function getAccessToken(): string | null {
   return memoryAccessToken;
 }
@@ -32,14 +71,16 @@ export async function saveTokens(tokens: AuthTokens): Promise<void> {
   memoryAccessToken = tokens.accessToken;
   memoryRefreshToken = tokens.refreshToken;
 
-  if (!(await canUseSecureStore())) {
+  if (await canUseSecureStore()) {
+    await Promise.all([
+      SecureStore.setItemAsync(ACCESS_TOKEN_KEY, tokens.accessToken),
+      SecureStore.setItemAsync(REFRESH_TOKEN_KEY, tokens.refreshToken),
+    ]);
     return;
   }
 
-  await Promise.all([
-    SecureStore.setItemAsync(ACCESS_TOKEN_KEY, tokens.accessToken),
-    SecureStore.setItemAsync(REFRESH_TOKEN_KEY, tokens.refreshToken),
-  ]);
+  // Web / environments without SecureStore — persist across reloads.
+  persistWebTokens(tokens);
 }
 
 export async function loadTokens(): Promise<AuthTokens | null> {
@@ -47,43 +88,45 @@ export async function loadTokens(): Promise<AuthTokens | null> {
     return { accessToken: memoryAccessToken, refreshToken: memoryRefreshToken };
   }
 
-  if (!(await canUseSecureStore())) {
-    return memoryAccessToken && memoryRefreshToken
-      ? { accessToken: memoryAccessToken, refreshToken: memoryRefreshToken }
-      : null;
+  if (await canUseSecureStore()) {
+    const [accessToken, refreshToken] = await Promise.all([
+      SecureStore.getItemAsync(ACCESS_TOKEN_KEY),
+      SecureStore.getItemAsync(REFRESH_TOKEN_KEY),
+    ]);
+    memoryAccessToken = accessToken;
+    memoryRefreshToken = refreshToken;
+    if (!accessToken || !refreshToken) {
+      return null;
+    }
+    return { accessToken, refreshToken };
   }
 
-  const [accessToken, refreshToken] = await Promise.all([
-    SecureStore.getItemAsync(ACCESS_TOKEN_KEY),
-    SecureStore.getItemAsync(REFRESH_TOKEN_KEY),
-  ]);
-
-  memoryAccessToken = accessToken;
-  memoryRefreshToken = refreshToken;
-
-  if (!accessToken || !refreshToken) {
+  const webTokens = loadWebTokens();
+  if (!webTokens) {
     return null;
   }
-
-  return { accessToken, refreshToken };
+  memoryAccessToken = webTokens.accessToken;
+  memoryRefreshToken = webTokens.refreshToken;
+  return webTokens;
 }
 
 export async function clearTokens(): Promise<void> {
   memoryAccessToken = null;
   memoryRefreshToken = null;
 
-  if (!(await canUseSecureStore())) {
-    return;
+  if (await canUseSecureStore()) {
+    await Promise.all([
+      SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY),
+      SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY),
+    ]);
   }
 
-  await Promise.all([
-    SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY),
-    SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY),
-  ]);
+  clearWebTokens();
 }
 
-/** Test helper — resets in-memory session without touching SecureStore availability. */
+/** Test helper — resets in-memory session and SecureStore availability cache. */
 export function resetTokenMemory(): void {
   memoryAccessToken = null;
   memoryRefreshToken = null;
+  secureStoreAvailable = null;
 }

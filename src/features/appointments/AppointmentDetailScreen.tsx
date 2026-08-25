@@ -8,7 +8,7 @@ import { colors, radius, shadows, spacing, typography } from '@/constants/theme'
 import { HealthQueryView } from '@/features/health/components/HealthQueryView';
 import { HealthSubScreen } from '@/features/health/components/HealthSubScreen';
 import { getSectionState, humanizeStatus } from '@/features/home/selectors/homeViewModel';
-import { formatLongDate, formatTime } from '@/utils/date';
+import { formatLongDate, formatTime, DISPLAY_DATE_PLACEHOLDER } from '@/utils/date';
 import { useAppointment, useUpdateAppointment } from './hooks';
 import { rescheduleAppointmentSchema, type RescheduleAppointmentFormValues } from './schemas';
 import { canManageAppointment, scheduledAtToDateTime, toScheduledAtIso } from './selectors';
@@ -118,7 +118,7 @@ export function AppointmentDetailScreen({
               render={({ field: { onChange, onBlur, value } }) => (
                 <TextField
                   label="New date"
-                  placeholder="YYYY-MM-DD"
+                  placeholder={DISPLAY_DATE_PLACEHOLDER}
                   value={value}
                   onBlur={onBlur}
                   onChangeText={onChange}

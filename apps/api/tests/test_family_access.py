@@ -68,7 +68,16 @@ async def test_family_profile_returns_own_record(client):
     response = await client.get("/api/v1/families/me", headers=auth_header(token))
     assert response.status_code == 200
     body = response.json()
-    assert set(body.keys()) == {"id", "user_id", "first_name", "last_name", "created_at", "updated_at"}
+    assert set(body.keys()) == {
+        "id",
+        "user_id",
+        "first_name",
+        "last_name",
+        "relationship",
+        "requested_senior_reference",
+        "created_at",
+        "updated_at",
+    }
     assert body["first_name"] == "Son"
     assert body["last_name"] == "Doe"
     assert body["user_id"]
@@ -416,6 +425,8 @@ async def test_family_openapi_real_schemas(client):
         "user_id",
         "first_name",
         "last_name",
+        "relationship",
+        "requested_senior_reference",
         "created_at",
         "updated_at",
     }

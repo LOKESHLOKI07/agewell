@@ -1,13 +1,40 @@
+import { useEffect } from 'react';
+import { View } from 'react-native';
 import { Redirect, Tabs, type Href } from 'expo-router';
-import { colors, typography } from '@/constants/theme';
+import { LoadingState } from '@/components';
 import { Icon } from '@/components/ui';
+import { colors, typography } from '@/constants/theme';
 import { useAuthStore } from '@/features/auth/authStore';
 import { authenticatedHomeHref, isCareManagerRole } from '@/features/auth/roleRouting';
+import { useCareManagerProfile } from '@/features/care/hooks';
 
 export default function CareTabsLayout() {
   const role = useAuthStore((state) => state.user?.role);
+  const setCareStatus = useAuthStore((state) => state.setCareStatus);
+  const careStatus = useAuthStore((state) => state.careStatus);
+  const profile = useCareManagerProfile();
+
+  useEffect(() => {
+    if (profile.data?.status) {
+      setCareStatus(profile.data.status);
+    }
+  }, [profile.data?.status, setCareStatus]);
+
   if (role && !isCareManagerRole(role)) {
     return <Redirect href={authenticatedHomeHref(role) as Href} />;
+  }
+
+  if (profile.isPending && !profile.data) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center' }}>
+        <LoadingState message="Loading care profile..." />
+      </View>
+    );
+  }
+
+  const status = (profile.data?.status ?? careStatus ?? 'PENDING').toUpperCase();
+  if (status !== 'ACTIVE') {
+    return <Redirect href={'/pending-approval' as Href} />;
   }
 
   return (

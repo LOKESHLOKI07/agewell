@@ -2,43 +2,63 @@ import { router, usePathname, type Href } from 'expo-router';
 import type { ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, minTouchSize, spacing, typography } from '@/constants/theme';
+import { colors, minTouchSize, radius, spacing, typography } from '@/constants/theme';
 import { Icon, type IconName } from '@/components/ui';
 import { AUTH_ROLE_LABELS } from '@/features/auth/authTypes';
 import { useAuthStore } from '@/features/auth/authStore';
-import {
-  ADMIN_NAV,
-  adminMobileTabs,
-  isAdminPathActive,
-} from '../selectors';
+import { ADMIN_NAV, adminMobileTabs, isAdminPathActive } from '../selectors';
 import { useAdminLayout } from '../useAdminLayout';
 
 interface AdminShellProps {
   children: ReactNode;
 }
 
+const NAV_GROUPS: { title: string; keys: string[] }[] = [
+  { title: 'Overview', keys: ['dashboard'] },
+  { title: 'People', keys: ['users', 'seniors', 'families', 'access', 'careManagers'] },
+  { title: 'Care ops', keys: ['visits', 'appointments', 'services', 'requests', 'emergencies'] },
+  { title: 'Programs', keys: ['community', 'memberships'] },
+  { title: 'System', keys: ['notifications', 'audit', 'profile'] },
+];
+
 export function AdminShell({ children }: AdminShellProps) {
   const { isDesktop } = useAdminLayout();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
   const role = useAuthStore((state) => state.user?.role);
+  const email = useAuthStore((state) => state.user?.email);
 
   if (isDesktop) {
     return (
       <View style={[styles.desktop, { paddingTop: insets.top }]}>
         <View style={styles.sidebar} accessibilityRole="menu" accessibilityLabel="Admin navigation">
-          <Text style={styles.brand}>AgeWell</Text>
-          <Text style={styles.role}>{role ? AUTH_ROLE_LABELS[role] : 'Staff'}</Text>
-          <ScrollView contentContainerStyle={styles.sidebarList}>
-            {ADMIN_NAV.map((item) => (
-              <NavButton
-                key={item.key}
-                label={item.label}
-                icon={item.icon}
-                active={isAdminPathActive(pathname, item.href)}
-                onPress={() => router.push(item.href as Href)}
-              />
-            ))}
+          <View style={styles.brandBlock}>
+            <Text style={styles.brand}>AgeWell</Text>
+            <Text style={styles.brandSub}>Administration</Text>
+            <Text style={styles.role}>{role ? AUTH_ROLE_LABELS[role] : 'Staff'}</Text>
+            {email ? <Text style={styles.email} numberOfLines={1}>{email}</Text> : null}
+          </View>
+          <ScrollView contentContainerStyle={styles.sidebarList} showsVerticalScrollIndicator={false}>
+            {NAV_GROUPS.map((group) => {
+              const items = group.keys
+                .map((key) => ADMIN_NAV.find((item) => item.key === key))
+                .filter((item): item is (typeof ADMIN_NAV)[number] => Boolean(item));
+              if (!items.length) return null;
+              return (
+                <View key={group.title} style={styles.navGroup}>
+                  <Text style={styles.navGroupTitle}>{group.title}</Text>
+                  {items.map((item) => (
+                    <NavButton
+                      key={item.key}
+                      label={item.label}
+                      icon={item.icon}
+                      active={isAdminPathActive(pathname, item.href)}
+                      onPress={() => router.push(item.href as Href)}
+                    />
+                  ))}
+                </View>
+              );
+            })}
           </ScrollView>
         </View>
         <View style={styles.desktopMain}>{children}</View>
@@ -94,7 +114,7 @@ function NavButton({
       accessibilityState={{ selected: active }}
       style={({ pressed }) => [styles.navItem, active ? styles.navItemActive : null, pressed ? styles.pressed : null]}
     >
-      <Icon name={icon} size={20} color={active ? colors.white : colors.sidebarMuted} />
+      <Icon name={icon} size={18} color={active ? colors.white : colors.sidebarMuted} />
       <Text style={[styles.navLabel, active ? styles.navLabelActive : null]}>{label}</Text>
     </Pressable>
   );
@@ -107,47 +127,80 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   sidebar: {
-    width: 260,
+    width: 248,
     backgroundColor: colors.sidebar,
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.sm,
     paddingTop: spacing.lg,
+    borderRightWidth: 1,
+    borderRightColor: 'rgba(255,255,255,0.06)',
+  },
+  brandBlock: {
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.lg,
+    paddingBottom: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.08)',
   },
   brand: {
     ...typography.heading,
     color: colors.sidebarText,
-    paddingHorizontal: spacing.sm,
   },
-  role: {
+  brandSub: {
     ...typography.caption,
     color: colors.sidebarMuted,
-    paddingHorizontal: spacing.sm,
-    marginBottom: spacing.lg,
+    marginTop: 2,
+  },
+  role: {
+    ...typography.captionStrong,
+    color: colors.sidebarText,
+    marginTop: spacing.md,
+  },
+  email: {
+    ...typography.caption,
+    color: colors.sidebarMuted,
+    marginTop: 2,
   },
   sidebarList: {
     paddingBottom: spacing.huge,
-    gap: spacing.xs,
+    gap: spacing.md,
+  },
+  navGroup: {
+    gap: 2,
+  },
+  navGroupTitle: {
+    ...typography.captionStrong,
+    color: colors.sidebarMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    fontSize: 11,
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.xs,
+    marginTop: spacing.xs,
   },
   navItem: {
-    minHeight: minTouchSize,
+    minHeight: 40,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
     paddingHorizontal: spacing.md,
-    borderRadius: 12,
+    borderRadius: radius.sm,
   },
   navItemActive: {
     backgroundColor: colors.sidebarActive,
   },
   navLabel: {
     ...typography.body,
+    fontSize: 14,
     color: colors.sidebarMuted,
   },
   navLabelActive: {
     ...typography.bodyStrong,
+    fontSize: 14,
     color: colors.white,
   },
   desktopMain: {
     flex: 1,
+    backgroundColor: colors.background,
   },
   mobile: {
     flex: 1,

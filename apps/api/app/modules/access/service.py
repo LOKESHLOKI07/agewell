@@ -221,12 +221,32 @@ class FamilyAccessAdminService:
         self.family_repo = family_repo
         self.audit_repo = audit_repo
 
+    def _display_name(self, first_name, last_name) -> Optional[str]:
+        parts = [part for part in [first_name, last_name] if part]
+        return " ".join(parts) if parts else None
+
+    def _to_access_response(self, row) -> FamilySeniorAccessResponse:
+        if isinstance(row, tuple) or hasattr(row, "_mapping"):
+            access = row[0]
+            family_first, family_last, family_email, senior_first, senior_last, senior_email = row[1:]
+            return FamilySeniorAccessResponse(
+                id=access.id,
+                family_id=access.family_id,
+                senior_id=access.senior_id,
+                created_at=access.created_at,
+                family_name=self._display_name(family_first, family_last),
+                family_email=family_email,
+                senior_name=self._display_name(senior_first, senior_last),
+                senior_email=senior_email,
+            )
+        return FamilySeniorAccessResponse.model_validate(row)
+
     async def list_access(self, *, family_id=None, senior_id=None, limit: int = 50, offset: int = 0):
         rows, total = await self.access_repo.list_access(
             family_id=family_id, senior_id=senior_id, limit=limit, offset=offset
         )
         return ListPage(
-            items=[FamilySeniorAccessResponse.model_validate(row) for row in rows],
+            items=[self._to_access_response(row) for row in rows],
             total=total,
             limit=limit,
             offset=offset,
@@ -250,6 +270,10 @@ class FamilyAccessAdminService:
                 changes=json.dumps({"family_id": str(family_id), "senior_id": str(senior_id)}),
             )
             await self.access_repo.session.commit()
+        # Return enriched row when possible
+        enriched, _ = await self.access_repo.list_access(family_id=family_id, senior_id=senior_id, limit=1, offset=0)
+        if enriched:
+            return self._to_access_response(enriched[0])
         return FamilySeniorAccessResponse.model_validate(row)
 
     async def delete_access(self, access_id):

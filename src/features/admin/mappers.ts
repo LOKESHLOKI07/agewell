@@ -3,6 +3,7 @@ import { isAuthRole } from '@/features/auth/authTypes';
 import { toFamilyMember } from '@/features/family/mappers';
 import { toListPage } from '@/features/home/api/mappers';
 import type { NotificationPriority } from '@/features/home/types/home';
+import { toIsoDate } from '@/utils/date';
 import type {
   AdminAccess,
   AdminAuditLog,
@@ -62,6 +63,7 @@ export function toAdminUser(payload: unknown): AdminUser {
     email: asString(data.email, 'user.email'),
     phone: asString(data.phone, 'user.phone'),
     role: data.role,
+    accountStatus: asOptionalString(data.account_status) ?? 'ACTIVE',
     createdAt: asOptionalString(data.created_at),
     updatedAt: asOptionalString(data.updated_at),
   };
@@ -82,6 +84,8 @@ export function toAdminSenior(payload: unknown): AdminSenior {
     address: asString(data.address, 'senior.address'),
     emergencyContact: asString(data.emergency_contact, 'senior.emergency_contact'),
     email: asOptionalString(data.email),
+    phone: asOptionalString(data.phone),
+    accountStatus: asOptionalString(data.account_status),
   };
 }
 
@@ -100,6 +104,10 @@ export function toAdminAccess(payload: unknown): AdminAccess {
     familyId: asId(data.family_id, 'access.family_id'),
     seniorId: asId(data.senior_id, 'access.senior_id'),
     createdAt: asOptionalString(data.created_at),
+    familyName: asOptionalString(data.family_name),
+    familyEmail: asOptionalString(data.family_email),
+    seniorName: asOptionalString(data.senior_name),
+    seniorEmail: asOptionalString(data.senior_email),
   };
 }
 
@@ -121,6 +129,9 @@ export function toAdminCareManager(payload: unknown): AdminCareManager {
     firstName,
     lastName,
     skills: asOptionalString(data.skills),
+    experience: asOptionalString(data.experience),
+    languages: asOptionalString(data.languages),
+    availability: asOptionalString(data.availability),
     status: asOptionalString(data.status),
   };
 }
@@ -232,7 +243,7 @@ export function adminSeniorCreateBody(input: {
     user_id: input.userId,
     first_name: input.firstName,
     last_name: input.lastName,
-    date_of_birth: input.dateOfBirth,
+    date_of_birth: toIsoDate(input.dateOfBirth),
     address: input.address,
     emergency_contact: input.emergencyContact,
   };

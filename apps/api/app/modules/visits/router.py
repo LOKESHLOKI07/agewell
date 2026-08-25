@@ -13,7 +13,7 @@ from app.modules.access.service import AccessService
 from app.modules.audit.repository import AuditRepository
 from app.modules.care.repository import CareManagerRepository
 from app.modules.seniors.repository import SeniorRepository
-from app.modules.users.models import User
+from app.modules.users.models import RoleEnum, User
 from app.modules.visits.models import VisitStatus
 from app.modules.visits.repository import VisitRepository
 from app.modules.visits.schemas import VisitCreate, VisitReportResponse, VisitResponse, VisitTaskResponse, VisitUpdate
@@ -38,6 +38,7 @@ def get_access_service(db: AsyncSession = Depends(get_db)):
 @router.get("/", response_model=ListPage[VisitResponse])
 async def list_visits(
     senior_id: Optional[UUID] = None,
+    care_manager_id: Optional[UUID] = None,
     status: Optional[VisitStatus] = None,
     on_date: Optional[date_type] = Query(None, alias="date"),
     upcoming: bool = False,
@@ -52,9 +53,13 @@ async def list_visits(
         current_user, senior_id, allow_unscoped_staff=True
     )
     resolved_date = today_in_app_timezone() if today else on_date
+    # Staff may additionally filter by care associate; non-staff keep scope.care_manager_id.
+    effective_care_manager_id = scope.care_manager_id
+    if current_user.role in (RoleEnum.ADMIN, RoleEnum.OPERATIONS) and care_manager_id is not None:
+        effective_care_manager_id = care_manager_id
     return await service.list_visits(
         senior_id=scope.senior_id,
-        care_manager_id=scope.care_manager_id,
+        care_manager_id=effective_care_manager_id,
         status=status,
         on_date=resolved_date,
         upcoming=upcoming,

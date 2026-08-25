@@ -42,3 +42,23 @@ class FamilyRepository:
             .limit(limit)
         )
         return list(result.scalars().all()), int(total)
+
+    async def create(self, *, user_id, first_name: str, last_name: str, relationship=None, requested_senior_reference=None) -> FamilyMember:
+        row = FamilyMember(
+            user_id=user_id,
+            first_name=first_name,
+            last_name=last_name,
+            relationship=relationship,
+            requested_senior_reference=requested_senior_reference,
+        )
+        self.session.add(row)
+        await self.session.commit()
+        await self.session.refresh(row)
+        return row
+
+    async def update(self, row: FamilyMember, data: dict) -> FamilyMember:
+        for field, value in data.items():
+            setattr(row, field, value)
+        await self.session.commit()
+        await self.session.refresh(row)
+        return row

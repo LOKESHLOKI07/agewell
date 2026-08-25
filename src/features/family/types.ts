@@ -6,6 +6,8 @@ export interface FamilyMemberResponse {
   user_id: string;
   first_name: string | null;
   last_name: string | null;
+  relationship?: string | null;
+  requested_senior_reference?: string | null;
   created_at: string | null;
   updated_at: string | null;
 }
@@ -15,6 +17,8 @@ export interface FamilyMember {
   userId: string;
   firstName: string | null;
   lastName: string | null;
+  relationship: string | null;
+  requestedSeniorReference: string | null;
   createdAt: string | null;
   updatedAt: string | null;
 }

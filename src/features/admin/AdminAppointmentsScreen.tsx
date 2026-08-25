@@ -6,7 +6,7 @@ import { colors, radius, shadows, spacing, typography } from '@/constants/theme'
 import { useAppointment, useCreateAppointment, useUpdateAppointment } from '@/features/appointments/hooks';
 import { APPOINTMENT_STATUS_OPTIONS, scheduledAtToDateTime, toScheduledAtIso } from '@/features/appointments/selectors';
 import type { Appointment, AppointmentStatus } from '@/features/home/types/home';
-import { formatLongDate, formatTime } from '@/utils/date';
+import { formatLongDate, formatTime, DISPLAY_DATE_PLACEHOLDER } from '@/utils/date';
 import { AdminCollection } from './components/AdminCollection';
 import { AdminFilterChips } from './components/AdminFilterChips';
 import { AdminPagination } from './components/AdminPagination';
@@ -131,7 +131,7 @@ export function AdminAppointmentDetailScreen() {
               onChange={(next) => next && setStatus(next)}
               allowAll={false}
             />
-            <TextField label="Date" placeholder="YYYY-MM-DD" value={date} onChangeText={setDate} autoCapitalize="none" />
+            <TextField label="Date" placeholder={DISPLAY_DATE_PLACEHOLDER} value={date} onChangeText={setDate} autoCapitalize="none" />
             <TextField label="Time" placeholder="HH:MM" value={time} onChangeText={setTime} autoCapitalize="none" />
             {formError ? <Text style={styles.error}>{formError}</Text> : null}
             <PrimaryButton
@@ -175,7 +175,7 @@ export function AdminAppointmentCreateScreen() {
         onChange={setDoctorId}
         allowAll={false}
       />
-      <TextField label="Date" placeholder="YYYY-MM-DD" value={date} onChangeText={setDate} autoCapitalize="none" />
+      <TextField label="Date" placeholder={DISPLAY_DATE_PLACEHOLDER} value={date} onChangeText={setDate} autoCapitalize="none" />
       <TextField label="Time" placeholder="HH:MM" value={time} onChangeText={setTime} autoCapitalize="none" />
       {formError ? <Text style={styles.error}>{formError}</Text> : null}
       <PrimaryButton

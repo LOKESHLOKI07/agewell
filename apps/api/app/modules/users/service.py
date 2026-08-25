@@ -13,11 +13,14 @@ from app.modules.users.schemas import UserCreate, UserResponse, UserUpdate
 
 
 def to_user_response(user: User) -> UserResponse:
+    from app.modules.users.models import AccountStatus
+
     return UserResponse(
         id=user.id,
         email=user.email,
         phone=user.phone,
         role=user.role,
+        account_status=user.account_status or AccountStatus.ACTIVE,
         created_at=user.created_at,
         updated_at=user.updated_at,
     )
@@ -29,12 +32,20 @@ class UserService:
         self.audit_repo = audit_repo
 
     async def create_user(self, user_in: UserCreate):
+        from app.modules.users.models import AccountStatus
+
         if await self.repo.get_by_email(user_in.email):
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already exists")
         if await self.repo.get_by_phone(user_in.phone):
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Phone already exists")
         hashed = get_password_hash(user_in.password)
-        created = UserCreate(email=user_in.email, phone=user_in.phone, role=user_in.role, password=hashed)
+        created = UserCreate(
+            email=user_in.email.strip().lower(),
+            phone=user_in.phone.strip(),
+            role=user_in.role,
+            password=hashed,
+            account_status=user_in.account_status or AccountStatus.ACTIVE,
+        )
         user = await self.repo.create(created)
         if self.audit_repo:
             await self.audit_repo.record(
@@ -71,6 +82,11 @@ class UserService:
         if not user:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
         data = payload.model_dump(exclude_unset=True)
+        if "role" in data and data["role"] != user.role:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Role changes are disabled to protect linked profiles. Create a new user account instead.",
+            )
         if "email" in data and data["email"] != user.email:
             existing = await self.repo.get_by_email(data["email"])
             if existing and existing.id != user.id:
@@ -91,3 +107,21 @@ class UserService:
             )
             await self.repo.session.commit()
         return to_user_response(user)
+
+    async def delete_user(self, user_id: UUID, *, actor_user_id: UUID) -> UserResponse:
+        from app.modules.people.deletion import commit_people_delete, delete_user_record
+
+        user = await self.repo.get_by_id(user_id)
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        response = to_user_response(user)
+        await delete_user_record(self.repo.session, user_id, also_profile=True, actor_user_id=actor_user_id)
+        if self.audit_repo:
+            await self.audit_repo.record(
+                entity_name="users",
+                entity_id=str(user_id),
+                action="DELETE",
+                changes=json.dumps({"email": response.email, "role": response.role.value}),
+            )
+        await commit_people_delete(self.repo.session)
+        return response

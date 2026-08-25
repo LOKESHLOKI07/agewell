@@ -4,7 +4,9 @@ import type { AuthRole } from '@/features/auth/authTypes';
 import type { EmergencyStatus } from '@/features/emergency/types/emergency';
 import type { AppointmentStatus, NotificationPriority, ServiceRequestStatus, VisitStatus } from '@/features/home/types/home';
 import {
+  approveAdminCareManager,
   createAdminCareManager,
+  createAdminFamily,
   createAdminSenior,
   createAdminService,
   createAdminUser,
@@ -13,12 +15,15 @@ import {
   fetchAdminAppointments,
   fetchAdminAuditLogs,
   fetchAdminCareManager,
+  fetchAdminCareManagerByUserId,
   fetchAdminCareManagers,
   fetchAdminCurrentMembership,
   fetchAdminEmergencies,
   fetchAdminEmergency,
   fetchAdminEmergencyEvents,
   fetchAdminFamilies,
+  fetchAdminFamily,
+  fetchAdminFamilyByUserId,
   fetchAdminMedicalRecords,
   fetchAdminMembershipBenefits,
   fetchAdminMembershipPlans,
@@ -27,6 +32,7 @@ import {
   fetchAdminNotifications,
   fetchAdminProviders,
   fetchAdminSenior,
+  fetchAdminSeniorByUserId,
   fetchAdminSeniors,
   fetchAdminServiceRequests,
   fetchAdminServices,
@@ -40,13 +46,15 @@ import {
   revokeAdminAccess,
   updateAdminCareManager,
   updateAdminEmergencyStatus,
+  updateAdminFamily,
+  updateAdminSenior,
   updateAdminService,
   updateAdminServiceRequest,
   updateAdminUser,
   updateAdminVisit,
 } from './api';
 import { adminQueryKeys } from './queryKeys';
-import type { AdminCareManagerCreate, AdminCareManagerUpdate, AdminSeniorCreate, AdminUserCreate, AdminUserUpdate } from './types';
+import type { AdminCareManagerCreate, AdminCareManagerUpdate, AdminSeniorCreate, AdminSeniorUpdate, AdminUserCreate, AdminUserUpdate } from './types';
 import { ADMIN_PAGE_SIZE } from './types';
 
 function useStaffQuery<T>(queryKey: readonly unknown[], queryFn: () => Promise<T>, enabled = true): UseQueryResult<T> {
@@ -70,6 +78,30 @@ export function useAdminUsers(params: { limit?: number; offset?: number; role?: 
 
 export function useAdminUser(id: string | undefined) {
   return useStaffQuery(adminQueryKeys.user(id ?? ''), () => fetchAdminUser(id as string), Boolean(id));
+}
+
+export function useAdminSeniorByUserId(userId: string | undefined) {
+  return useStaffQuery(
+    ['admin', 'seniors', 'by-user', userId ?? ''] as const,
+    () => fetchAdminSeniorByUserId(userId as string),
+    Boolean(userId),
+  );
+}
+
+export function useAdminFamilyByUserId(userId: string | undefined) {
+  return useStaffQuery(
+    ['admin', 'families', 'by-user', userId ?? ''] as const,
+    () => fetchAdminFamilyByUserId(userId as string),
+    Boolean(userId),
+  );
+}
+
+export function useAdminCareManagerByUserId(userId: string | undefined) {
+  return useStaffQuery(
+    ['admin', 'careManagers', 'by-user', userId ?? ''] as const,
+    () => fetchAdminCareManagerByUserId(userId as string),
+    Boolean(userId),
+  );
 }
 
 export function useCreateAdminUser() {
@@ -111,19 +143,77 @@ export function useCreateAdminSenior() {
   });
 }
 
+export function useUpdateAdminSenior(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: AdminSeniorUpdate) => updateAdminSenior(id, input),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'seniors'] });
+      await queryClient.invalidateQueries({ queryKey: adminQueryKeys.senior(id) });
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+    },
+  });
+}
+
 export function useAdminFamilies(params: { limit?: number; offset?: number }) {
   const query = { limit: params.limit ?? ADMIN_PAGE_SIZE, offset: params.offset ?? 0 };
   return useStaffQuery(adminQueryKeys.families(query), () => fetchAdminFamilies(query));
 }
 
-export function useAdminAccess(params: { limit?: number; offset?: number; familyId?: string; seniorId?: string }) {
+export function useAdminFamily(id: string | undefined) {
+  return useStaffQuery(adminQueryKeys.family(id ?? ''), () => fetchAdminFamily(id as string), Boolean(id));
+}
+
+export function useCreateAdminFamily() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      userId: string;
+      firstName: string;
+      lastName: string;
+      relationship?: string;
+      requestedSeniorReference?: string;
+    }) => createAdminFamily(input),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'families'] });
+    },
+  });
+}
+
+export function useUpdateAdminFamily(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      firstName?: string;
+      lastName?: string;
+      relationship?: string;
+      requestedSeniorReference?: string;
+    }) => updateAdminFamily(id, input),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'families'] });
+      await queryClient.invalidateQueries({ queryKey: adminQueryKeys.family(id) });
+    },
+  });
+}
+
+export function useAdminAccess(params: {
+  limit?: number;
+  offset?: number;
+  familyId?: string;
+  seniorId?: string;
+  enabled?: boolean;
+}) {
   const query = {
     limit: params.limit ?? ADMIN_PAGE_SIZE,
     offset: params.offset ?? 0,
     familyId: params.familyId,
     seniorId: params.seniorId,
   };
-  return useStaffQuery(adminQueryKeys.access(query), () => fetchAdminAccess(query));
+  return useStaffQuery(
+    adminQueryKeys.access(query),
+    () => fetchAdminAccess(query),
+    params.enabled ?? true,
+  );
 }
 
 export function useGrantAdminAccess() {
@@ -134,6 +224,7 @@ export function useGrantAdminAccess() {
       await queryClient.invalidateQueries({ queryKey: ['admin', 'access'] });
       await queryClient.invalidateQueries({ queryKey: ['admin', 'families'] });
       await queryClient.invalidateQueries({ queryKey: ['admin', 'seniors'] });
+      await queryClient.invalidateQueries({ queryKey: ['family'] });
     },
   });
 }
@@ -146,6 +237,7 @@ export function useRevokeAdminAccess() {
       await queryClient.invalidateQueries({ queryKey: ['admin', 'access'] });
       await queryClient.invalidateQueries({ queryKey: ['admin', 'families'] });
       await queryClient.invalidateQueries({ queryKey: ['admin', 'seniors'] });
+      await queryClient.invalidateQueries({ queryKey: ['family'] });
     },
   });
 }
@@ -172,6 +264,17 @@ export function useUpdateAdminCareManager(id: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: AdminCareManagerUpdate) => updateAdminCareManager(id, input),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'careManagers'] });
+    },
+  });
+}
+
+export function useApproveAdminCareManager() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { id: string; status?: string; employeeId?: string }) =>
+      approveAdminCareManager(input.id, { status: input.status, employeeId: input.employeeId }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['admin', 'careManagers'] });
     },
@@ -233,6 +336,7 @@ export function useAdminVisits(params: {
   today?: boolean;
   upcoming?: boolean;
   seniorId?: string;
+  careManagerId?: string;
   status?: VisitStatus;
 }) {
   const query = {
@@ -241,6 +345,7 @@ export function useAdminVisits(params: {
     today: params.today,
     upcoming: params.upcoming,
     seniorId: params.seniorId,
+    careManagerId: params.careManagerId,
     status: params.status,
   };
   return useStaffQuery(adminQueryKeys.visits(query), () => fetchAdminVisits(query));

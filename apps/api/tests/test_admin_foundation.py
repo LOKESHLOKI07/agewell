@@ -102,7 +102,10 @@ async def test_admin_user_directory_and_patch(client):
     assert "items" in body
     assert_no_secrets(body)
     emails = {item["email"] for item in body["items"]}
-    assert ADMIN_EMAIL in emails
+    assert body["total"] >= 6
+    admin_lookup = await client.get("/api/v1/users/", headers=headers, params={"email": "admin@"})
+    assert admin_lookup.status_code == 200
+    assert any(item["email"] == ADMIN_EMAIL for item in admin_lookup.json()["items"])
     filtered = await client.get("/api/v1/users/", headers=headers, params={"role": "ADMIN", "email": "admin@"})
     assert filtered.status_code == 200
     assert all(item["role"] == "ADMIN" for item in filtered.json()["items"])
@@ -131,10 +134,17 @@ async def test_admin_user_directory_and_patch(client):
     patched = await client.patch(
         f"/api/v1/users/{user['id']}",
         headers=headers,
-        json={"role": "SENIOR"},
+        json={"phone": f"8{suffix[:9]}"},
     )
     assert patched.status_code == 200
-    assert patched.json()["role"] == "SENIOR"
+    assert patched.json()["phone"] == f"8{suffix[:9]}"
+
+    role_change = await client.patch(
+        f"/api/v1/users/{user['id']}",
+        headers=headers,
+        json={"role": "SENIOR"},
+    )
+    assert role_change.status_code == 400
 
     invalid = await client.patch(
         f"/api/v1/users/{user['id']}",
@@ -178,8 +188,8 @@ async def test_family_senior_access_management_and_isolation(client):
 
     john = (await client.get("/api/v1/seniors/me", headers=auth_header(senior))).json()
     jane = (await client.get("/api/v1/seniors/me", headers=auth_header(senior2))).json()
-    families = (await client.get("/api/v1/families/", headers=admin_h)).json()["items"]
-    family_id = families[0]["id"]
+    family_profile = (await client.get("/api/v1/families/me", headers=family_h)).json()
+    family_id = family_profile["id"]
 
     before = await client.get("/api/v1/families/seniors", headers=family_h)
     assert before.status_code == 200
@@ -221,6 +231,21 @@ async def test_family_senior_access_management_and_isolation(client):
         params={"senior_id": jane["id"]},
     )
     assert restored.status_code == 403
+
+    # Ensure seed John access remains; recreate if the local DB was altered.
+    john_access = await client.get(
+        "/api/v1/access/",
+        headers=admin_h,
+        params={"family_id": family_id, "senior_id": john["id"]},
+    )
+    if john_access.status_code == 200 and john_access.json()["total"] == 0:
+        ensure = await client.post(
+            "/api/v1/access/",
+            headers=admin_h,
+            json={"family_id": family_id, "senior_id": john["id"]},
+        )
+        assert ensure.status_code == 200, ensure.text
+
     john_visits = await client.get(
         "/api/v1/visits/",
         headers=family_h,
@@ -238,7 +263,13 @@ async def test_care_service_visit_emergency_membership_admin(client):
     john = (await client.get("/api/v1/seniors/me", headers=auth_header(senior))).json()
     managers = (await client.get("/api/v1/care/", headers=headers)).json()
     assert len(managers) >= 1
-    cm = managers[0]
+    care_users = (
+        await client.get("/api/v1/users/", headers=headers, params={"email": "care@", "role": "CARE_MANAGER"})
+    ).json()["items"]
+    care_user_id = next((item["id"] for item in care_users if item["email"] == CARE_EMAIL), None)
+    cm = next((item for item in managers if care_user_id and item.get("user_id") == care_user_id), None)
+    if cm is None:
+        cm = next((item for item in managers if (item.get("status") or "").upper() == "ACTIVE"), managers[0])
     detail = await client.get(f"/api/v1/care/{cm['id']}", headers=headers)
     assert detail.status_code == 200
     assert "first_name" in detail.json()
@@ -363,12 +394,16 @@ async def test_openapi_admin_contracts(client):
         ("/api/v1/users/", "post"),
         ("/api/v1/users/{user_id}", "get"),
         ("/api/v1/users/{user_id}", "patch"),
+        ("/api/v1/users/{user_id}", "delete"),
         ("/api/v1/seniors/", "get"),
+        ("/api/v1/seniors/{senior_id}", "delete"),
         ("/api/v1/families/", "get"),
+        ("/api/v1/families/{family_id}", "delete"),
         ("/api/v1/access/", "get"),
         ("/api/v1/access/", "post"),
         ("/api/v1/access/{access_id}", "delete"),
         ("/api/v1/care/{care_manager_id}", "get"),
+        ("/api/v1/care/{care_manager_id}", "delete"),
         ("/api/v1/care/", "post"),
         ("/api/v1/services/{service_id}", "patch"),
         ("/api/v1/services/requests/{request_id}", "patch"),
@@ -388,11 +423,16 @@ async def test_openapi_admin_contracts(client):
 
     schemas = spec["components"]["schemas"]
     assert schemas["UserResponse"]["properties"].keys().isdisjoint({"hashed_password", "password"})
-    assert set(schemas["FamilySeniorAccessResponse"]["properties"]) == {
+    assert "patch" in paths["/api/v1/seniors/{senior_id}"]
+    assert set(schemas["FamilySeniorAccessResponse"]["properties"]) >= {
         "id",
         "family_id",
         "senior_id",
         "created_at",
+        "family_name",
+        "family_email",
+        "senior_name",
+        "senior_email",
     }
     assert "AccessResponse" not in schemas or "family_id" in schemas.get("FamilySeniorAccessResponse", {}).get("properties", {})
     audit_schema = paths["/api/v1/audit/"]["get"]["responses"]["200"]["content"]["application/json"]["schema"]

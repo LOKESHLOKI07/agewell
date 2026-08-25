@@ -5,6 +5,7 @@ export const adminQueryKeys = {
   seniors: (params?: Record<string, unknown>) => ['admin', 'seniors', params ?? {}] as const,
   senior: (id: string) => ['admin', 'seniors', id] as const,
   families: (params?: Record<string, unknown>) => ['admin', 'families', params ?? {}] as const,
+  family: (id: string) => ['admin', 'families', id] as const,
   access: (params?: Record<string, unknown>) => ['admin', 'access', params ?? {}] as const,
   careManagers: ['admin', 'careManagers'] as const,
   careManager: (id: string) => ['admin', 'careManagers', id] as const,

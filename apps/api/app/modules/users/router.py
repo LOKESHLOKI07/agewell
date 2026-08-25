@@ -65,3 +65,12 @@ async def update_user(
     service: UserService = Depends(get_user_service),
 ):
     return await service.update_user(user_id, payload)
+
+
+@router.delete("/{user_id}", response_model=UserResponse)
+async def delete_user(
+    user_id: UUID,
+    current_user: User = Depends(require_staff),
+    service: UserService = Depends(get_user_service),
+):
+    return await service.delete_user(user_id, actor_user_id=current_user.id)

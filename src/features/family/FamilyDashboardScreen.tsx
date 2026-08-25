@@ -126,8 +126,8 @@ export function FamilyDashboardScreen() {
           onRetry={() => void seniorsQuery.refetch()}
           loadingMessage="Loading connected seniors..."
           emptyIcon="people-outline"
-          emptyTitle="No connected seniors"
-          emptyMessage="Seniors you are authorized to support will appear here."
+          emptyTitle="No seniors linked yet"
+          emptyMessage="No seniors are linked to your account yet. AgeWell staff must grant access before care data appears."
         >
           <FamilyLookingAfterCard
             seniors={seniorsQuery.data ?? []}

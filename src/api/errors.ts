@@ -9,11 +9,29 @@ const MESSAGES = {
   forbiddenArea: "You don't have permission to access this area.",
   notFound: 'We could not find that information.',
   conflict: 'This record already exists.',
+  emailExists: 'This email is already registered. Sign in, or use a different email.',
+  phoneExists: 'This phone number is already registered. Sign in, or use a different number.',
   badRequest: 'Please check the information you entered and try again.',
   server: 'AgeWell is having trouble right now. Please try again shortly.',
   network: 'Unable to connect to AgeWell. Please check your internet connection.',
   generic: 'Something went wrong. Please try again.',
 } as const;
+
+const CONFLICT_DETAIL_MESSAGES: Record<string, string> = {
+  'Email already exists': MESSAGES.emailExists,
+  'Phone already exists': MESSAGES.phoneExists,
+};
+
+function conflictMessage(error: unknown): string {
+  if (!isAxiosError(error)) {
+    return MESSAGES.conflict;
+  }
+  const detail = error.response?.data?.detail;
+  if (typeof detail === 'string' && CONFLICT_DETAIL_MESSAGES[detail]) {
+    return CONFLICT_DETAIL_MESSAGES[detail];
+  }
+  return MESSAGES.conflict;
+}
 
 function isTimeout(error: unknown): boolean {
   return isAxiosError(error) && error.code === 'ECONNABORTED';
@@ -39,8 +57,13 @@ export function getApiErrorMessage(error: unknown, context: ApiErrorContext = 'd
 
   switch (status) {
     case 400:
-    case 422:
+    case 422: {
+      const detail = isAxiosError(error) ? error.response?.data?.detail : undefined;
+      if (status === 400 && typeof detail === 'string' && detail.trim()) {
+        return detail;
+      }
       return MESSAGES.badRequest;
+    }
     case 401:
       return context === 'login' ? MESSAGES.loginUnauthorized : MESSAGES.sessionExpired;
     case 403:
@@ -48,7 +71,7 @@ export function getApiErrorMessage(error: unknown, context: ApiErrorContext = 'd
     case 404:
       return MESSAGES.notFound;
     case 409:
-      return MESSAGES.conflict;
+      return conflictMessage(error);
     case 500:
     case 502:
     case 503:

@@ -41,6 +41,13 @@ async def get_current_user(
     user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    from app.modules.users.models import AccountStatus
+
+    if user.account_status in (AccountStatus.REJECTED, AccountStatus.DISABLED):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This account is not allowed to access AgeWell.",
+        )
     return user
 
 def require_role(roles: List[RoleEnum]):

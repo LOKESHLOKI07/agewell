@@ -7,6 +7,7 @@ interface SecondaryButtonProps {
   disabled?: boolean;
   accessibilityHint?: string;
   pill?: boolean;
+  fullWidth?: boolean;
 }
 
 export function SecondaryButton({
@@ -15,6 +16,7 @@ export function SecondaryButton({
   disabled = false,
   accessibilityHint,
   pill = false,
+  fullWidth = true,
 }: SecondaryButtonProps) {
   return (
     <Pressable
@@ -27,6 +29,7 @@ export function SecondaryButton({
       style={({ pressed }) => [
         styles.button,
         pill ? styles.pill : null,
+        !fullWidth ? styles.inline : null,
         pressed && !disabled ? styles.pressed : null,
         disabled ? styles.disabled : null,
       ]}
@@ -47,6 +50,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: spacing.xxl,
     paddingVertical: spacing.md,
+  },
+  inline: {
+    alignSelf: 'flex-start',
+    minWidth: 132,
   },
   pill: {
     borderRadius: radius.full,

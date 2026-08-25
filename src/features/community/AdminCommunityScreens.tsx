@@ -4,6 +4,7 @@ import { Controller, useForm } from 'react-hook-form';
 import { StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams, type Href } from 'expo-router';
 import { ConfirmDialog, PrimaryButton, SecondaryButton, TextField } from '@/components';
+import { DISPLAY_DATE_PLACEHOLDER } from '@/utils/date';
 import { colors, radius, shadows, spacing, typography } from '@/constants/theme';
 import { AdminCollection } from '@/features/admin/components/AdminCollection';
 import { AdminQueryView } from '@/features/admin/components/AdminQueryView';
@@ -126,7 +127,7 @@ function EventForm({
         render={({ field: { onChange, onBlur, value } }) => (
           <TextField
             label="Date"
-            placeholder="YYYY-MM-DD"
+            placeholder={DISPLAY_DATE_PLACEHOLDER}
             value={value}
             onBlur={onBlur}
             onChangeText={onChange}

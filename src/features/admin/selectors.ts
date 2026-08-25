@@ -27,7 +27,7 @@ export const ADMIN_NAV: readonly AdminNavItem[] = [
   { key: 'seniors', href: '/(admin)/seniors', label: 'Seniors', icon: 'person-outline' },
   { key: 'families', href: '/(admin)/families', label: 'Families', icon: 'heart-outline' },
   { key: 'access', href: '/(admin)/access', label: 'Access', icon: 'key-outline' },
-  { key: 'careManagers', href: '/(admin)/care-managers', label: 'Care Managers', icon: 'medkit-outline' },
+  { key: 'careManagers', href: '/(admin)/care-managers', label: 'Care Associates', icon: 'medkit-outline' },
   { key: 'services', href: '/(admin)/services', label: 'Services', icon: 'grid-outline' },
   { key: 'requests', href: '/(admin)/requests', label: 'Requests', icon: 'clipboard-outline' },
   { key: 'visits', href: '/(admin)/visits', label: 'Visits', icon: 'calendar-outline', mobileTab: true },
@@ -72,21 +72,32 @@ export function adminRoleLabel(role: AuthRole): string {
   return AUTH_ROLE_LABELS[role];
 }
 
+export function titleCaseName(value: string): string {
+  return value
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(' ');
+}
+
 export function adminUserDisplay(user: AdminUser): string {
   return user.email;
 }
 
 export function adminSeniorDisplay(senior: Pick<AdminSenior, 'firstName' | 'lastName'>): string {
-  return `${senior.firstName} ${senior.lastName}`.trim();
+  return titleCaseName(`${senior.firstName} ${senior.lastName}`);
 }
 
 export function adminFamilyDisplay(family: Pick<FamilyMember, 'firstName' | 'lastName'>): string {
-  return familyDisplayName(family) || 'Family member';
+  const name = familyDisplayName(family);
+  return name ? titleCaseName(name) : 'Family member';
 }
 
 export function adminCareManagerDisplay(manager: AdminCareManager): string {
   const fromParts = [manager.firstName, manager.lastName].filter(Boolean).join(' ').trim();
-  return fromParts || manager.name || 'Care manager';
+  const raw = fromParts || manager.name || 'Care manager';
+  return titleCaseName(raw);
 }
 
 export function pageCount(total: number, limit: number): number {

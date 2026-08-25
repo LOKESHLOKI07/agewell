@@ -8,6 +8,8 @@ export interface AdminColumn<T> {
   label: string;
   flex?: number;
   render: (item: T) => ReactNode;
+  /** Optional custom header cell (e.g. select-all checkbox). Falls back to `label`. */
+  header?: ReactNode;
 }
 
 interface AdminCollectionProps<T> {
@@ -16,48 +18,84 @@ interface AdminCollectionProps<T> {
   onPress?: (item: T) => void;
   accessibilityLabel: (item: T) => string;
   keyExtractor: (item: T) => string;
+  actions?: (item: T) => ReactNode;
+  actionsLabel?: string;
+  /** Optional toolbar above the table (e.g. select-all + bulk actions). */
+  headerLeading?: ReactNode;
 }
 
-export function AdminCollection<T>({ items, columns, onPress, accessibilityLabel, keyExtractor }: AdminCollectionProps<T>) {
+export function AdminCollection<T>({
+  items,
+  columns,
+  onPress,
+  accessibilityLabel,
+  keyExtractor,
+  actions,
+  actionsLabel = 'Actions',
+  headerLeading,
+}: AdminCollectionProps<T>) {
   const { isDesktop } = useAdminLayout();
+  const contentFlex = columns.reduce((sum, column) => sum + (column.flex ?? 1), 0);
 
   if (isDesktop) {
     return (
       <View style={styles.table} accessibilityRole="list">
+        {headerLeading ? <View style={styles.toolbar}>{headerLeading}</View> : null}
         <View style={styles.headerRow}>
           {columns.map((column) => (
-            <Text key={column.key} style={[styles.headerCell, { flex: column.flex ?? 1 }]}>
-              {column.label}
-            </Text>
+            <View key={column.key} style={[styles.headerCellWrap, { flex: column.flex ?? 1 }]}>
+              {column.header ?? <Text style={styles.headerCell}>{column.label}</Text>}
+            </View>
           ))}
+          {actions ? (
+            <View style={[styles.headerCellWrap, { flex: 1 }]}>
+              <Text style={styles.headerCell}>{actionsLabel}</Text>
+            </View>
+          ) : null}
         </View>
         {items.map((item) => {
-          const row = (
-            <View style={styles.bodyRow}>
-              {columns.map((column) => (
-                <View key={column.key} style={[styles.cell, { flex: column.flex ?? 1 }]}>
-                  {column.render(item)}
-                </View>
-              ))}
+          const cells = columns.map((column) => (
+            <View key={column.key} style={[styles.cell, { flex: column.flex ?? 1 }]}>
+              {column.render(item)}
             </View>
-          );
+          ));
+          const actionCell = actions ? <View style={[styles.cell, { flex: 1 }]}>{actions(item)}</View> : null;
+
           if (!onPress) {
             return (
-              <View key={keyExtractor(item)} accessibilityLabel={accessibilityLabel(item)}>
-                {row}
+              <View key={keyExtractor(item)} style={styles.bodyRow} accessibilityLabel={accessibilityLabel(item)}>
+                {cells}
+                {actionCell}
               </View>
             );
           }
+
+          if (!actions) {
+            return (
+              <Pressable
+                key={keyExtractor(item)}
+                onPress={() => onPress(item)}
+                accessibilityRole="button"
+                accessibilityLabel={accessibilityLabel(item)}
+                style={({ pressed }) => [pressed ? styles.pressed : null]}
+              >
+                <View style={styles.bodyRow}>{cells}</View>
+              </Pressable>
+            );
+          }
+
           return (
-            <Pressable
-              key={keyExtractor(item)}
-              onPress={() => onPress(item)}
-              accessibilityRole="button"
-              accessibilityLabel={accessibilityLabel(item)}
-              style={({ pressed }) => [pressed ? styles.pressed : null]}
-            >
-              {row}
-            </Pressable>
+            <View key={keyExtractor(item)} style={styles.bodyRow}>
+              <Pressable
+                onPress={() => onPress(item)}
+                accessibilityRole="button"
+                accessibilityLabel={accessibilityLabel(item)}
+                style={({ pressed }) => [styles.rowMain, { flex: contentFlex }, pressed ? styles.pressed : null]}
+              >
+                {cells}
+              </Pressable>
+              {actionCell}
+            </View>
           );
         })}
       </View>
@@ -66,34 +104,37 @@ export function AdminCollection<T>({ items, columns, onPress, accessibilityLabel
 
   return (
     <View style={styles.cards}>
+      {headerLeading ? <View style={styles.toolbar}>{headerLeading}</View> : null}
       {items.map((item) => {
-        const card = (
-          <View style={[styles.card, shadows.card]}>
-            {columns.map((column) => (
-              <View key={column.key} style={styles.cardRow}>
-                <Text style={styles.cardLabel}>{column.label}</Text>
-                <View style={styles.cardValue}>{column.render(item)}</View>
-              </View>
-            ))}
+        const rows = columns.map((column) => (
+          <View key={column.key} style={styles.cardRow}>
+            <Text style={styles.cardLabel}>{column.label}</Text>
+            <View style={styles.cardValue}>{column.render(item)}</View>
           </View>
-        );
+        ));
+        const actionBlock = actions ? <View style={styles.cardActions}>{actions(item)}</View> : null;
+
         if (!onPress) {
           return (
-            <View key={keyExtractor(item)} accessibilityLabel={accessibilityLabel(item)}>
-              {card}
+            <View key={keyExtractor(item)} style={[styles.card, shadows.card]} accessibilityLabel={accessibilityLabel(item)}>
+              {rows}
+              {actionBlock}
             </View>
           );
         }
+
         return (
-          <Pressable
-            key={keyExtractor(item)}
-            onPress={() => onPress(item)}
-            accessibilityRole="button"
-            accessibilityLabel={accessibilityLabel(item)}
-            style={({ pressed }) => [pressed ? styles.pressed : null]}
-          >
-            {card}
-          </Pressable>
+          <View key={keyExtractor(item)} style={[styles.card, shadows.card]}>
+            <Pressable
+              onPress={() => onPress(item)}
+              accessibilityRole="button"
+              accessibilityLabel={accessibilityLabel(item)}
+              style={({ pressed }) => [pressed ? styles.pressed : null]}
+            >
+              {rows}
+            </Pressable>
+            {actionBlock}
+          </View>
         );
       })}
     </View>
@@ -107,6 +148,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     overflow: 'hidden',
+    width: '100%',
+  },
+  toolbar: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    backgroundColor: colors.surfaceElevated,
   },
   headerRow: {
     flexDirection: 'row',
@@ -114,6 +161,9 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     backgroundColor: colors.primarySoft,
     gap: spacing.md,
+  },
+  headerCellWrap: {
+    justifyContent: 'center',
   },
   headerCell: {
     ...typography.captionStrong,
@@ -131,6 +181,12 @@ const styles = StyleSheet.create({
   },
   cell: {
     justifyContent: 'center',
+  },
+  rowMain: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    minHeight: minTouchSize,
   },
   cards: {
     gap: spacing.md,
@@ -153,6 +209,9 @@ const styles = StyleSheet.create({
   cardValue: {
     minHeight: 22,
     justifyContent: 'center',
+  },
+  cardActions: {
+    marginTop: spacing.sm,
   },
   pressed: {
     opacity: 0.88,

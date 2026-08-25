@@ -19,6 +19,9 @@ class CareManagerResponse(BaseModel):
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     skills: Optional[str] = None
+    experience: Optional[str] = None
+    languages: Optional[str] = None
+    availability: Optional[str] = None
     status: Optional[str] = None
 
 
@@ -28,6 +31,9 @@ class CareManagerCreate(BaseModel):
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     skills: Optional[str] = None
+    experience: Optional[str] = None
+    languages: Optional[str] = None
+    availability: Optional[str] = None
     status: Optional[str] = None
 
 
@@ -36,4 +42,12 @@ class CareManagerUpdate(BaseModel):
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     skills: Optional[str] = None
+    experience: Optional[str] = None
+    languages: Optional[str] = None
+    availability: Optional[str] = None
     status: Optional[str] = None
+
+
+class CareManagerApproval(BaseModel):
+    employee_id: Optional[str] = None
+    status: str = "ACTIVE"

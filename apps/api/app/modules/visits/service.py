@@ -92,6 +92,12 @@ class VisitService:
         row = await self.care_repo.get_by_id(care_manager_id)
         if not row:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Care manager not found")
+        status_value = (row.status or "").upper()
+        if status_value and status_value != "ACTIVE":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Only ACTIVE care associates can be assigned to visits",
+            )
         return row
 
     async def create_visit(self, payload: VisitCreate) -> VisitResponse:

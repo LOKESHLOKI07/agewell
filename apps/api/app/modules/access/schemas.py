@@ -16,3 +16,7 @@ class FamilySeniorAccessResponse(BaseModel):
     family_id: UUID4
     senior_id: UUID4
     created_at: Optional[datetime] = None
+    family_name: Optional[str] = None
+    family_email: Optional[str] = None
+    senior_name: Optional[str] = None
+    senior_email: Optional[str] = None

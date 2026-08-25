@@ -11,5 +11,22 @@ class FamilyMemberResponse(BaseModel):
     user_id: UUID4
     first_name: Optional[str] = None
     last_name: Optional[str] = None
+    relationship: Optional[str] = None
+    requested_senior_reference: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
+
+
+class FamilyMemberCreate(BaseModel):
+    user_id: UUID4
+    first_name: str
+    last_name: str
+    relationship: Optional[str] = None
+    requested_senior_reference: Optional[str] = None
+
+
+class FamilyMemberUpdate(BaseModel):
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    relationship: Optional[str] = None
+    requested_senior_reference: Optional[str] = None

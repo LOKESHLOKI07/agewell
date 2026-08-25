@@ -1,9 +1,10 @@
 import { z } from 'zod';
+import { DISPLAY_DATE_REGEX } from '@/utils/date';
 
 export const communityEventFormSchema = z.object({
   title: z.string().trim().min(1, 'Enter an event title'),
   description: z.string().trim(),
-  date: z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/, 'Enter the date as YYYY-MM-DD'),
+  date: z.string().trim().regex(DISPLAY_DATE_REGEX, 'Enter the date as DD-MM-YYYY'),
   time: z.string().trim().regex(/^\d{2}:\d{2}$/, 'Enter the time as HH:MM'),
   capacity: z
     .string()

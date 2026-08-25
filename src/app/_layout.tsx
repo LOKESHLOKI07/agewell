@@ -52,6 +52,8 @@ export default function RootLayout() {
           <Stack.Screen name="(care)" />
           <Stack.Screen name="(family)" />
           <Stack.Screen name="(admin)" />
+          <Stack.Screen name="pending-approval" />
+          <Stack.Screen name="registration-success" />
           <Stack.Screen name="role-unavailable" />
           <Stack.Screen name="parent/[id]" />
           <Stack.Screen name="health" />

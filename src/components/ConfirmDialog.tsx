@@ -24,8 +24,9 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
-      <Pressable style={styles.overlay} onPress={onCancel} accessibilityLabel="Close dialog">
-        <Pressable style={styles.card} onPress={() => undefined} accessibilityRole="alert">
+      <View style={styles.overlay}>
+        <Pressable style={styles.backdrop} onPress={onCancel} accessibilityLabel="Close dialog" />
+        <View style={styles.card} accessibilityRole="alert">
           <Text style={styles.title}>{title}</Text>
           <Text style={styles.message}>{message}</Text>
           <View style={styles.actions}>
@@ -33,8 +34,8 @@ export function ConfirmDialog({
             <View style={styles.gap} />
             <PrimaryButton label={confirmLabel} onPress={onConfirm} />
           </View>
-        </Pressable>
-      </Pressable>
+        </View>
+      </View>
     </Modal>
   );
 }
@@ -46,7 +47,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: spacing.xxl,
   },
+  backdrop: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+  },
   card: {
+    zIndex: 1,
     backgroundColor: colors.surfaceElevated,
     borderRadius: radius.xl,
     padding: spacing.xxl,

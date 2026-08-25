@@ -27,6 +27,8 @@ export function toFamilyMember(payload: unknown): FamilyMember {
     userId: asId(data.user_id, 'family.user_id'),
     firstName: asOptionalString(data.first_name),
     lastName: asOptionalString(data.last_name),
+    relationship: asOptionalString(data.relationship),
+    requestedSeniorReference: asOptionalString(data.requested_senior_reference),
     createdAt: asOptionalString(data.created_at),
     updatedAt: asOptionalString(data.updated_at),
   };

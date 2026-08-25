@@ -1,8 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm } from 'react-hook-form';
-import { StyleSheet, Text } from 'react-native';
+import { Pressable, StyleSheet, Text } from 'react-native';
+import { router, type Href } from 'expo-router';
 import { BrandMark, PrimaryButton, Screen, TextField } from '@/components';
-import { colors, spacing, typography } from '@/constants/theme';
+import { colors, minTouchSize, spacing, typography } from '@/constants/theme';
 import { useAuth } from './useAuth';
 import { loginSchema, type LoginFormValues } from './schemas';
 
@@ -82,6 +83,13 @@ export function LoginScreen() {
         loading={isSubmitting}
         accessibilityHint="Signs in to your AgeWell account"
       />
+      <Pressable
+        style={styles.linkWrap}
+        onPress={() => router.push('/(auth)/welcome' as Href)}
+        accessibilityRole="button"
+      >
+        <Text style={styles.link}>Back to welcome · Create account</Text>
+      </Pressable>
     </Screen>
   );
 }
@@ -105,5 +113,15 @@ const styles = StyleSheet.create({
     color: colors.emergency,
     textAlign: 'center',
     marginBottom: spacing.lg,
+  },
+  linkWrap: {
+    minHeight: minTouchSize,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: spacing.md,
+  },
+  link: {
+    ...typography.captionStrong,
+    color: colors.primary,
   },
 });

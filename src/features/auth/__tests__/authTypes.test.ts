@@ -17,6 +17,7 @@ describe('toAuthUser', () => {
       email: payload.email,
       phone: payload.phone,
       role: 'SENIOR',
+      accountStatus: 'ACTIVE',
       createdAt: payload.created_at,
     });
   });

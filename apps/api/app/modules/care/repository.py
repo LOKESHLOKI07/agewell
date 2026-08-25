@@ -46,6 +46,9 @@ class CareManagerRepository:
             first_name=payload.first_name,
             last_name=payload.last_name,
             skills=payload.skills,
+            experience=getattr(payload, "experience", None),
+            languages=getattr(payload, "languages", None),
+            availability=getattr(payload, "availability", None),
             status=payload.status,
         )
         self.session.add(row)

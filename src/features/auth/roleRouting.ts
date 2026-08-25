@@ -1,6 +1,9 @@
 import type { AuthRole } from './authTypes';
 
-export function authenticatedHomeHref(role: AuthRole): string {
+export function authenticatedHomeHref(role: AuthRole, options?: { careStatus?: string | null }): string {
+  if (role === 'CARE_MANAGER' && options?.careStatus && options.careStatus.toUpperCase() !== 'ACTIVE') {
+    return '/pending-approval';
+  }
   switch (role) {
     case 'SENIOR':
       return '/(tabs)';

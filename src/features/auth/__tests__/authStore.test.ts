@@ -24,12 +24,13 @@ const user = {
   email: 'senior@example.com',
   phone: '111',
   role: 'SENIOR' as const,
+  accountStatus: 'ACTIVE' as const,
   createdAt: '2026-08-20T00:00:00Z',
 };
 
 describe('authStore', () => {
   beforeEach(() => {
-    useAuthStore.setState({ status: 'INITIALIZING', user: null });
+    useAuthStore.setState({ status: 'INITIALIZING', user: null, careStatus: null });
     jest.clearAllMocks();
   });
 

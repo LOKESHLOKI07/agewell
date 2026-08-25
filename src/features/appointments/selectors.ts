@@ -1,4 +1,5 @@
 import type { AppointmentStatus, HealthcareProvider } from '@/features/home/types/home';
+import { combineDateAndTime, splitDateAndTime } from '@/utils/date';
 
 export const APPOINTMENT_FILTER_STATUSES: Record<'upcoming' | 'completed' | 'cancelled', AppointmentStatus[]> = {
   upcoming: ['REQUESTED', 'CONFIRMED'],
@@ -40,23 +41,11 @@ export function providerLabel(provider: HealthcareProvider): string {
 }
 
 export function toScheduledAtIso(date: string, time: string): string {
-  return `${date}T${time}:00+05:30`;
+  return combineDateAndTime(date, time);
 }
 
 export function scheduledAtToDateTime(value: string | null | undefined): { date: string; time: string } {
-  if (!value) {
-    return { date: '', time: '' };
-  }
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) {
-    return { date: '', time: '' };
-  }
-  const year = parsed.getFullYear();
-  const month = String(parsed.getMonth() + 1).padStart(2, '0');
-  const day = String(parsed.getDate()).padStart(2, '0');
-  const hours = String(parsed.getHours()).padStart(2, '0');
-  const minutes = String(parsed.getMinutes()).padStart(2, '0');
-  return { date: `${year}-${month}-${day}`, time: `${hours}:${minutes}` };
+  return splitDateAndTime(value);
 }
 
 export function healthAppointmentHref(id: string) {

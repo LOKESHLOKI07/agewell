@@ -1,5 +1,5 @@
 import { apiClient } from '@/api/client';
-import { toApiError } from '@/api/errors';
+import { ApiError, toApiError } from '@/api/errors';
 import { fetchVisitDetail, fetchVisitReports, fetchVisitTasks } from '@/features/care/api';
 import type { VisitReport, VisitTask } from '@/features/care/types';
 import { toEmergencyCase, toEmergencyEvent } from '@/features/emergency/mappers';
@@ -30,6 +30,8 @@ import type {
 } from '@/features/home/types/home';
 import type { AuthRole } from '@/features/auth/authTypes';
 import type { FamilyMember } from '@/features/family/types';
+import { toFamilyMember } from '@/features/family/mappers';
+import { toIsoDate } from '@/utils/date';
 import {
   adminSeniorCreateBody,
   adminUserCreateBody,
@@ -118,7 +120,12 @@ export function updateAdminUser(id: string, input: AdminUserUpdate): Promise<Adm
   if (input.email !== undefined) body.email = input.email;
   if (input.phone !== undefined) body.phone = input.phone;
   if (input.role !== undefined) body.role = input.role;
+  if (input.accountStatus !== undefined) body.account_status = input.accountStatus;
   return sendMapped('patch', `/users/${id}`, toAdminUser, body);
+}
+
+export function deleteAdminUser(id: string): Promise<AdminUser> {
+  return sendMapped('delete', `/users/${id}`, toAdminUser);
 }
 
 export function fetchAdminSeniors(params: { limit: number; offset: number }): Promise<ListPage<AdminSenior>> {
@@ -129,12 +136,98 @@ export function fetchAdminSenior(id: string): Promise<AdminSenior> {
   return getMapped(`/seniors/${id}`, toAdminSenior);
 }
 
+export async function fetchAdminSeniorByUserId(userId: string): Promise<AdminSenior | null> {
+  try {
+    return await getMapped(`/seniors/by-user/${userId}`, toAdminSenior);
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) return null;
+    throw error;
+  }
+}
+
 export function createAdminSenior(input: AdminSeniorCreate): Promise<AdminSenior> {
   return sendMapped('post', '/seniors/', toAdminSenior, adminSeniorCreateBody(input));
 }
 
+export function updateAdminSenior(
+  id: string,
+  input: {
+    firstName?: string;
+    lastName?: string;
+    dateOfBirth?: string;
+    address?: string;
+    emergencyContact?: string;
+    email?: string;
+    phone?: string;
+  },
+): Promise<AdminSenior> {
+  const body: Record<string, unknown> = {};
+  if (input.firstName !== undefined) body.first_name = input.firstName;
+  if (input.lastName !== undefined) body.last_name = input.lastName;
+  if (input.dateOfBirth !== undefined) body.date_of_birth = toIsoDate(input.dateOfBirth);
+  if (input.address !== undefined) body.address = input.address;
+  if (input.emergencyContact !== undefined) body.emergency_contact = input.emergencyContact;
+  if (input.email !== undefined) body.email = input.email;
+  if (input.phone !== undefined) body.phone = input.phone;
+  return sendMapped('patch', `/seniors/${id}`, toAdminSenior, body);
+}
+
+export function deleteAdminSenior(id: string): Promise<AdminSenior> {
+  return sendMapped('delete', `/seniors/${id}`, toAdminSenior);
+}
+
 export function fetchAdminFamilies(params: { limit: number; offset: number }): Promise<ListPage<FamilyMember>> {
   return getMapped('/families/', toAdminFamilyPage, params);
+}
+
+export function fetchAdminFamily(id: string): Promise<FamilyMember> {
+  return getMapped(`/families/${id}`, toFamilyMember);
+}
+
+export async function fetchAdminFamilyByUserId(userId: string): Promise<FamilyMember | null> {
+  try {
+    return await getMapped(`/families/by-user/${userId}`, toFamilyMember);
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) return null;
+    throw error;
+  }
+}
+
+export function createAdminFamily(input: {
+  userId: string;
+  firstName: string;
+  lastName: string;
+  relationship?: string;
+  requestedSeniorReference?: string;
+}): Promise<FamilyMember> {
+  return sendMapped('post', '/families/', toFamilyMember, {
+    user_id: input.userId,
+    first_name: input.firstName,
+    last_name: input.lastName,
+    relationship: input.relationship,
+    requested_senior_reference: input.requestedSeniorReference,
+  });
+}
+
+export function updateAdminFamily(
+  id: string,
+  input: {
+    firstName?: string;
+    lastName?: string;
+    relationship?: string;
+    requestedSeniorReference?: string;
+  },
+): Promise<FamilyMember> {
+  const body: Record<string, unknown> = {};
+  if (input.firstName !== undefined) body.first_name = input.firstName;
+  if (input.lastName !== undefined) body.last_name = input.lastName;
+  if (input.relationship !== undefined) body.relationship = input.relationship;
+  if (input.requestedSeniorReference !== undefined) body.requested_senior_reference = input.requestedSeniorReference;
+  return sendMapped('patch', `/families/${id}`, toFamilyMember, body);
+}
+
+export function deleteAdminFamily(id: string): Promise<FamilyMember> {
+  return sendMapped('delete', `/families/${id}`, toFamilyMember);
 }
 
 export function fetchAdminAccess(params: {
@@ -167,6 +260,15 @@ export function fetchAdminCareManager(id: string): Promise<AdminCareManager> {
   return getMapped(`/care/${id}`, toAdminCareManager);
 }
 
+export async function fetchAdminCareManagerByUserId(userId: string): Promise<AdminCareManager | null> {
+  try {
+    return await getMapped(`/care/by-user/${userId}`, toAdminCareManager);
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) return null;
+    throw error;
+  }
+}
+
 export function createAdminCareManager(input: AdminCareManagerCreate): Promise<AdminCareManager> {
   return sendMapped('post', '/care/', toAdminCareManager, {
     user_id: input.userId,
@@ -174,6 +276,9 @@ export function createAdminCareManager(input: AdminCareManagerCreate): Promise<A
     first_name: input.firstName,
     last_name: input.lastName,
     skills: input.skills,
+    experience: input.experience,
+    languages: input.languages,
+    availability: input.availability,
     status: input.status,
   });
 }
@@ -185,7 +290,24 @@ export function updateAdminCareManager(id: string, input: AdminCareManagerUpdate
   if (input.lastName !== undefined) body.last_name = input.lastName;
   if (input.skills !== undefined) body.skills = input.skills;
   if (input.status !== undefined) body.status = input.status;
+  if (input.experience !== undefined) body.experience = input.experience;
+  if (input.languages !== undefined) body.languages = input.languages;
+  if (input.availability !== undefined) body.availability = input.availability;
   return sendMapped('patch', `/care/${id}`, toAdminCareManager, body);
+}
+
+export function deleteAdminCareManager(id: string): Promise<AdminCareManager> {
+  return sendMapped('delete', `/care/${id}`, toAdminCareManager);
+}
+
+export function approveAdminCareManager(
+  id: string,
+  input: { status?: string; employeeId?: string } = {},
+): Promise<AdminCareManager> {
+  return sendMapped('post', `/care/${id}/approve`, toAdminCareManager, {
+    status: input.status ?? 'ACTIVE',
+    employee_id: input.employeeId,
+  });
 }
 
 export function fetchAdminServices(): Promise<AdminService[]> {
@@ -227,6 +349,7 @@ export function fetchAdminVisits(params: {
   today?: boolean;
   upcoming?: boolean;
   seniorId?: string;
+  careManagerId?: string;
   status?: VisitStatus;
 }): Promise<ListPage<Visit>> {
   return getMapped('/visits/', (data) => toListPage(data, toVisit, 'visits'), {
@@ -235,6 +358,7 @@ export function fetchAdminVisits(params: {
     ...(params.today ? { today: true } : {}),
     ...(params.upcoming ? { upcoming: true } : {}),
     ...(params.seniorId ? { senior_id: params.seniorId } : {}),
+    ...(params.careManagerId ? { care_manager_id: params.careManagerId } : {}),
     ...(params.status ? { status: params.status } : {}),
   });
 }

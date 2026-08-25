@@ -20,6 +20,7 @@ describe('tokenStorage', () => {
     resetTokenMemory();
     await clearTokens();
     jest.clearAllMocks();
+    (SecureStore.isAvailableAsync as jest.Mock).mockResolvedValue(true);
   });
 
   it('saves access and refresh tokens in SecureStore', async () => {
@@ -47,6 +48,40 @@ describe('tokenStorage', () => {
     expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith('agewell.access_token');
     expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith('agewell.refresh_token');
     expect(getAccessToken()).toBeNull();
+    await expect(loadTokens()).resolves.toBeNull();
+  });
+
+  it('falls back to localStorage when SecureStore is unavailable (web reload)', async () => {
+    const store = new Map<string, string>();
+    const localStorageMock = {
+      getItem: (key: string) => store.get(key) ?? null,
+      setItem: (key: string, value: string) => {
+        store.set(key, value);
+      },
+      removeItem: (key: string) => {
+        store.delete(key);
+      },
+    };
+    Object.defineProperty(globalThis, 'localStorage', {
+      value: localStorageMock,
+      configurable: true,
+    });
+
+    (SecureStore.isAvailableAsync as jest.Mock).mockResolvedValue(false);
+    resetTokenMemory();
+
+    await saveTokens({ accessToken: 'web-access', refreshToken: 'web-refresh' });
+    expect(SecureStore.setItemAsync).not.toHaveBeenCalled();
+    expect(store.get('agewell.access_token')).toBe('web-access');
+
+    resetTokenMemory();
+    await expect(loadTokens()).resolves.toEqual({
+      accessToken: 'web-access',
+      refreshToken: 'web-refresh',
+    });
+
+    await clearTokens();
+    expect(store.has('agewell.access_token')).toBe(false);
     await expect(loadTokens()).resolves.toBeNull();
   });
 });

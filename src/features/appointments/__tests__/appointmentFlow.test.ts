@@ -159,9 +159,9 @@ describe('appointment booking contracts', () => {
   });
 
   it('validates booking date and time without free-text doctor names', () => {
-    expect(bookAppointmentSchema.safeParse({ doctorId: 'doc-1', date: '2026-09-15', time: '10:00' }).success).toBe(true);
-    expect(bookAppointmentSchema.safeParse({ doctorId: '', date: '2026-09-15', time: '10:00' }).success).toBe(false);
-    expect(bookAppointmentSchema.safeParse({ doctorId: 'doc-1', date: '15-09-2026', time: '10:00' }).success).toBe(false);
+    expect(bookAppointmentSchema.safeParse({ doctorId: 'doc-1', date: '15-09-2026', time: '10:00' }).success).toBe(true);
+    expect(bookAppointmentSchema.safeParse({ doctorId: '', date: '15-09-2026', time: '10:00' }).success).toBe(false);
+    expect(bookAppointmentSchema.safeParse({ doctorId: 'doc-1', date: '2026-09-15', time: '10:00' }).success).toBe(false);
     expect(bookAppointmentSchema.shape).not.toHaveProperty('doctorName');
     expect(bookAppointmentSchema.shape).not.toHaveProperty('hospital');
     expect(bookAppointmentSchema.shape).not.toHaveProperty('purpose');

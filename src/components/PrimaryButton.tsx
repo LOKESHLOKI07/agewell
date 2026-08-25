@@ -8,6 +8,8 @@ interface PrimaryButtonProps {
   loading?: boolean;
   accessibilityHint?: string;
   pill?: boolean;
+  /** When false, button sizes to content instead of stretching full width. */
+  fullWidth?: boolean;
 }
 
 export function PrimaryButton({
@@ -17,6 +19,7 @@ export function PrimaryButton({
   loading = false,
   accessibilityHint,
   pill = false,
+  fullWidth = true,
 }: PrimaryButtonProps) {
   const isDisabled = disabled || loading;
 
@@ -31,6 +34,7 @@ export function PrimaryButton({
       style={({ pressed }) => [
         styles.button,
         pill ? styles.pill : null,
+        !fullWidth ? styles.inline : null,
         pressed && !isDisabled ? styles.pressed : null,
         isDisabled ? styles.disabled : null,
       ]}
@@ -44,11 +48,15 @@ const styles = StyleSheet.create({
   button: {
     minHeight: minTouchSize,
     backgroundColor: colors.primary,
-    borderRadius: radius.xl,
+    borderRadius: radius.lg,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing.xxl,
     paddingVertical: spacing.md,
+  },
+  inline: {
+    alignSelf: 'flex-start',
+    minWidth: 132,
   },
   pill: {
     borderRadius: radius.full,

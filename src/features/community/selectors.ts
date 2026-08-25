@@ -2,10 +2,8 @@ import { ApiError, getApiErrorMessage } from '@/api/errors';
 import type { AuthRole } from '@/features/auth/authTypes';
 import { FAMILY_FORBIDDEN_MESSAGE } from '@/features/family/selectors';
 import type { SeniorProfile } from '@/features/home/types/home';
-import { formatTime } from '@/utils/date';
+import { combineDateAndTime, formatTime, splitDateAndTime, toDisplayDate } from '@/utils/date';
 import type { CommunityEvent, EventRegistration } from './types';
-
-const SHORT_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 export function canUseCommunity(role: AuthRole | null | undefined): boolean {
   return role === 'SENIOR' || role === 'FAMILY' || role === 'ADMIN' || role === 'OPERATIONS';
@@ -31,11 +29,7 @@ export function formatEventDate(value: string | null | undefined): string | null
   if (!value) {
     return null;
   }
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return null;
-  }
-  return `${date.getDate()} ${SHORT_MONTHS[date.getMonth()]} ${date.getFullYear()}`;
+  return toDisplayDate(value) || null;
 }
 
 export function formatEventTime(value: string | null | undefined): string | null {
@@ -110,23 +104,11 @@ export function isAuthorizedFamilySenior(seniors: SeniorProfile[], seniorId: str
 }
 
 export function toEventDateIso(date: string, time: string): string {
-  return `${date}T${time}:00+05:30`;
+  return combineDateAndTime(date, time);
 }
 
 export function eventDateToForm(value: string | null | undefined): { date: string; time: string } {
-  if (!value) {
-    return { date: '', time: '' };
-  }
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) {
-    return { date: '', time: '' };
-  }
-  const year = parsed.getFullYear();
-  const month = String(parsed.getMonth() + 1).padStart(2, '0');
-  const day = String(parsed.getDate()).padStart(2, '0');
-  const hours = String(parsed.getHours()).padStart(2, '0');
-  const minutes = String(parsed.getMinutes()).padStart(2, '0');
-  return { date: `${year}-${month}-${day}`, time: `${hours}:${minutes}` };
+  return splitDateAndTime(value);
 }
 
 export function getCommunityErrorMessage(error: unknown): string {

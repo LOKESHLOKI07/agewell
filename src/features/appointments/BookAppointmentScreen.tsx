@@ -6,6 +6,7 @@ import type { UseQueryResult } from '@tanstack/react-query';
 import { StyleSheet, Text, View } from 'react-native';
 import { ErrorState, PrimaryButton, TextField } from '@/components';
 import { getApiErrorMessage } from '@/api/errors';
+import { DISPLAY_DATE_PLACEHOLDER } from '@/utils/date';
 import { colors, spacing, typography } from '@/constants/theme';
 import { HealthQueryView } from '@/features/health/components/HealthQueryView';
 import { HealthSubScreen } from '@/features/health/components/HealthSubScreen';
@@ -111,7 +112,7 @@ export function BookAppointmentScreen({
             render={({ field: { onChange, onBlur, value } }) => (
               <TextField
                 label="Date"
-                placeholder="YYYY-MM-DD"
+                placeholder={DISPLAY_DATE_PLACEHOLDER}
                 value={value}
                 onBlur={onBlur}
                 onChangeText={onChange}

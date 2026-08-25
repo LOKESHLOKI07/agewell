@@ -2,6 +2,8 @@ export type AuthStatus = 'INITIALIZING' | 'UNAUTHENTICATED' | 'AUTHENTICATED';
 
 export type AuthRole = 'SENIOR' | 'FAMILY' | 'CARE_MANAGER' | 'ADMIN' | 'OPERATIONS';
 
+export type AccountStatus = 'PENDING' | 'ACTIVE' | 'REJECTED' | 'DISABLED';
+
 export const AUTH_ROLES: readonly AuthRole[] = [
   'SENIOR',
   'FAMILY',
@@ -44,11 +46,16 @@ export interface AuthUser {
   email: string;
   phone: string;
   role: AuthRole;
+  accountStatus: AccountStatus;
   createdAt: string;
 }
 
 export function isAuthRole(value: unknown): value is AuthRole {
   return typeof value === 'string' && (AUTH_ROLES as readonly string[]).includes(value);
+}
+
+function isAccountStatus(value: unknown): value is AccountStatus {
+  return value === 'PENDING' || value === 'ACTIVE' || value === 'REJECTED' || value === 'DISABLED';
 }
 
 export function toAuthUser(payload: unknown): AuthUser {
@@ -73,11 +80,15 @@ export function toAuthUser(payload: unknown): AuthUser {
     throw new Error('Invalid user profile');
   }
 
+  const accountStatus = data.account_status;
+  const resolvedStatus: AccountStatus = isAccountStatus(accountStatus) ? accountStatus : 'ACTIVE';
+
   return {
     id: String(data.id),
     email: data.email,
     phone: data.phone,
     role: data.role,
+    accountStatus: resolvedStatus,
     createdAt,
   };
 }

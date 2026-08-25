@@ -8,10 +8,13 @@ import { clearTokens, loadTokens } from './tokenStorage';
 interface AuthState {
   status: AuthStatus;
   user: AuthUser | null;
+  careStatus: string | null;
   hydrate: () => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
+  completeRegistration: (user: AuthUser, careStatus?: string | null) => void;
   signOut: () => Promise<void>;
   setUser: (user: AuthUser) => void;
+  setCareStatus: (status: string | null) => void;
 }
 
 function resetClientSession(): void {
@@ -22,11 +25,12 @@ function resetClientSession(): void {
 export const useAuthStore = create<AuthState>((set, get) => ({
   status: 'INITIALIZING',
   user: null,
+  careStatus: null,
 
   hydrate: async () => {
     const tokens = await loadTokens();
     if (!tokens) {
-      set({ status: 'UNAUTHENTICATED', user: null });
+      set({ status: 'UNAUTHENTICATED', user: null, careStatus: null });
       return;
     }
 
@@ -37,20 +41,25 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     } catch {
       await clearTokens();
       resetClientSession();
-      set({ status: 'UNAUTHENTICATED', user: null });
+      set({ status: 'UNAUTHENTICATED', user: null, careStatus: null });
     }
   },
 
   signIn: async (email, password) => {
     const user = await loginWithPassword(email, password);
     queryClient.setQueryData(currentUserQueryKey, user);
-    set({ status: 'AUTHENTICATED', user });
+    set({ status: 'AUTHENTICATED', user, careStatus: null });
+  },
+
+  completeRegistration: (user, careStatus = null) => {
+    queryClient.setQueryData(currentUserQueryKey, user);
+    set({ status: 'AUTHENTICATED', user, careStatus });
   },
 
   signOut: async () => {
     await logoutAndClearLocal();
     resetClientSession();
-    set({ status: 'UNAUTHENTICATED', user: null });
+    set({ status: 'UNAUTHENTICATED', user: null, careStatus: null });
   },
 
   setUser: (user) => {
@@ -59,9 +68,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
     set({ user });
   },
+
+  setCareStatus: (careStatus) => set({ careStatus }),
 }));
 
 setUnauthorizedHandler(() => {
   resetClientSession();
-  useAuthStore.setState({ status: 'UNAUTHENTICATED', user: null });
+  useAuthStore.setState({ status: 'UNAUTHENTICATED', user: null, careStatus: null });
 });

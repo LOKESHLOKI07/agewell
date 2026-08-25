@@ -49,7 +49,15 @@ class UserRepository:
         return list(result.scalars().all()), int(total)
 
     async def create(self, user: UserCreate) -> User:
-        db_user = User(email=user.email, phone=user.phone, role=user.role, hashed_password=user.password)
+        from app.modules.users.models import AccountStatus
+
+        db_user = User(
+            email=user.email,
+            phone=user.phone,
+            role=user.role,
+            hashed_password=user.password,
+            account_status=user.account_status or AccountStatus.ACTIVE,
+        )
         self.session.add(db_user)
         await self.session.commit()
         await self.session.refresh(db_user)

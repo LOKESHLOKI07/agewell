@@ -79,7 +79,29 @@ class AccessRepository:
         return result.scalars().first()
 
     async def list_access(self, *, family_id=None, senior_id=None, limit: int = 50, offset: int = 0):
-        stmt = select(FamilySeniorAccess)
+        from sqlalchemy.orm import aliased
+
+        from app.modules.seniors.models import Senior
+        from app.modules.users.models import User
+
+        family_user = aliased(User)
+        senior_user = aliased(User)
+
+        stmt = (
+            select(
+                FamilySeniorAccess,
+                FamilyMember.first_name.label("family_first_name"),
+                FamilyMember.last_name.label("family_last_name"),
+                family_user.email.label("family_email"),
+                Senior.first_name.label("senior_first_name"),
+                Senior.last_name.label("senior_last_name"),
+                senior_user.email.label("senior_email"),
+            )
+            .outerjoin(FamilyMember, FamilyMember.id == FamilySeniorAccess.family_id)
+            .outerjoin(family_user, family_user.id == FamilyMember.user_id)
+            .outerjoin(Senior, Senior.id == FamilySeniorAccess.senior_id)
+            .outerjoin(senior_user, senior_user.id == Senior.user_id)
+        )
         count_stmt = select(func.count()).select_from(FamilySeniorAccess)
         if family_id is not None:
             stmt = stmt.where(FamilySeniorAccess.family_id == family_id)
@@ -91,7 +113,7 @@ class AccessRepository:
         result = await self.session.execute(
             stmt.order_by(FamilySeniorAccess.created_at.desc().nulls_last()).offset(offset).limit(limit)
         )
-        return list(result.scalars().all()), int(total)
+        return list(result.all()), int(total)
 
     async def create_access(self, *, family_id, senior_id) -> FamilySeniorAccess:
         row = FamilySeniorAccess(family_id=family_id, senior_id=senior_id)

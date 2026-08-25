@@ -9,6 +9,7 @@ export interface AdminUser {
   email: string;
   phone: string;
   role: AuthRole;
+  accountStatus: string;
   createdAt: string | null;
   updatedAt: string | null;
 }
@@ -24,6 +25,7 @@ export interface AdminUserUpdate {
   email?: string;
   phone?: string;
   role?: AuthRole;
+  accountStatus?: string;
 }
 
 export interface AdminSenior {
@@ -35,6 +37,8 @@ export interface AdminSenior {
   address: string;
   emergencyContact: string;
   email: string | null;
+  phone: string | null;
+  accountStatus: string | null;
 }
 
 export interface AdminSeniorCreate {
@@ -46,13 +50,40 @@ export interface AdminSeniorCreate {
   emergencyContact: string;
 }
 
+export interface AdminSeniorUpdate {
+  firstName?: string;
+  lastName?: string;
+  dateOfBirth?: string;
+  address?: string;
+  emergencyContact?: string;
+  email?: string;
+  phone?: string;
+}
+
 export interface AdminFamily {
   id: string;
   userId: string;
   firstName: string | null;
   lastName: string | null;
+  relationship: string | null;
+  requestedSeniorReference: string | null;
   createdAt: string | null;
   updatedAt: string | null;
+}
+
+export interface AdminFamilyCreate {
+  userId: string;
+  firstName: string;
+  lastName: string;
+  relationship?: string;
+  requestedSeniorReference?: string;
+}
+
+export interface AdminFamilyUpdate {
+  firstName?: string;
+  lastName?: string;
+  relationship?: string;
+  requestedSeniorReference?: string;
 }
 
 export interface AdminAccess {
@@ -60,6 +91,10 @@ export interface AdminAccess {
   familyId: string;
   seniorId: string;
   createdAt: string | null;
+  familyName: string | null;
+  familyEmail: string | null;
+  seniorName: string | null;
+  seniorEmail: string | null;
 }
 
 export interface AdminCareManager {
@@ -70,6 +105,9 @@ export interface AdminCareManager {
   firstName: string | null;
   lastName: string | null;
   skills: string | null;
+  experience: string | null;
+  languages: string | null;
+  availability: string | null;
   status: string | null;
 }
 
@@ -79,6 +117,9 @@ export interface AdminCareManagerCreate {
   firstName?: string;
   lastName?: string;
   skills?: string;
+  experience?: string;
+  languages?: string;
+  availability?: string;
   status?: string;
 }
 
@@ -87,6 +128,9 @@ export interface AdminCareManagerUpdate {
   firstName?: string;
   lastName?: string;
   skills?: string;
+  experience?: string;
+  languages?: string;
+  availability?: string;
   status?: string;
 }
 

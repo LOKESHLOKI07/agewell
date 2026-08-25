@@ -157,6 +157,7 @@ describe('admin APIs', () => {
       email: userPayload.email,
       phone: userPayload.phone,
       role: 'ADMIN',
+      accountStatus: 'ACTIVE',
       createdAt: userPayload.created_at,
       updatedAt: userPayload.updated_at,
     });
@@ -208,12 +209,14 @@ describe('admin APIs', () => {
 
     jsonRequest(accessPayload);
     const granted = await grantAdminAccess('fam-1', seniorPayload.id);
-    expect(granted).toEqual({
+    expect(granted).toMatchObject({
       id: 'access-1',
       familyId: 'fam-1',
       seniorId: seniorPayload.id,
       createdAt: accessPayload.created_at,
     });
+    expect(granted.familyName).toBeNull();
+    expect(granted.seniorName).toBeNull();
     expect((granted as unknown as { permission?: string }).permission).toBeUndefined();
 
     mockedRequest.mockRejectedValueOnce({

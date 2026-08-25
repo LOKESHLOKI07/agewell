@@ -33,6 +33,15 @@ describe('getApiErrorMessage', () => {
     expect(getApiErrorMessage(axiosError(409))).toBe('This record already exists.');
   });
 
+  it('maps registration 409 email/phone conflicts to clear copy', () => {
+    expect(
+      getApiErrorMessage(axiosError(409, { data: { detail: 'Email already exists' } })),
+    ).toBe('This email is already registered. Sign in, or use a different email.');
+    expect(
+      getApiErrorMessage(axiosError(409, { data: { detail: 'Phone already exists' } })),
+    ).toBe('This phone number is already registered. Sign in, or use a different number.');
+  });
+
   it('maps 400 and 422 without exposing backend details', () => {
     expect(getApiErrorMessage(axiosError(422, { data: { detail: 'raw validation dump' } }))).toBe(
       'Please check the information you entered and try again.',

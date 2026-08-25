@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_db, require_staff
@@ -7,7 +7,7 @@ from app.modules.access.repository import AccessRepository
 from app.modules.access.service import AccessService
 from app.modules.audit.repository import AuditRepository
 from app.modules.seniors.repository import SeniorRepository
-from app.modules.seniors.schemas import SeniorCreate, SeniorDirectoryItem, SeniorResponse
+from app.modules.seniors.schemas import SeniorCreate, SeniorDirectoryItem, SeniorResponse, SeniorUpdate
 from app.modules.seniors.service import SeniorService
 from app.modules.users.models import User
 from app.modules.users.repository import UserRepository
@@ -41,7 +41,16 @@ async def list_seniors(
     return await service.list_seniors(limit=limit, offset=offset)
 
 
-@router.post("/", response_model=SeniorResponse)
+@router.get("/by-user/{user_id}", response_model=SeniorDirectoryItem)
+async def get_senior_by_user(
+    user_id: str,
+    _staff: User = Depends(require_staff),
+    service: SeniorService = Depends(get_senior_service),
+):
+    return await service.get_senior_detail_by_user_id(user_id)
+
+
+@router.post("/", response_model=SeniorDirectoryItem)
 async def create_senior(
     senior_in: SeniorCreate,
     _staff: User = Depends(require_staff),
@@ -50,7 +59,7 @@ async def create_senior(
     return await service.create_senior(senior_in)
 
 
-@router.get("/{senior_id}", response_model=SeniorResponse)
+@router.get("/{senior_id}", response_model=SeniorDirectoryItem)
 async def get_senior(
     senior_id: str,
     current_user: User = Depends(get_current_user),
@@ -58,7 +67,23 @@ async def get_senior(
     access: AccessService = Depends(get_access_service),
 ):
     await access.resolve_senior_id(current_user, senior_id)
-    senior = await service.get_senior(senior_id)
-    if not senior:
-        raise HTTPException(status_code=404, detail="Senior not found")
-    return senior
+    return await service.get_senior_detail(senior_id)
+
+
+@router.patch("/{senior_id}", response_model=SeniorDirectoryItem)
+async def update_senior(
+    senior_id: str,
+    payload: SeniorUpdate,
+    _staff: User = Depends(require_staff),
+    service: SeniorService = Depends(get_senior_service),
+):
+    return await service.update_senior(senior_id, payload)
+
+
+@router.delete("/{senior_id}", response_model=SeniorDirectoryItem)
+async def delete_senior(
+    senior_id: str,
+    _staff: User = Depends(require_staff),
+    service: SeniorService = Depends(get_senior_service),
+):
+    return await service.delete_senior(senior_id)
