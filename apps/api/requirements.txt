@@ -1,0 +1,17 @@
+fastapi
+uvicorn
+sqlalchemy
+alembic
+psycopg2-binary
+pydantic
+pydantic-settings
+redis
+pytest
+asyncpg
+passlib[bcrypt]
+bcrypt>=4.0.1,<5
+httpx
+pytest-asyncio
+python-jose
+python-multipart
+tzdata

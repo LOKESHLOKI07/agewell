@@ -1,0 +1,94 @@
+import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { router, useLocalSearchParams, useNavigation, type Href } from 'expo-router';
+import { colors, typography, spacing, minTouchSize, cardSurface } from '@/constants/theme';
+import { AgeWellHeader } from '@/features/home/components/AgeWellHeader';
+import { EmptyState, LoadingState, PrimaryButton } from '@/components';
+import { useService } from '@/features/services/hooks';
+import { serviceRequestHref } from '@/features/services/selectors';
+import { useI18n } from '@/i18n';
+import { useAuthStore } from '@/features/auth/authStore';
+import { safeGoBack } from '@/utils/navigation';
+
+/**
+ * Replaces mock checkout. Dedicated addon purchase/payment APIs do not exist
+ * for consumers — route to the real service request flow instead.
+ */
+export default function AddonDetailScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const { t } = useI18n();
+  const navigation = useNavigation();
+  const role = useAuthStore((state) => state.user?.role);
+  const query = useService(id);
+  const service = query.service;
+
+  if (query.isPending) {
+    return (
+      <View style={styles.container}>
+        <AgeWellHeader title={t('addons.title')} showBack />
+        <LoadingState message="Loading…" />
+      </View>
+    );
+  }
+
+  if (!service) {
+    return (
+      <View style={styles.container}>
+        <AgeWellHeader title="Not found" showBack />
+        <EmptyState
+          icon="cart-outline"
+          title="Add-on not found"
+          message="This item is not in your AgeWell service catalogue."
+          actionLabel="Back to store"
+          onAction={() => safeGoBack(navigation.canGoBack(), role)}
+        />
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      <AgeWellHeader title="Request add-on" showBack />
+      <ScrollView contentContainerStyle={styles.content}>
+        <View style={styles.summaryCard}>
+          <Text style={styles.title}>{service.name}</Text>
+          <Text style={styles.description}>{service.description || 'No description on file.'}</Text>
+          <View style={styles.divider} />
+          <Text style={styles.note}>{t('addons.noPayment')}</Text>
+        </View>
+
+        <PrimaryButton
+          label="Continue to request"
+          onPress={() => router.push(serviceRequestHref(service.id) as unknown as Href)}
+        />
+
+        <Pressable
+          style={styles.secondary}
+          onPress={() => router.push('/account/help' as Href)}
+          accessibilityRole="button"
+          accessibilityLabel="Contact AgeWell support"
+        >
+          <Text style={styles.secondaryText}>Prefer to talk to someone? Contact support</Text>
+        </Pressable>
+      </ScrollView>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
+  content: { padding: spacing.lg, flexGrow: 1, gap: spacing.lg },
+  summaryCard: {
+    ...cardSurface,
+    padding: spacing.lg,
+  },
+  title: { ...typography.title, color: colors.text, marginBottom: spacing.sm },
+  description: { ...typography.body, color: colors.textSecondary, marginBottom: spacing.md },
+  divider: { height: 1, backgroundColor: colors.border, marginVertical: spacing.md },
+  note: { ...typography.caption, color: colors.textMuted },
+  secondary: {
+    minHeight: minTouchSize,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  secondaryText: { ...typography.captionStrong, color: colors.primary },
+});
