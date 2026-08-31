@@ -45,6 +45,10 @@ function isNetworkError(error: unknown): boolean {
 }
 
 export function getApiErrorMessage(error: unknown, context: ApiErrorContext = 'default'): string {
+  if (error instanceof ApiError) {
+    return error.message;
+  }
+
   if (isTimeout(error) || isNetworkError(error)) {
     return MESSAGES.network;
   }
@@ -64,21 +68,46 @@ export function getApiErrorMessage(error: unknown, context: ApiErrorContext = 'd
       }
       return MESSAGES.badRequest;
     }
-    case 401:
+    case 401: {
+      const detail = error.response?.data?.detail;
+      if (context !== 'login' && typeof detail === 'string' && detail.trim()) {
+        return detail;
+      }
       return context === 'login' ? MESSAGES.loginUnauthorized : MESSAGES.sessionExpired;
+    }
     case 403:
       return context === 'admin' ? MESSAGES.forbiddenArea : MESSAGES.forbidden;
     case 404:
       return MESSAGES.notFound;
     case 409:
       return conflictMessage(error);
+    case 429: {
+      const detail = error.response?.data?.detail;
+      if (typeof detail === 'string' && detail.trim()) {
+        return detail;
+      }
+      return 'Please wait a moment and try again.';
+    }
     case 500:
     case 502:
-    case 503:
+    case 503: {
+      const detail = error.response?.data?.detail;
+      if (typeof detail === 'string' && detail.trim()) {
+        return detail;
+      }
       return MESSAGES.server;
+    }
     default:
       return MESSAGES.generic;
   }
+}
+
+export function isEmailAlreadyRegistered(error: unknown): boolean {
+  return getApiErrorMessage(error) === MESSAGES.emailExists;
+}
+
+export function isPhoneAlreadyRegistered(error: unknown): boolean {
+  return getApiErrorMessage(error) === MESSAGES.phoneExists;
 }
 
 export class ApiError extends Error {

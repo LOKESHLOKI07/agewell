@@ -157,7 +157,7 @@ async def test_registration_rejects_duplicate_email(client):
             "last_name": "D",
             "email": email,
             "phone": unique_phone(),
-            "password": PASSWORD,
+            "password": "different-password-123",
             "relationship": "Daughter",
         },
     )

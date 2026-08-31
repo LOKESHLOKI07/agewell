@@ -10,8 +10,6 @@ import {
   adminAppointmentBookHref,
   adminAppointmentHref,
   canManageAppointment,
-  familyAppointmentBookHref,
-  familyAppointmentHref,
   findProviderById,
   healthAppointmentBookHref,
   healthAppointmentHref,
@@ -167,14 +165,9 @@ describe('appointment booking contracts', () => {
     expect(bookAppointmentSchema.shape).not.toHaveProperty('purpose');
   });
 
-  it('routes booking and detail to Health, Family, and Admin paths', () => {
+  it('routes booking and detail to Health and Admin paths', () => {
     expect(healthAppointmentBookHref()).toBe('/health/appointments/new');
     expect(healthAppointmentHref('appt-1')).toEqual({ pathname: '/health/appointments/[id]', params: { id: 'appt-1' } });
-    expect(familyAppointmentBookHref()).toBe('/family/health/appointments/new');
-    expect(familyAppointmentHref('appt-1')).toEqual({
-      pathname: '/family/health/appointments/[id]',
-      params: { id: 'appt-1' },
-    });
     expect(adminAppointmentBookHref()).toBe('/(admin)/appointments/new');
     expect(adminAppointmentHref('appt-1')).toBe('/(admin)/appointments/appt-1');
   });

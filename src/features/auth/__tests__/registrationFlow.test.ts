@@ -1,6 +1,8 @@
 import { authenticatedHomeHref } from '../roleRouting';
 import { toAuthUser } from '../authTypes';
-import { registerSeniorSchema, registerFamilySchema, registerCareSchema } from '../registrationSchemas';
+import { createAccountHref, emailOtpHref, signInHref } from '../authEntry';
+import { onboardingAccountFields, personalDetailsSchema } from '../onboardingProfile';
+import { registerSeniorSchema, registerCareSchema } from '../registrationSchemas';
 import { registrationSuccessHref } from '../registrationNavigation';
 
 describe('registration schemas', () => {
@@ -16,19 +18,6 @@ describe('registration schemas', () => {
       emergencyContact: '911',
     });
     expect(parsed.firstName).toBe('Lakshmi');
-  });
-
-  it('requires relationship for family registration', () => {
-    expect(() =>
-      registerFamilySchema.parse({
-        firstName: 'Rahul',
-        lastName: 'Sharma',
-        email: 'rahul@example.com',
-        phone: '9876543211',
-        password: 'password123',
-        relationship: '',
-      }),
-    ).toThrow();
   });
 
   it('accepts care associate application values', () => {
@@ -69,10 +58,66 @@ describe('registration success navigation', () => {
   });
 });
 
+describe('auth entry routing', () => {
+  it('sends signed-out members to email sign-in', () => {
+    expect(signInHref()).toBe('/(auth)/login');
+  });
+
+  it('starts Continue from personal details, not location', () => {
+    expect(createAccountHref('google')).toEqual({
+      pathname: '/(auth)/personal-details',
+      params: { method: 'google' },
+    });
+    expect(createAccountHref('email')).toEqual({
+      pathname: '/(auth)/personal-details',
+      params: { method: 'email' },
+    });
+  });
+
+  it('sends email continue to OTP verification', () => {
+    expect(emailOtpHref('signup')).toEqual({
+      pathname: '/(auth)/email-otp',
+      params: { intent: 'signup' },
+    });
+  });
+
+  it('sends email sign-in to the same screen with password or code', () => {
+    expect(emailOtpHref('signin')).toEqual({
+      pathname: '/(auth)/email-otp',
+      params: { intent: 'signin' },
+    });
+  });
+});
+
+describe('signed-out entry', () => {
+  it('keeps Sign in as the returning-member destination', () => {
+    expect(signInHref()).toBe('/(auth)/login');
+  });
+});
+
+describe('shared onboarding registration', () => {
+  it('maps one profile into senior registration fields', () => {
+    const parsed = personalDetailsSchema.parse({
+      firstName: 'Rahul',
+      lastName: 'Sharma',
+      phone: '9876543211',
+      email: 'rahul@example.com',
+      dateOfBirth: '10-03-1985',
+      language: 'en',
+      address: 'Borivali East, Mumbai',
+    });
+    const account = onboardingAccountFields(parsed);
+    expect(account.firstName).toBe('Rahul');
+    expect(account.lastName).toBe('Sharma');
+    expect(account.password).toBe('9876543211');
+    expect(account.preferredLanguage).toBe('en');
+  });
+});
+
 describe('role routing after registration', () => {
-  it('sends seniors and families to their homes', () => {
+  it('sends seniors and legacy family accounts to the senior home', () => {
     expect(authenticatedHomeHref('SENIOR')).toBe('/(tabs)');
-    expect(authenticatedHomeHref('FAMILY')).toBe('/(family)');
+    expect(authenticatedHomeHref('FAMILY')).toBe('/(tabs)');
   });
 
   it('sends pending care associates to pending approval', () => {

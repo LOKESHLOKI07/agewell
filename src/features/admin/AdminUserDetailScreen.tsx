@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import { router, useLocalSearchParams, type Href } from 'expo-router';
-import { ConfirmDialog, PrimaryButton, PremiumCard, SecondaryButton, StatusPill, TextField, statusToneFromLabel } from '@/components';
+import { PrimaryButton, PremiumCard, SecondaryButton, StatusPill, TextField, statusToneFromLabel } from '@/components';
 import { colors, radius, spacing, typography } from '@/constants/theme';
 import { AUTH_ROLES, type AuthRole } from '@/features/auth/authTypes';
 import { formatLongDate, formatRelativeDay, formatTime, toDisplayDate } from '@/utils/date';
@@ -12,33 +12,24 @@ import { AdminScreen } from './components/AdminScreen';
 import { AdminSearchPicker } from './components/AdminSearchPicker';
 import {
   createAdminCareManager,
-  createAdminFamily,
   createAdminSenior,
   createAdminVisit,
-  grantAdminAccess,
 } from './api';
 import {
-  useAdminAccess,
   useAdminCareManagerByUserId,
   useAdminCareManagers,
-  useAdminFamilies,
-  useAdminFamilyByUserId,
   useAdminSeniorByUserId,
   useAdminSeniors,
   useAdminUser,
   useAdminVisits,
   useCreateAdminUser,
   useCreateAdminVisit,
-  useGrantAdminAccess,
-  useRevokeAdminAccess,
   useUpdateAdminCareManager,
-  useUpdateAdminFamily,
   useUpdateAdminSenior,
   useUpdateAdminUser,
 } from './hooks';
 import {
   adminCareManagerDisplay,
-  adminFamilyDisplay,
   adminRoleLabel,
   adminSeniorDisplay,
   getAdminErrorMessage,
@@ -69,20 +60,16 @@ export function AdminUserDetailScreen() {
 
   const role = query.data?.role;
   const isSenior = role === 'SENIOR';
-  const isFamily = role === 'FAMILY';
   const isCare = role === 'CARE_MANAGER';
-  const isStaffOnly = role === 'ADMIN' || role === 'OPERATIONS';
+  const isStaffOnly = role === 'ADMIN' || role === 'OPERATIONS' || role === 'FAMILY';
 
   const seniorQuery = useAdminSeniorByUserId(isSenior ? id : undefined);
-  const familyQuery = useAdminFamilyByUserId(isFamily ? id : undefined);
   const careQuery = useAdminCareManagerByUserId(isCare ? id : undefined);
 
   const linkedSenior = seniorQuery.data ?? null;
-  const linkedFamily = familyQuery.data ?? null;
   const linkedCare = careQuery.data ?? null;
 
   const updateSenior = useUpdateAdminSenior(linkedSenior?.id ?? '');
-  const updateFamily = useUpdateAdminFamily(linkedFamily?.id ?? '');
   const updateCare = useUpdateAdminCareManager(linkedCare?.id ?? '');
 
   const [email, setEmail] = useState('');
@@ -93,17 +80,14 @@ export function AdminUserDetailScreen() {
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [address, setAddress] = useState('');
   const [emergencyContact, setEmergencyContact] = useState('');
-  const [relationship, setRelationship] = useState('');
-  const [requestedSeniorReference, setRequestedSeniorReference] = useState('');
+  const [preferredLanguage, setPreferredLanguage] = useState('');
   const [employeeId, setEmployeeId] = useState('');
   const [skills, setSkills] = useState('');
   const [experience, setExperience] = useState('');
   const [languages, setLanguages] = useState('');
   const [availability, setAvailability] = useState('');
   const [careStatus, setCareStatus] = useState('');
-  const [pendingFamilyId, setPendingFamilyId] = useState<string | null>(null);
   const [pendingCareManagerId, setPendingCareManagerId] = useState<string | null>(null);
-  const [pendingSeniorId, setPendingSeniorId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
@@ -117,17 +101,14 @@ export function AdminUserDetailScreen() {
     setDateOfBirth('');
     setAddress('');
     setEmergencyContact('');
-    setRelationship('');
-    setRequestedSeniorReference('');
+    setPreferredLanguage('');
     setEmployeeId('');
     setSkills('');
     setExperience('');
     setLanguages('');
     setAvailability('');
     setCareStatus('');
-    setPendingFamilyId(null);
     setPendingCareManagerId(null);
-    setPendingSeniorId(null);
     setFormError(null);
     setSavedMessage(null);
   }, [id]);
@@ -147,17 +128,9 @@ export function AdminUserDetailScreen() {
       setDateOfBirth(toDisplayDate(linkedSenior.dateOfBirth));
       setAddress(linkedSenior.address ?? '');
       setEmergencyContact(linkedSenior.emergencyContact ?? '');
+      setPreferredLanguage(linkedSenior.preferredLanguage ?? '');
     }
   }, [linkedSenior]);
-
-  useEffect(() => {
-    if (linkedFamily) {
-      setFirstName(linkedFamily.firstName ?? '');
-      setLastName(linkedFamily.lastName ?? '');
-      setRelationship(linkedFamily.relationship ?? '');
-      setRequestedSeniorReference(linkedFamily.requestedSeniorReference ?? '');
-    }
-  }, [linkedFamily]);
 
   useEffect(() => {
     if (linkedCare) {
@@ -182,10 +155,8 @@ export function AdminUserDetailScreen() {
     if (!id) return;
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['admin', 'seniors', 'by-user', id] }),
-      queryClient.invalidateQueries({ queryKey: ['admin', 'families', 'by-user', id] }),
       queryClient.invalidateQueries({ queryKey: ['admin', 'careManagers', 'by-user', id] }),
       queryClient.invalidateQueries({ queryKey: ['admin', 'seniors'] }),
-      queryClient.invalidateQueries({ queryKey: ['admin', 'families'] }),
       queryClient.invalidateQueries({ queryKey: ['admin', 'careManagers'] }),
     ]);
   };
@@ -207,6 +178,7 @@ export function AdminUserDetailScreen() {
             dateOfBirth,
             address,
             emergencyContact,
+            preferredLanguage: preferredLanguage || undefined,
             email,
             phone,
           });
@@ -218,16 +190,12 @@ export function AdminUserDetailScreen() {
             dateOfBirth,
             address,
             emergencyContact,
+            preferredLanguage: preferredLanguage || undefined,
           });
           seniorId = created.id;
           await invalidateByUser();
         }
 
-        if (pendingFamilyId && seniorId) {
-          await grantAdminAccess(pendingFamilyId, seniorId);
-          setPendingFamilyId(null);
-          await queryClient.invalidateQueries({ queryKey: ['admin', 'access'] });
-        }
         if (pendingCareManagerId && seniorId) {
           await createAdminVisit({
             seniorId,
@@ -237,32 +205,6 @@ export function AdminUserDetailScreen() {
           });
           setPendingCareManagerId(null);
           await queryClient.invalidateQueries({ queryKey: ['admin', 'visits'] });
-        }
-      } else if (isFamily) {
-        let familyId = linkedFamily?.id;
-        if (linkedFamily) {
-          await updateFamily.mutateAsync({
-            firstName,
-            lastName,
-            relationship: relationship || undefined,
-            requestedSeniorReference: requestedSeniorReference || undefined,
-          });
-        } else {
-          const created = await createAdminFamily({
-            userId: id,
-            firstName,
-            lastName,
-            relationship: relationship || undefined,
-            requestedSeniorReference: requestedSeniorReference || undefined,
-          });
-          familyId = created.id;
-          await invalidateByUser();
-        }
-
-        if (pendingSeniorId && familyId) {
-          await grantAdminAccess(familyId, pendingSeniorId);
-          setPendingSeniorId(null);
-          await queryClient.invalidateQueries({ queryKey: ['admin', 'access'] });
         }
       } else if (isCare) {
         if (linkedCare) {
@@ -338,13 +280,13 @@ export function AdminUserDetailScreen() {
 
               <Text style={styles.hint}>
                 Same fields collected at registration (password is not shown). Role is locked to protect linked profiles.
-                {(isSenior || isFamily || isCare) && !(linkedSenior || linkedFamily || linkedCare)
+                {(isSenior || isCare) && !(linkedSenior || linkedCare)
                   ? ' Fill the fields below and Save to create the linked profile.'
                   : null}
               </Text>
 
               <View style={styles.fieldGrid}>
-                {(isSenior || isFamily || isCare) && !isStaffOnly ? (
+                {(isSenior || isCare) && !isStaffOnly ? (
                   <>
                     <View style={styles.field}>
                       <TextField label="First name" value={firstName} onChangeText={setFirstName} />
@@ -371,22 +313,10 @@ export function AdminUserDetailScreen() {
                       <TextField label="Address" value={address} onChangeText={setAddress} />
                     </View>
                     <View style={styles.field}>
+                      <TextField label="Preferred language (en / hi / mr)" value={preferredLanguage} onChangeText={setPreferredLanguage} autoCapitalize="none" />
+                    </View>
+                    <View style={styles.field}>
                       <TextField label="Emergency contact" value={emergencyContact} onChangeText={setEmergencyContact} />
-                    </View>
-                  </>
-                ) : null}
-
-                {isFamily ? (
-                  <>
-                    <View style={styles.field}>
-                      <TextField label="Relationship" value={relationship} onChangeText={setRelationship} />
-                    </View>
-                    <View style={styles.field}>
-                      <TextField
-                        label="Requested senior reference"
-                        value={requestedSeniorReference}
-                        onChangeText={setRequestedSeniorReference}
-                      />
                     </View>
                   </>
                 ) : null}
@@ -438,18 +368,8 @@ export function AdminUserDetailScreen() {
             {isSenior && id ? (
               <SeniorUserAssignments
                 seniorId={linkedSenior?.id}
-                pendingFamilyId={pendingFamilyId}
                 pendingCareManagerId={pendingCareManagerId}
-                onPendingFamilyIdChange={setPendingFamilyId}
                 onPendingCareManagerIdChange={setPendingCareManagerId}
-              />
-            ) : null}
-
-            {isFamily && id ? (
-              <FamilyUserAssignments
-                familyId={linkedFamily?.id}
-                pendingSeniorId={pendingSeniorId}
-                onPendingSeniorIdChange={setPendingSeniorId}
               />
             ) : null}
 
@@ -463,43 +383,19 @@ export function AdminUserDetailScreen() {
 
 function SeniorUserAssignments({
   seniorId,
-  pendingFamilyId,
   pendingCareManagerId,
-  onPendingFamilyIdChange,
   onPendingCareManagerIdChange,
 }: {
   seniorId: string | undefined;
-  pendingFamilyId: string | null;
   pendingCareManagerId: string | null;
-  onPendingFamilyIdChange: (id: string | null) => void;
   onPendingCareManagerIdChange: (id: string | null) => void;
 }) {
-  const families = useAdminFamilies({ limit: 100, offset: 0 });
   const careManagers = useAdminCareManagers();
-  const access = useAdminAccess({ seniorId, limit: 50, offset: 0, enabled: Boolean(seniorId) });
   const visits = useAdminVisits({ seniorId, limit: 20, offset: 0 });
-  const grant = useGrantAdminAccess();
-  const revoke = useRevokeAdminAccess();
   const createVisit = useCreateAdminVisit();
 
-  const [revokeId, setRevokeId] = useState<string | null>(null);
   const [assignError, setAssignError] = useState<string | null>(null);
   const [assignSuccess, setAssignSuccess] = useState<string | null>(null);
-
-  const linkedFamilyIds = useMemo(
-    () => new Set((access.data?.items ?? []).map((row) => row.familyId)),
-    [access.data?.items],
-  );
-
-  const familyOptions = useMemo(
-    () =>
-      (families.data?.items ?? []).map((family) => ({
-        id: family.id,
-        title: adminFamilyDisplay(family),
-        subtitle: family.relationship ? titleCaseName(family.relationship) : family.userId,
-      })),
-    [families.data?.items],
-  );
 
   const careOptions = useMemo(
     () =>
@@ -512,24 +408,6 @@ function SeniorUserAssignments({
         })),
     [careManagers.data],
   );
-
-  const addFamilyNow = async () => {
-    if (!seniorId) return;
-    if (!pendingFamilyId) {
-      setAssignError('Select a family member first.');
-      return;
-    }
-    setAssignError(null);
-    setAssignSuccess(null);
-    try {
-      await grant.mutateAsync({ familyId: pendingFamilyId, seniorId });
-      onPendingFamilyIdChange(null);
-      setAssignSuccess('Family access saved.');
-      await access.refetch();
-    } catch (error) {
-      setAssignError(getAdminErrorMessage(error, 'access'));
-    }
-  };
 
   const assignCareNow = async () => {
     if (!seniorId) return;
@@ -560,8 +438,8 @@ function SeniorUserAssignments({
       <PremiumCard style={styles.card}>
         <Text style={styles.sectionTitle}>Assignments</Text>
         <Text style={styles.hint}>
-          Fill the senior registration fields above and press Save to create the linked profile. Then you can add family
-          access and assign care visits here.
+          Fill the senior registration fields above and press Save to create the linked profile. Then you can assign care
+          visits here.
         </Text>
       </PremiumCard>
     );
@@ -583,245 +461,58 @@ function SeniorUserAssignments({
         </View>
       </PremiumCard>
 
-      <View style={styles.split}>
-        <PremiumCard style={[styles.card, styles.splitCard]}>
-          <Text style={styles.sectionTitle}>Add family</Text>
-          <Text style={styles.hint}>
-            Select a family member, then press Add family (or top Save) to keep the link after refresh.
-          </Text>
-          {(access.data?.items ?? []).map((row) => (
-            <View key={row.id} style={styles.rowCard}>
-              <View style={styles.flex}>
-                <Text style={styles.rowTitle}>{row.familyName ? titleCaseName(row.familyName) : row.familyId}</Text>
-                <Text style={styles.meta}>{row.familyEmail ?? 'Email not on file'}</Text>
-              </View>
-              <SecondaryButton label="Remove" fullWidth={false} onPress={() => setRevokeId(row.id)} />
-            </View>
-          ))}
-          {(access.data?.items.length ?? 0) === 0 ? <Text style={styles.meta}>No family access yet.</Text> : null}
-          <AdminSearchPicker
-            label="Family member"
-            options={familyOptions}
-            value={pendingFamilyId}
-            disabledIds={[...linkedFamilyIds]}
-            loading={families.isPending}
-            emptyMessage="No family profiles available."
-            confirmLabel="Select"
-            onChange={onPendingFamilyIdChange}
-          />
-          <PrimaryButton
-            label="Add family"
-            fullWidth={false}
-            loading={grant.isPending}
-            onPress={() => {
-              void addFamilyNow();
-            }}
-          />
-        </PremiumCard>
-
-        <PremiumCard style={[styles.card, styles.splitCard]}>
-          <Text style={styles.sectionTitle}>Assign care</Text>
-          <Text style={styles.hint}>Select a care associate, then Assign care (or top Save).</Text>
-          {(visits.data?.items ?? []).slice(0, 4).map((visit) => (
-            <View key={visit.id} style={styles.rowCard}>
-              <View style={styles.flex}>
-                <Text style={styles.rowTitle}>
-                  {visit.careManagerName ? titleCaseName(visit.careManagerName) : 'Unassigned'}
-                </Text>
-                <Text style={styles.meta}>
-                  {visit.scheduledAt
-                    ? `${formatRelativeDay(visit.scheduledAt)} · ${formatTime(visit.scheduledAt)}`
-                    : 'Schedule not set'}{' '}
-                  · {humanizeStatus(visit.status)}
-                </Text>
-              </View>
-              <SecondaryButton
-                label="View"
-                fullWidth={false}
-                onPress={() => router.push(`/(admin)/visits/${visit.id}` as Href)}
-              />
-            </View>
-          ))}
-          {(visits.data?.items.length ?? 0) === 0 ? <Text style={styles.meta}>No visits yet.</Text> : null}
-          <AdminSearchPicker
-            label="Care associate"
-            options={careOptions}
-            value={pendingCareManagerId}
-            loading={careManagers.isPending}
-            emptyMessage="No ACTIVE care associates available."
-            confirmLabel="Select"
-            onChange={onPendingCareManagerIdChange}
-          />
-          <View style={styles.buttonRow}>
-            <PrimaryButton
-              label="Assign care"
-              fullWidth={false}
-              loading={createVisit.isPending}
-              onPress={() => {
-                void assignCareNow();
-              }}
-            />
-            <SecondaryButton
-              label="Visit details"
-              fullWidth={false}
-              onPress={() => router.push(`/(admin)/visits/new?seniorId=${seniorId}` as Href)}
-            />
-          </View>
-        </PremiumCard>
-      </View>
-
-      {assignError ? <Text style={styles.error}>{assignError}</Text> : null}
-      {assignSuccess ? <Text style={styles.success}>{assignSuccess}</Text> : null}
-
-      <ConfirmDialog
-        visible={Boolean(revokeId)}
-        title="Remove family access?"
-        message="This family member will lose authorized access to this senior."
-        confirmLabel="Remove access"
-        onCancel={() => setRevokeId(null)}
-        onConfirm={() => {
-          if (revokeId) {
-            revoke.mutate(revokeId, {
-              onError: (error) => setAssignError(getAdminErrorMessage(error, 'access')),
-              onSuccess: () => {
-                void access.refetch();
-              },
-            });
-          }
-          setRevokeId(null);
-        }}
-      />
-    </>
-  );
-}
-
-function FamilyUserAssignments({
-  familyId,
-  pendingSeniorId,
-  onPendingSeniorIdChange,
-}: {
-  familyId: string | undefined;
-  pendingSeniorId: string | null;
-  onPendingSeniorIdChange: (id: string | null) => void;
-}) {
-  const seniors = useAdminSeniors({ limit: 100, offset: 0 });
-  const access = useAdminAccess({ familyId, limit: 50, offset: 0, enabled: Boolean(familyId) });
-  const grant = useGrantAdminAccess();
-  const revoke = useRevokeAdminAccess();
-
-  const [revokeId, setRevokeId] = useState<string | null>(null);
-  const [assignError, setAssignError] = useState<string | null>(null);
-  const [assignSuccess, setAssignSuccess] = useState<string | null>(null);
-
-  const linkedSeniorIds = useMemo(
-    () => new Set((access.data?.items ?? []).map((row) => row.seniorId)),
-    [access.data?.items],
-  );
-
-  const seniorOptions = useMemo(
-    () =>
-      (seniors.data?.items ?? []).map((senior) => ({
-        id: senior.id,
-        title: adminSeniorDisplay(senior),
-        subtitle: senior.email ?? senior.userId,
-      })),
-    [seniors.data?.items],
-  );
-
-  const addSeniorNow = async () => {
-    if (!familyId) return;
-    if (!pendingSeniorId) {
-      setAssignError('Select a senior first.');
-      return;
-    }
-    setAssignError(null);
-    setAssignSuccess(null);
-    try {
-      await grant.mutateAsync({ familyId, seniorId: pendingSeniorId });
-      onPendingSeniorIdChange(null);
-      setAssignSuccess('Senior access saved.');
-      await access.refetch();
-    } catch (error) {
-      setAssignError(getAdminErrorMessage(error, 'access'));
-    }
-  };
-
-  if (!familyId) {
-    return (
       <PremiumCard style={styles.card}>
-        <Text style={styles.sectionTitle}>Authorized seniors</Text>
-        <Text style={styles.hint}>
-          Fill the family registration fields above and press Save to create the linked profile. Then you can grant
-          senior access here.
-        </Text>
-      </PremiumCard>
-    );
-  }
-
-  return (
-    <>
-      <PremiumCard style={styles.card}>
-        <Text style={styles.sectionTitle}>Authorized seniors</Text>
-        <Text style={styles.hint}>
-          Select a senior, then press Add access (or top Save) to keep the link after refresh.
-        </Text>
-        {(access.data?.items ?? []).map((row) => (
-          <View key={row.id} style={styles.rowCard}>
+        <Text style={styles.sectionTitle}>Assign care</Text>
+        <Text style={styles.hint}>Select a care associate, then Assign care (or top Save).</Text>
+        {(visits.data?.items ?? []).slice(0, 4).map((visit) => (
+          <View key={visit.id} style={styles.rowCard}>
             <View style={styles.flex}>
-              <Text style={styles.rowTitle}>{row.seniorName ? titleCaseName(row.seniorName) : row.seniorId}</Text>
-              <Text style={styles.meta}>{row.seniorEmail ?? 'Email not on file'}</Text>
+              <Text style={styles.rowTitle}>
+                {visit.careManagerName ? titleCaseName(visit.careManagerName) : 'Unassigned'}
+              </Text>
+              <Text style={styles.meta}>
+                {visit.scheduledAt
+                  ? `${formatRelativeDay(visit.scheduledAt)} · ${formatTime(visit.scheduledAt)}`
+                  : 'Schedule not set'}{' '}
+                · {humanizeStatus(visit.status)}
+              </Text>
             </View>
-            <SecondaryButton label="Remove" fullWidth={false} onPress={() => setRevokeId(row.id)} />
+            <SecondaryButton
+              label="View"
+              fullWidth={false}
+              onPress={() => router.push(`/(admin)/visits/${visit.id}` as Href)}
+            />
           </View>
         ))}
-        {(access.data?.items.length ?? 0) === 0 ? <Text style={styles.meta}>No authorized seniors yet.</Text> : null}
+        {(visits.data?.items.length ?? 0) === 0 ? <Text style={styles.meta}>No visits yet.</Text> : null}
         <AdminSearchPicker
-          label="Senior"
-          options={seniorOptions}
-          value={pendingSeniorId}
-          disabledIds={[...linkedSeniorIds]}
-          loading={seniors.isPending}
-          emptyMessage="No senior profiles available."
+          label="Care associate"
+          options={careOptions}
+          value={pendingCareManagerId}
+          loading={careManagers.isPending}
+          emptyMessage="No ACTIVE care associates available."
           confirmLabel="Select"
-          onChange={onPendingSeniorIdChange}
+          onChange={onPendingCareManagerIdChange}
         />
         <View style={styles.buttonRow}>
           <PrimaryButton
-            label="Add access"
+            label="Assign care"
             fullWidth={false}
-            loading={grant.isPending}
+            loading={createVisit.isPending}
             onPress={() => {
-              void addSeniorNow();
+              void assignCareNow();
             }}
           />
           <SecondaryButton
-            label="Open family details"
+            label="Visit details"
             fullWidth={false}
-            onPress={() => router.push(`/(admin)/families/${familyId}` as Href)}
+            onPress={() => router.push(`/(admin)/visits/new?seniorId=${seniorId}` as Href)}
           />
         </View>
-        {assignError ? <Text style={styles.error}>{assignError}</Text> : null}
-        {assignSuccess ? <Text style={styles.success}>{assignSuccess}</Text> : null}
       </PremiumCard>
 
-      <ConfirmDialog
-        visible={Boolean(revokeId)}
-        title="Remove senior access?"
-        message="This family member will lose authorized access to the selected senior."
-        confirmLabel="Remove access"
-        onCancel={() => setRevokeId(null)}
-        onConfirm={() => {
-          if (revokeId) {
-            revoke.mutate(revokeId, {
-              onError: (error) => setAssignError(getAdminErrorMessage(error, 'access')),
-              onSuccess: () => {
-                void access.refetch();
-              },
-            });
-          }
-          setRevokeId(null);
-        }}
-      />
+      {assignError ? <Text style={styles.error}>{assignError}</Text> : null}
+      {assignSuccess ? <Text style={styles.success}>{assignSuccess}</Text> : null}
     </>
   );
 }
@@ -890,13 +581,13 @@ export function AdminUserCreateScreen() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<AuthRole>('FAMILY');
+  const [role, setRole] = useState<AuthRole>('SENIOR');
   const [formError, setFormError] = useState<string | null>(null);
 
   return (
     <AdminScreen
       title="Create user"
-      subtitle="Creates a login account. Then attach the matching Senior, Family, or Care profile."
+      subtitle="Creates a login account. Then attach the matching Senior or Care profile."
       backHref="/(admin)/users"
     >
       <PremiumCard style={styles.card}>

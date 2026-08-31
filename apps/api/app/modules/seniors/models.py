@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, DateTime, ForeignKey, UUID, Date
+from sqlalchemy import Column, String, DateTime, ForeignKey, UUID, Date, Text
 import uuid
 from sqlalchemy.sql import func
 from app.db.base import Base
@@ -12,5 +12,7 @@ class Senior(Base):
     date_of_birth = Column(Date)
     address = Column(String)
     emergency_contact = Column(String)
+    preferred_language = Column(String, nullable=True)
+    photo = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

@@ -16,7 +16,6 @@ import {
   canPostTrackingPoints,
   canShareCareAssociateLocation,
   careAssociateShareHref,
-  familyAssociateTrackHref,
   seniorAssociateTrackHref,
 } from '../selectors';
 import { startLiveLocationShare } from '../sharing';
@@ -298,9 +297,8 @@ describe('live map logic', () => {
     expect(trackingQueryKeys.careAssociateLatest('visit-1')).toEqual(focused.queryKey);
   });
 
-  it('routes Senior, Family, and Care Manager from a real visit', () => {
+  it('routes Senior and Care Manager from a real visit', () => {
     expect(seniorAssociateTrackHref('visit-1')).toEqual({ pathname: '/visits/[id]/track', params: { id: 'visit-1' } });
-    expect(familyAssociateTrackHref('visit-1')).toEqual({ pathname: '/family/visits/[id]/track', params: { id: 'visit-1' } });
     expect(careAssociateShareHref('visit-1')).toEqual({ pathname: '/care/visits/[id]/share', params: { id: 'visit-1' } });
     expect(visitHasAssignedAssociate(visit)).toBe(true);
     expect(visitHasAssignedAssociate({ ...visit, careManagerId: null })).toBe(false);

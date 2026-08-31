@@ -3,8 +3,9 @@ import { toApiError } from '@/api/errors';
 import { toIsoDate } from '@/utils/date';
 import { fetchCurrentUser } from './authService';
 import type { AuthUser, TokenResponse } from './authTypes';
+import { getIdentityToken } from './onboardingProfile';
 import { saveTokens } from './tokenStorage';
-import type { RegisterCareValues, RegisterFamilyValues, RegisterSeniorValues } from './registrationSchemas';
+import type { RegisterCareValues, RegisterSeniorValues } from './registrationSchemas';
 
 export interface RegistrationResult {
   user: AuthUser;
@@ -49,27 +50,8 @@ export async function registerSenior(values: RegisterSeniorValues): Promise<Regi
         date_of_birth: toIsoDate(values.dateOfBirth),
         address: values.address,
         emergency_contact: values.emergencyContact,
-      },
-      { skipAuth: true },
-    );
-    return await completeRegistration(response.data);
-  } catch (error) {
-    throw toApiError(error);
-  }
-}
-
-export async function registerFamily(values: RegisterFamilyValues): Promise<RegistrationResult> {
-  try {
-    const response = await apiClient.post<RegistrationApiResponse>(
-      '/auth/register/family',
-      {
-        first_name: values.firstName,
-        last_name: values.lastName,
-        email: values.email,
-        phone: values.phone,
-        password: values.password,
-        relationship: values.relationship,
-        requested_senior_reference: values.requestedSeniorReference || null,
+        preferred_language: values.preferredLanguage ?? null,
+        identity_token: getIdentityToken() || null,
       },
       { skipAuth: true },
     );

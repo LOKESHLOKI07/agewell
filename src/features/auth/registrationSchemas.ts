@@ -13,11 +13,7 @@ export const registerSeniorSchema = registerAccountSchema.extend({
   dateOfBirth: z.string().regex(DISPLAY_DATE_REGEX, 'Use DD-MM-YYYY'),
   address: z.string().trim().min(1, 'Address is required'),
   emergencyContact: z.string().trim().min(1, 'Emergency contact is required'),
-});
-
-export const registerFamilySchema = registerAccountSchema.extend({
-  relationship: z.string().trim().min(1, 'Relationship is required'),
-  requestedSeniorReference: z.string().trim().max(200).optional().or(z.literal('')),
+  preferredLanguage: z.enum(['en', 'hi', 'mr']).optional(),
 });
 
 export const registerCareSchema = registerAccountSchema.extend({
@@ -28,5 +24,4 @@ export const registerCareSchema = registerAccountSchema.extend({
 });
 
 export type RegisterSeniorValues = z.infer<typeof registerSeniorSchema>;
-export type RegisterFamilyValues = z.infer<typeof registerFamilySchema>;
 export type RegisterCareValues = z.infer<typeof registerCareSchema>;

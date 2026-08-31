@@ -2,11 +2,10 @@ import type { IconName } from '@/components/ui';
 import { ApiError, getApiErrorMessage } from '@/api/errors';
 import { AUTH_ROLE_LABELS, type AuthRole } from '@/features/auth/authTypes';
 import { isStaffRole } from '@/features/auth/roleRouting';
-import { familyDisplayName } from '@/features/family/mappers';
-import type { FamilyMember } from '@/features/family/types';
 import { getSectionState, humanizeStatus } from '@/features/home/selectors/homeViewModel';
 import type { AdminCareManager, AdminDashboardMetric, AdminSenior, AdminUser } from './types';
 import { ADMIN_DESKTOP_MIN_WIDTH, ADMIN_PAGE_SIZE } from './types';
+import { joinPersonName } from '@/utils/personName';
 
 export { ADMIN_DESKTOP_MIN_WIDTH, ADMIN_PAGE_SIZE };
 
@@ -25,8 +24,6 @@ export const ADMIN_NAV: readonly AdminNavItem[] = [
   { key: 'dashboard', href: '/(admin)', label: 'Dashboard', icon: 'home-outline', mobileTab: true },
   { key: 'users', href: '/(admin)/users', label: 'Users', icon: 'people-outline', mobileTab: true },
   { key: 'seniors', href: '/(admin)/seniors', label: 'Seniors', icon: 'person-outline' },
-  { key: 'families', href: '/(admin)/families', label: 'Families', icon: 'heart-outline' },
-  { key: 'access', href: '/(admin)/access', label: 'Access', icon: 'key-outline' },
   { key: 'careManagers', href: '/(admin)/care-managers', label: 'Care Associates', icon: 'medkit-outline' },
   { key: 'services', href: '/(admin)/services', label: 'Services', icon: 'grid-outline' },
   { key: 'requests', href: '/(admin)/requests', label: 'Requests', icon: 'clipboard-outline' },
@@ -86,12 +83,7 @@ export function adminUserDisplay(user: AdminUser): string {
 }
 
 export function adminSeniorDisplay(senior: Pick<AdminSenior, 'firstName' | 'lastName'>): string {
-  return titleCaseName(`${senior.firstName} ${senior.lastName}`);
-}
-
-export function adminFamilyDisplay(family: Pick<FamilyMember, 'firstName' | 'lastName'>): string {
-  const name = familyDisplayName(family);
-  return name ? titleCaseName(name) : 'Family member';
+  return titleCaseName(joinPersonName(senior.firstName, senior.lastName));
 }
 
 export function adminCareManagerDisplay(manager: AdminCareManager): string {
@@ -107,15 +99,12 @@ export function pageCount(total: number, limit: number): number {
   return Math.max(1, Math.ceil(total / limit));
 }
 
-export function getAdminErrorMessage(error: unknown, kind: 'default' | 'access' | 'care' | 'user' = 'default'): string {
+export function getAdminErrorMessage(error: unknown, kind: 'default' | 'care' | 'user' = 'default'): string {
   const status = error instanceof ApiError ? error.status : undefined;
   if (status === 403) {
     return ADMIN_FORBIDDEN_MESSAGE;
   }
   if (status === 409) {
-    if (kind === 'access') {
-      return 'This family already has access to that senior.';
-    }
     if (kind === 'care') {
       return 'This employee ID is already in use.';
     }
@@ -144,7 +133,6 @@ export function containsSecretField(payload: unknown): boolean {
 export function buildDashboardMetrics(input: {
   users: { isPending: boolean; isError: boolean; data?: { total: number } };
   seniors: { isPending: boolean; isError: boolean; data?: { total: number } };
-  families: { isPending: boolean; isError: boolean; data?: { total: number } };
   careManagers: { isPending: boolean; isError: boolean; data?: unknown[] };
   todayVisits: { isPending: boolean; isError: boolean; data?: { total: number } };
   openEmergencies: { isPending: boolean; isError: boolean; data?: { total: number } };
@@ -175,11 +163,6 @@ export function buildDashboardMetrics(input: {
       isPending: input.seniors.isPending,
       isError: input.seniors.isError,
       value: input.seniors.data?.total ?? 0,
-    }),
-    metric('families', 'Total Families', '/(admin)/families', {
-      isPending: input.families.isPending,
-      isError: input.families.isError,
-      value: input.families.data?.total ?? 0,
     }),
     metric('careManagers', 'Care Managers', '/(admin)/care-managers', {
       isPending: input.careManagers.isPending,

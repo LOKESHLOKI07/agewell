@@ -43,7 +43,7 @@ describe('CARE_MANAGER login routing', () => {
   it('sends CARE_MANAGER to the care dashboard, not Senior tabs', () => {
     expect(authenticatedHomeHref('CARE_MANAGER')).toBe('/(care)');
     expect(authenticatedHomeHref('SENIOR')).toBe('/(tabs)');
-    expect(authenticatedHomeHref('FAMILY')).toBe('/(family)');
+    expect(authenticatedHomeHref('FAMILY')).toBe('/(tabs)');
     expect(authenticatedHomeHref('ADMIN')).toBe('/(admin)');
     expect(authenticatedHomeHref('OPERATIONS')).toBe('/(admin)');
   });

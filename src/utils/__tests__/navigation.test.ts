@@ -26,7 +26,7 @@ describe('safeGoBack', () => {
     safeGoBack(false, 'SENIOR');
     expect(back).not.toHaveBeenCalled();
     expect(replace).toHaveBeenCalledWith('/(tabs)');
-    expect(fallbackHomeHref('FAMILY')).toBe('/(family)');
+    expect(fallbackHomeHref('FAMILY')).toBe('/(tabs)');
     expect(fallbackHomeHref('CARE_MANAGER')).toBe('/(care)');
   });
 });

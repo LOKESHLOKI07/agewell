@@ -7,12 +7,14 @@ import { colors, typography } from '@/constants/theme';
 import { useAuthStore } from '@/features/auth/authStore';
 import { authenticatedHomeHref, isCareManagerRole } from '@/features/auth/roleRouting';
 import { useCareManagerProfile } from '@/features/care/hooks';
+import { useSafeTabBarStyle } from '@/utils/safeBottom';
 
 export default function CareTabsLayout() {
   const role = useAuthStore((state) => state.user?.role);
   const setCareStatus = useAuthStore((state) => state.setCareStatus);
   const careStatus = useAuthStore((state) => state.careStatus);
   const profile = useCareManagerProfile();
+  const tabBarStyle = useSafeTabBarStyle();
 
   useEffect(() => {
     if (profile.data?.status) {
@@ -47,13 +49,7 @@ export default function CareTabsLayout() {
           ...typography.captionStrong,
           fontSize: 13,
         },
-        tabBarStyle: {
-          backgroundColor: colors.surfaceElevated,
-          borderTopColor: colors.border,
-          height: 72,
-          paddingTop: 8,
-          paddingBottom: 10,
-        },
+        tabBarStyle,
       }}
     >
       <Tabs.Screen

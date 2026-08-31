@@ -36,6 +36,7 @@ export interface AdminSenior {
   dateOfBirth: string;
   address: string;
   emergencyContact: string;
+  preferredLanguage: string | null;
   email: string | null;
   phone: string | null;
   accountStatus: string | null;
@@ -48,6 +49,7 @@ export interface AdminSeniorCreate {
   dateOfBirth: string;
   address: string;
   emergencyContact: string;
+  preferredLanguage?: string;
 }
 
 export interface AdminSeniorUpdate {
@@ -56,45 +58,9 @@ export interface AdminSeniorUpdate {
   dateOfBirth?: string;
   address?: string;
   emergencyContact?: string;
+  preferredLanguage?: string;
   email?: string;
   phone?: string;
-}
-
-export interface AdminFamily {
-  id: string;
-  userId: string;
-  firstName: string | null;
-  lastName: string | null;
-  relationship: string | null;
-  requestedSeniorReference: string | null;
-  createdAt: string | null;
-  updatedAt: string | null;
-}
-
-export interface AdminFamilyCreate {
-  userId: string;
-  firstName: string;
-  lastName: string;
-  relationship?: string;
-  requestedSeniorReference?: string;
-}
-
-export interface AdminFamilyUpdate {
-  firstName?: string;
-  lastName?: string;
-  relationship?: string;
-  requestedSeniorReference?: string;
-}
-
-export interface AdminAccess {
-  id: string;
-  familyId: string;
-  seniorId: string;
-  createdAt: string | null;
-  familyName: string | null;
-  familyEmail: string | null;
-  seniorName: string | null;
-  seniorEmail: string | null;
 }
 
 export interface AdminCareManager {

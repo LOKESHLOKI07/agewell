@@ -1,12 +1,14 @@
 import json
-from typing import Optional
+from datetime import date, datetime
+from typing import Any, Optional
+from uuid import UUID
 
 from fastapi import HTTPException, status
 
 from app.api.schemas import ListPage
 from app.modules.audit.repository import AuditRepository
 from app.modules.seniors.repository import SeniorRepository
-from app.modules.seniors.schemas import SeniorCreate, SeniorDirectoryItem, SeniorUpdate
+from app.modules.seniors.schemas import SeniorCreate, SeniorDirectoryItem, SeniorUpdate, normalize_profile_photo
 from app.modules.users.models import AccountStatus
 from app.modules.users.repository import UserRepository
 
@@ -26,10 +28,34 @@ def to_senior_directory_item(senior, email=None, phone=None, account_status=None
         date_of_birth=senior.date_of_birth,
         address=senior.address,
         emergency_contact=senior.emergency_contact,
+        preferred_language=senior.preferred_language,
         email=email,
         phone=phone,
         account_status=_account_status_value(account_status) or AccountStatus.ACTIVE.value,
+        photo=None,
     )
+
+
+def _json_safe(value: Any) -> Any:
+    if isinstance(value, (date, datetime)):
+        return value.isoformat()
+    if isinstance(value, UUID):
+        return str(value)
+    return value
+
+
+def _audit_profile_changes(changes: dict) -> dict:
+    audited = {key: _json_safe(value) for key, value in changes.items()}
+    if "photo" in audited:
+        audited["photo"] = "cleared" if not audited["photo"] else "updated"
+    return audited
+
+
+def _validated_photo(value: Optional[str]) -> Optional[str]:
+    try:
+        return normalize_profile_photo(value)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
 
 class SeniorService:
@@ -94,9 +120,11 @@ class SeniorService:
         data = payload.model_dump(exclude_unset=True)
         email = data.pop("email", None)
         phone = data.pop("phone", None)
+        if "photo" in data:
+            data["photo"] = _validated_photo(data["photo"])
         profile_changes = {}
         for field, value in data.items():
-            if isinstance(value, str):
+            if isinstance(value, str) and field != "photo":
                 value = value.strip()
             profile_changes[field] = value
         if profile_changes:
@@ -127,11 +155,24 @@ class SeniorService:
                 entity_name="seniors",
                 entity_id=str(senior.id),
                 action="UPDATE",
-                changes=json.dumps({**profile_changes, **user_changes}),
+                changes=json.dumps({**_audit_profile_changes(profile_changes), **user_changes}),
             )
             await self.repo.session.commit()
 
         return await self.get_senior_detail(senior.id)
+
+    async def update_photo(self, senior, photo: Optional[str]):
+        normalized = _validated_photo(photo)
+        senior = await self.repo.update(senior, {"photo": normalized})
+        if self.audit_repo:
+            await self.audit_repo.record(
+                entity_name="seniors",
+                entity_id=str(senior.id),
+                action="UPDATE",
+                changes=json.dumps({"photo": "cleared" if not normalized else "updated"}),
+            )
+            await self.repo.session.commit()
+        return senior
 
     async def delete_senior(self, senior_id) -> SeniorDirectoryItem:
         from app.modules.people.deletion import commit_people_delete, delete_senior_record

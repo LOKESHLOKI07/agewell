@@ -1,3 +1,5 @@
+import { joinPersonName } from '@/utils/personName';
+
 export function getGreeting(now = new Date()): string {
   const hour = now.getHours();
   if (hour < 12) {
@@ -10,5 +12,5 @@ export function getGreeting(now = new Date()): string {
 }
 
 export function fullName(firstName: string, lastName: string): string {
-  return `${firstName} ${lastName}`;
+  return joinPersonName(firstName, lastName);
 }

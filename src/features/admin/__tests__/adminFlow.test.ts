@@ -7,12 +7,10 @@ import {
   createAdminService,
   createAdminUser,
   createAdminVisit,
-  fetchAdminAccess,
   fetchAdminAppointments,
   fetchAdminAuditLogs,
   fetchAdminCareManagers,
   fetchAdminEmergencies,
-  fetchAdminFamilies,
   fetchAdminMembershipPlans,
   fetchAdminNotifications,
   fetchAdminSeniors,
@@ -20,15 +18,13 @@ import {
   fetchAdminServices,
   fetchAdminUsers,
   fetchAdminVisits,
-  grantAdminAccess,
-  revokeAdminAccess,
   updateAdminEmergencyStatus,
   updateAdminService,
   updateAdminServiceRequest,
   updateAdminUser,
   updateAdminVisit,
 } from '../api';
-import { toAdminAccess, toAdminCareManager, toAdminSenior, toAdminUser } from '../mappers';
+import { toAdminCareManager, toAdminSenior, toAdminUser } from '../mappers';
 import { adminQueryKeys } from '../queryKeys';
 import {
   ADMIN_FORBIDDEN_MESSAGE,
@@ -87,29 +83,6 @@ const seniorPayload = {
   email: 'senior@example.com',
 };
 
-const familyPage = {
-  items: [
-    {
-      id: 'fam-1',
-      user_id: 'family-user',
-      first_name: 'Son',
-      last_name: 'Doe',
-      created_at: '2026-08-01T00:00:00.000Z',
-      updated_at: null,
-    },
-  ],
-  total: 1,
-  limit: 20,
-  offset: 0,
-};
-
-const accessPayload = {
-  id: 'access-1',
-  family_id: 'fam-1',
-  senior_id: seniorPayload.id,
-  created_at: '2026-08-01T00:00:00.000Z',
-};
-
 describe('Admin / Operations routing', () => {
   it('sends ADMIN and OPERATIONS to the Admin workspace', () => {
     expect(authenticatedHomeHref('ADMIN')).toBe('/(admin)');
@@ -121,7 +94,7 @@ describe('Admin / Operations routing', () => {
 
   it('does not send Senior, Family, or Care Manager to Admin UI', () => {
     expect(authenticatedHomeHref('SENIOR')).toBe('/(tabs)');
-    expect(authenticatedHomeHref('FAMILY')).toBe('/(family)');
+    expect(authenticatedHomeHref('FAMILY')).toBe('/(tabs)');
     expect(authenticatedHomeHref('CARE_MANAGER')).toBe('/(care)');
     expect(canEnterAdminUi('SENIOR')).toBe(false);
     expect(canEnterAdminUi('FAMILY')).toBe(false);
@@ -187,51 +160,11 @@ describe('admin APIs', () => {
     expect(patched.role).toBe('FAMILY');
   });
 
-  it('lists seniors and families from paginated APIs', async () => {
+  it('lists seniors from paginated APIs', async () => {
     jsonGet({ items: [seniorPayload], total: 2, limit: 20, offset: 0 });
     const seniors = await fetchAdminSeniors({ limit: 20, offset: 0 });
     expect(adminSeniorDisplay(seniors.items[0])).toBe('John Doe');
     expect(seniors.items[0].email).toBe('senior@example.com');
-
-    jsonGet(familyPage);
-    const families = await fetchAdminFamilies({ limit: 20, offset: 0 });
-    expect(families.total).toBe(1);
-    expect(families.items[0].firstName).toBe('Son');
-  });
-
-  it('grants access, reports duplicate 409, and revokes access', async () => {
-    jsonGet({ items: [accessPayload], total: 1, limit: 20, offset: 0 });
-    const listed = await fetchAdminAccess({ limit: 20, offset: 0, familyId: 'fam-1' });
-    expect(listed.items[0].familyId).toBe('fam-1');
-    expect(mockedGet).toHaveBeenCalledWith('/access/', {
-      params: { limit: 20, offset: 0, family_id: 'fam-1' },
-    });
-
-    jsonRequest(accessPayload);
-    const granted = await grantAdminAccess('fam-1', seniorPayload.id);
-    expect(granted).toMatchObject({
-      id: 'access-1',
-      familyId: 'fam-1',
-      seniorId: seniorPayload.id,
-      createdAt: accessPayload.created_at,
-    });
-    expect(granted.familyName).toBeNull();
-    expect(granted.seniorName).toBeNull();
-    expect((granted as unknown as { permission?: string }).permission).toBeUndefined();
-
-    mockedRequest.mockRejectedValueOnce({
-      isAxiosError: true,
-      response: { status: 409, data: { detail: 'Access relationship already exists' } },
-    });
-    await expect(grantAdminAccess('fam-1', seniorPayload.id)).rejects.toMatchObject({ status: 409 });
-    expect(getAdminErrorMessage(new ApiError('conflict', 409), 'access')).toBe(
-      'This family already has access to that senior.',
-    );
-
-    jsonRequest(accessPayload);
-    const revoked = await revokeAdminAccess('access-1');
-    expect(revoked.id).toBe('access-1');
-    expect(mockedRequest).toHaveBeenLastCalledWith({ method: 'delete', url: '/access/access-1', data: undefined });
   });
 
   it('creates and edits care managers and maps Rohit Sharma', async () => {
@@ -463,7 +396,7 @@ describe('admin APIs', () => {
     await expect(updateAdminUser(userPayload.id, { role: 'SENIOR' })).rejects.toMatchObject({ status: 422 });
 
     mockedGet.mockRejectedValueOnce({ isAxiosError: true, message: 'Network Error', code: 'ERR_NETWORK' });
-    await expect(fetchAdminFamilies({ limit: 20, offset: 0 })).rejects.toMatchObject({
+    await expect(fetchAdminSeniors({ limit: 20, offset: 0 })).rejects.toMatchObject({
       message: 'Unable to connect to AgeWell. Please check your internet connection.',
     });
   });
@@ -489,16 +422,15 @@ describe('admin error and empty states', () => {
   it('builds dashboard metrics from real totals and never invents values', () => {
     const metrics = buildDashboardMetrics({
       users: { isPending: false, isError: false, data: { total: 6 } },
-      seniors: { isPending: false, isError: false, data: { total: 2 } },
-      families: { isPending: false, isError: true },
+      seniors: { isPending: false, isError: true },
       careManagers: { isPending: false, isError: false, data: [{ id: 'cm-1' }] },
       todayVisits: { isPending: true, isError: false },
       openEmergencies: { isPending: false, isError: false, data: { total: 0 } },
       pendingRequests: { isPending: false, isError: false, data: { total: 3 } },
     });
     expect(metrics.find((item) => item.key === 'users')?.value).toBe(6);
-    expect(metrics.find((item) => item.key === 'families')?.state).toBe('error');
-    expect(metrics.find((item) => item.key === 'families')?.value).toBeNull();
+    expect(metrics.find((item) => item.key === 'seniors')?.state).toBe('error');
+    expect(metrics.find((item) => item.key === 'seniors')?.value).toBeNull();
     expect(metrics.find((item) => item.key === 'visits')?.state).toBe('loading');
     expect(metrics.find((item) => item.key === 'emergencies')?.value).toBe(0);
     expect(metrics.find((item) => item.key === 'careManagers')?.value).toBe(1);
@@ -506,16 +438,15 @@ describe('admin error and empty states', () => {
 
   it('uses admin query keys', () => {
     expect(adminQueryKeys.users().slice(0, 2)).toEqual(['admin', 'users']);
-    expect(adminQueryKeys.access().slice(0, 2)).toEqual(['admin', 'access']);
+    expect(adminQueryKeys.seniors().slice(0, 2)).toEqual(['admin', 'seniors']);
     expect(adminQueryKeys.emergencies().slice(0, 2)).toEqual(['admin', 'emergencies']);
   });
 });
 
 describe('admin mappers', () => {
-  it('maps users, seniors, access, and care managers without secret fields', () => {
+  it('maps users, seniors, and care managers without secret fields', () => {
     const user = toAdminUser(userPayload);
     const senior = toAdminSenior(seniorPayload);
-    const access = toAdminAccess(accessPayload);
     const care = toAdminCareManager({
       id: 'cm-1',
       user_id: 'u',
@@ -527,7 +458,6 @@ describe('admin mappers', () => {
     });
     expect(user).not.toHaveProperty('hashed_password');
     expect(senior.firstName).toBe('John');
-    expect(access).not.toHaveProperty('permission');
     expect(adminCareManagerDisplay(care)).toBe('Rohit Sharma');
   });
 });

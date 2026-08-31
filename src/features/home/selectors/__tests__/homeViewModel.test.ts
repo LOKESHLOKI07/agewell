@@ -142,6 +142,7 @@ describe('home view model', () => {
         dateOfBirth: '1940-01-01',
         address: '123',
         emergencyContact: '911',
+        photo: null,
       },
       visits: { items: [visit], total: 1, limit: 50, offset: 0 },
       appointments: { items: [appointment], total: 1, limit: 50, offset: 0 },

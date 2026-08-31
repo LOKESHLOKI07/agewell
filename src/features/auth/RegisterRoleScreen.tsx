@@ -6,30 +6,22 @@ import { Icon, IconWell, type IconName } from '@/components/ui';
 import { cardSurface, colors, minTouchSize, spacing, typography } from '@/constants/theme';
 
 type RoleOption = {
-  key: 'senior' | 'family' | 'care';
+  key: 'senior' | 'care';
   title: string;
   subtitle: string;
   icon: IconName;
   href: Href;
-  tone: 'primary' | 'accent' | 'safe';
+  tone: 'primary' | 'safe';
 };
 
 const OPTIONS: RoleOption[] = [
   {
     key: 'senior',
-    title: "I'm a Senior",
-    subtitle: 'I want care and support for myself',
+    title: 'Member signup',
+    subtitle: 'Care for myself or my parent(s) — same senior home',
     icon: 'person-outline',
-    href: '/(auth)/register/senior' as Href,
+    href: '/(auth)/welcome' as Href,
     tone: 'primary',
-  },
-  {
-    key: 'family',
-    title: "I'm Family",
-    subtitle: 'I want to support my parent or loved one',
-    icon: 'heart-outline',
-    href: '/(auth)/register/family' as Href,
-    tone: 'accent',
   },
   {
     key: 'care',
@@ -49,7 +41,7 @@ export function RegisterRoleScreen() {
       <AgeWellHeader title="Create Account" showBack showProfile={false} />
       <View style={styles.content}>
         <Text style={styles.heading}>How will you use AgeWell?</Text>
-        <Text style={styles.sub}>Choose the option that fits you. Each path has its own short onboarding.</Text>
+        <Text style={styles.sub}>Members use one signup for themselves or their parents. Care associates have a separate application.</Text>
         {OPTIONS.map((option) => (
           <Pressable
             key={option.key}
@@ -59,7 +51,7 @@ export function RegisterRoleScreen() {
             accessibilityLabel={`${option.title}. ${option.subtitle}`}
           >
             <IconWell tone={option.tone} size={56} rounded="full">
-              <Icon name={option.icon} size={24} color={colors[option.tone === 'accent' ? 'accent' : option.tone === 'safe' ? 'safe' : 'primary']} />
+              <Icon name={option.icon} size={24} color={colors[option.tone === 'safe' ? 'safe' : 'primary']} />
             </IconWell>
             <View style={styles.textCol}>
               <Text style={styles.title}>{option.title}</Text>

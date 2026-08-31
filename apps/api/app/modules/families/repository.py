@@ -43,13 +43,27 @@ class FamilyRepository:
         )
         return list(result.scalars().all()), int(total)
 
-    async def create(self, *, user_id, first_name: str, last_name: str, relationship=None, requested_senior_reference=None) -> FamilyMember:
+    async def create(
+        self,
+        *,
+        user_id,
+        first_name: str,
+        last_name: str,
+        relationship=None,
+        requested_senior_reference=None,
+        date_of_birth=None,
+        address=None,
+        preferred_language=None,
+    ) -> FamilyMember:
         row = FamilyMember(
             user_id=user_id,
             first_name=first_name,
             last_name=last_name,
             relationship=relationship,
             requested_senior_reference=requested_senior_reference,
+            date_of_birth=date_of_birth,
+            address=address,
+            preferred_language=preferred_language,
         )
         self.session.add(row)
         await self.session.commit()

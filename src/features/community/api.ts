@@ -1,7 +1,7 @@
 import { isAxiosError } from 'axios';
 import { apiClient } from '@/api/client';
 import { ApiError, toApiError } from '@/api/errors';
-import { FAMILY_FORBIDDEN_MESSAGE } from '@/features/family/selectors';
+import { COMMUNITY_FORBIDDEN_MESSAGE } from './selectors';
 import {
   toCancelRegistrationBody,
   toCommunityEvent,
@@ -26,7 +26,7 @@ function toCommunityError(error: unknown): ApiError {
   const status = isAxiosError(error) ? error.response?.status : undefined;
   const detail = responseDetail(error);
   if (status === 403) {
-    return new ApiError(FAMILY_FORBIDDEN_MESSAGE, 403);
+    return new ApiError(COMMUNITY_FORBIDDEN_MESSAGE, 403);
   }
   if (status === 409) {
     if (detail?.toLowerCase().includes('capacity')) {

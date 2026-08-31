@@ -50,6 +50,10 @@ export function toIsoDate(value: string | null | undefined): string {
     return '';
   }
   const trimmed = value.trim();
+  const slashOrDash = trimmed.match(/^(\d{2})\s*[/-]\s*(\d{2})\s*[/-]\s*(\d{4})$/);
+  if (slashOrDash) {
+    return toIsoParts(Number(slashOrDash[3]), Number(slashOrDash[2]), Number(slashOrDash[1]));
+  }
   const display = trimmed.match(DISPLAY_DATE_CAPTURE);
   if (display) {
     return toIsoParts(Number(display[3]), Number(display[2]), Number(display[1]));

@@ -56,14 +56,6 @@ export function healthAppointmentBookHref() {
   return '/health/appointments/new' as const;
 }
 
-export function familyAppointmentHref(id: string) {
-  return { pathname: '/family/health/appointments/[id]' as const, params: { id } };
-}
-
-export function familyAppointmentBookHref() {
-  return '/family/health/appointments/new' as const;
-}
-
 export function adminAppointmentHref(id: string) {
   return `/(admin)/appointments/${id}` as const;
 }

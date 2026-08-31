@@ -29,8 +29,10 @@ describe('shouldAttemptRefresh', () => {
   it('does not refresh login or refresh requests', () => {
     const login = config({ url: '/auth/login', skipAuth: true });
     const refresh = config({ url: '/auth/refresh', skipAuth: true });
+    const google = config({ url: '/auth/google', skipAuth: true });
     expect(shouldAttemptRefresh(error(401, login), login)).toBe(false);
     expect(shouldAttemptRefresh(error(401, refresh), refresh)).toBe(false);
+    expect(shouldAttemptRefresh(error(401, google), google)).toBe(false);
   });
 
   it('prevents infinite refresh loops', () => {

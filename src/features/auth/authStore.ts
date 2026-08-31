@@ -1,9 +1,11 @@
 import { create } from 'zustand';
 import { currentUserQueryKey, queryClient } from '@/api/queryClient';
 import { setUnauthorizedHandler } from '@/api/sessionBridge';
-import { fetchCurrentUser, loginWithPassword, logoutAndClearLocal } from './authService';
+import { markReturnToSignIn, hydrateReturnToSignIn } from './authEntryPreference';
+import { fetchCurrentUser, loginWithPassword, loginWithTokens, logoutAndClearLocal } from './authService';
 import type { AuthStatus, AuthUser } from './authTypes';
 import { clearTokens, loadTokens } from './tokenStorage';
+import { hydrateServiceAreaAvailable } from './serviceAreaPreference';
 
 interface AuthState {
   status: AuthStatus;
@@ -11,6 +13,7 @@ interface AuthState {
   careStatus: string | null;
   hydrate: () => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
+  completeLogin: (accessToken: string, refreshToken: string) => Promise<void>;
   completeRegistration: (user: AuthUser, careStatus?: string | null) => void;
   signOut: () => Promise<void>;
   setUser: (user: AuthUser) => void;
@@ -28,6 +31,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   careStatus: null,
 
   hydrate: async () => {
+    await Promise.all([hydrateReturnToSignIn(), hydrateServiceAreaAvailable()]);
     const tokens = await loadTokens();
     if (!tokens) {
       set({ status: 'UNAUTHENTICATED', user: null, careStatus: null });
@@ -37,10 +41,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const user = await fetchCurrentUser();
       queryClient.setQueryData(currentUserQueryKey, user);
+      await markReturnToSignIn();
       set({ status: 'AUTHENTICATED', user });
     } catch {
       await clearTokens();
       resetClientSession();
+      await markReturnToSignIn();
       set({ status: 'UNAUTHENTICATED', user: null, careStatus: null });
     }
   },
@@ -48,17 +54,27 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   signIn: async (email, password) => {
     const user = await loginWithPassword(email, password);
     queryClient.setQueryData(currentUserQueryKey, user);
+    await markReturnToSignIn();
+    set({ status: 'AUTHENTICATED', user, careStatus: null });
+  },
+
+  completeLogin: async (accessToken, refreshToken) => {
+    const user = await loginWithTokens(accessToken, refreshToken);
+    queryClient.setQueryData(currentUserQueryKey, user);
+    await markReturnToSignIn();
     set({ status: 'AUTHENTICATED', user, careStatus: null });
   },
 
   completeRegistration: (user, careStatus = null) => {
     queryClient.setQueryData(currentUserQueryKey, user);
+    void markReturnToSignIn();
     set({ status: 'AUTHENTICATED', user, careStatus });
   },
 
   signOut: async () => {
     await logoutAndClearLocal();
     resetClientSession();
+    await markReturnToSignIn();
     set({ status: 'UNAUTHENTICATED', user: null, careStatus: null });
   },
 
@@ -74,5 +90,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
 setUnauthorizedHandler(() => {
   resetClientSession();
+  void markReturnToSignIn();
   useAuthStore.setState({ status: 'UNAUTHENTICATED', user: null, careStatus: null });
 });

@@ -2,10 +2,11 @@ import { useState, type ReactNode } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, type Href } from 'expo-router';
 import { ConfirmDialog, EmptyState, ErrorState } from '@/components';
-import { colors, layout, spacing, typography } from '@/constants/theme';
+import { colors, spacing, typography } from '@/constants/theme';
 import { AgeWellHeader } from '@/features/home/components/AgeWellHeader';
 import { SectionTitle } from '@/components/ui';
 import { getSectionState } from '@/features/home/selectors/homeViewModel';
+import { useTabScreenBottomPad } from '@/utils/safeBottom';
 import { EventCard, EventCardSkeleton } from './components/EventCard';
 import { RegistrationRow } from './components/RegistrationRow';
 import { useCancelRegistration, useCommunityEvents, useCommunityRegistrations, useRegisterForEvent } from './hooks';
@@ -50,6 +51,7 @@ export function CommunityFeedScreen({
   const [refreshing, setRefreshing] = useState(false);
   const [actionError, setActionError] = useState<unknown>(null);
   const [pendingCancelId, setPendingCancelId] = useState<string | null>(null);
+  const bottomPad = useTabScreenBottomPad(spacing.huge);
 
   const items = events.data?.items ?? [];
   const mine = registrationsForUser(registrations.data?.items ?? [], seniorUserId);
@@ -102,7 +104,7 @@ export function CommunityFeedScreen({
       <AgeWellHeader title={title} subtitle={subtitle ?? undefined} showProfile />
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingBottom: bottomPad }]}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={() => void onRefresh()} tintColor={colors.primary} />
         }
@@ -215,7 +217,6 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: spacing.lg,
-    paddingBottom: layout.tabBarHeight + spacing.huge,
     gap: spacing.xl,
   },
   list: {

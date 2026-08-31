@@ -6,11 +6,11 @@ export function authenticatedHomeHref(role: AuthRole, options?: { careStatus?: s
   }
   switch (role) {
     case 'SENIOR':
+    case 'FAMILY':
+      // Legacy FAMILY accounts also use the senior home shell.
       return '/(tabs)';
     case 'CARE_MANAGER':
       return '/(care)';
-    case 'FAMILY':
-      return '/(family)';
     case 'ADMIN':
     case 'OPERATIONS':
       return '/(admin)';
@@ -25,8 +25,13 @@ export function isCareManagerRole(role: AuthRole | null | undefined): boolean {
   return role === 'CARE_MANAGER';
 }
 
+/** @deprecated Family mode removed; kept for legacy accounts routed to senior tabs. */
 export function isFamilyRole(role: AuthRole | null | undefined): boolean {
   return role === 'FAMILY';
+}
+
+export function isMemberHomeRole(role: AuthRole | null | undefined): boolean {
+  return role === 'SENIOR' || role === 'FAMILY';
 }
 
 export function isStaffRole(role: AuthRole | null | undefined): boolean {
@@ -37,11 +42,11 @@ export function authenticatedProfileHref(role: AuthRole | null | undefined): str
   switch (role) {
     case 'CARE_MANAGER':
       return '/(care)/profile';
-    case 'FAMILY':
-      return '/(family)/profile';
     case 'ADMIN':
     case 'OPERATIONS':
       return '/(admin)/profile';
+    case 'FAMILY':
+    case 'SENIOR':
     default:
       return '/(tabs)/profile';
   }

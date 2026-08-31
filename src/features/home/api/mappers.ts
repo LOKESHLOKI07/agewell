@@ -35,6 +35,7 @@ import type {
   Visit,
   VisitResponse,
 } from '../types/home';
+import { joinPersonName } from '@/utils/personName';
 
 function asRecord(payload: unknown, label: string): Record<string, unknown> {
   if (!payload || typeof payload !== 'object') {
@@ -105,11 +106,12 @@ export function toSeniorProfile(payload: unknown): SeniorProfile {
     dateOfBirth: asString(data.date_of_birth, 'senior.date_of_birth'),
     address: asString(data.address, 'senior.address'),
     emergencyContact: asString(data.emergency_contact, 'senior.emergency_contact'),
+    photo: asOptionalString(data.photo),
   };
 }
 
 export function seniorDisplayName(senior: Pick<SeniorProfile, 'firstName' | 'lastName'>): string {
-  return `${senior.firstName} ${senior.lastName}`.trim();
+  return joinPersonName(senior.firstName, senior.lastName);
 }
 
 export function toVisit(payload: unknown): Visit {

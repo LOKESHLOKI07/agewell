@@ -1,11 +1,9 @@
 import type { AuthRole } from '@/features/auth/authTypes';
 import { isAuthRole } from '@/features/auth/authTypes';
-import { toFamilyMember } from '@/features/family/mappers';
 import { toListPage } from '@/features/home/api/mappers';
 import type { NotificationPriority } from '@/features/home/types/home';
 import { toIsoDate } from '@/utils/date';
 import type {
-  AdminAccess,
   AdminAuditLog,
   AdminCareManager,
   AdminMembershipBenefit,
@@ -83,6 +81,7 @@ export function toAdminSenior(payload: unknown): AdminSenior {
     dateOfBirth: asString(data.date_of_birth, 'senior.date_of_birth'),
     address: asString(data.address, 'senior.address'),
     emergencyContact: asString(data.emergency_contact, 'senior.emergency_contact'),
+    preferredLanguage: asOptionalString(data.preferred_language),
     email: asOptionalString(data.email),
     phone: asOptionalString(data.phone),
     accountStatus: asOptionalString(data.account_status),
@@ -91,28 +90,6 @@ export function toAdminSenior(payload: unknown): AdminSenior {
 
 export function toAdminSeniorPage(payload: unknown) {
   return toListPage(payload, toAdminSenior, 'seniors');
-}
-
-export function toAdminFamilyPage(payload: unknown) {
-  return toListPage(payload, toFamilyMember, 'families');
-}
-
-export function toAdminAccess(payload: unknown): AdminAccess {
-  const data = asRecord(payload, 'access');
-  return {
-    id: asId(data.id, 'access.id'),
-    familyId: asId(data.family_id, 'access.family_id'),
-    seniorId: asId(data.senior_id, 'access.senior_id'),
-    createdAt: asOptionalString(data.created_at),
-    familyName: asOptionalString(data.family_name),
-    familyEmail: asOptionalString(data.family_email),
-    seniorName: asOptionalString(data.senior_name),
-    seniorEmail: asOptionalString(data.senior_email),
-  };
-}
-
-export function toAdminAccessPage(payload: unknown) {
-  return toListPage(payload, toAdminAccess, 'access');
 }
 
 export function toAdminCareManager(payload: unknown): AdminCareManager {
@@ -238,6 +215,7 @@ export function adminSeniorCreateBody(input: {
   dateOfBirth: string;
   address: string;
   emergencyContact: string;
+  preferredLanguage?: string;
 }) {
   return {
     user_id: input.userId,
@@ -246,6 +224,7 @@ export function adminSeniorCreateBody(input: {
     date_of_birth: toIsoDate(input.dateOfBirth),
     address: input.address,
     emergency_contact: input.emergencyContact,
+    preferred_language: input.preferredLanguage ?? null,
   };
 }
 

@@ -6,12 +6,10 @@ import type { AppointmentStatus, NotificationPriority, ServiceRequestStatus, Vis
 import {
   approveAdminCareManager,
   createAdminCareManager,
-  createAdminFamily,
   createAdminSenior,
   createAdminService,
   createAdminUser,
   createAdminVisit,
-  fetchAdminAccess,
   fetchAdminAppointments,
   fetchAdminAuditLogs,
   fetchAdminCareManager,
@@ -21,9 +19,6 @@ import {
   fetchAdminEmergencies,
   fetchAdminEmergency,
   fetchAdminEmergencyEvents,
-  fetchAdminFamilies,
-  fetchAdminFamily,
-  fetchAdminFamilyByUserId,
   fetchAdminMedicalRecords,
   fetchAdminMembershipBenefits,
   fetchAdminMembershipPlans,
@@ -42,11 +37,8 @@ import {
   fetchAdminVisitReports,
   fetchAdminVisitTasks,
   fetchAdminVisits,
-  grantAdminAccess,
-  revokeAdminAccess,
   updateAdminCareManager,
   updateAdminEmergencyStatus,
-  updateAdminFamily,
   updateAdminSenior,
   updateAdminService,
   updateAdminServiceRequest,
@@ -84,14 +76,6 @@ export function useAdminSeniorByUserId(userId: string | undefined) {
   return useStaffQuery(
     ['admin', 'seniors', 'by-user', userId ?? ''] as const,
     () => fetchAdminSeniorByUserId(userId as string),
-    Boolean(userId),
-  );
-}
-
-export function useAdminFamilyByUserId(userId: string | undefined) {
-  return useStaffQuery(
-    ['admin', 'families', 'by-user', userId ?? ''] as const,
-    () => fetchAdminFamilyByUserId(userId as string),
     Boolean(userId),
   );
 }
@@ -151,93 +135,6 @@ export function useUpdateAdminSenior(id: string) {
       await queryClient.invalidateQueries({ queryKey: ['admin', 'seniors'] });
       await queryClient.invalidateQueries({ queryKey: adminQueryKeys.senior(id) });
       await queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
-    },
-  });
-}
-
-export function useAdminFamilies(params: { limit?: number; offset?: number }) {
-  const query = { limit: params.limit ?? ADMIN_PAGE_SIZE, offset: params.offset ?? 0 };
-  return useStaffQuery(adminQueryKeys.families(query), () => fetchAdminFamilies(query));
-}
-
-export function useAdminFamily(id: string | undefined) {
-  return useStaffQuery(adminQueryKeys.family(id ?? ''), () => fetchAdminFamily(id as string), Boolean(id));
-}
-
-export function useCreateAdminFamily() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (input: {
-      userId: string;
-      firstName: string;
-      lastName: string;
-      relationship?: string;
-      requestedSeniorReference?: string;
-    }) => createAdminFamily(input),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['admin', 'families'] });
-    },
-  });
-}
-
-export function useUpdateAdminFamily(id: string) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (input: {
-      firstName?: string;
-      lastName?: string;
-      relationship?: string;
-      requestedSeniorReference?: string;
-    }) => updateAdminFamily(id, input),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['admin', 'families'] });
-      await queryClient.invalidateQueries({ queryKey: adminQueryKeys.family(id) });
-    },
-  });
-}
-
-export function useAdminAccess(params: {
-  limit?: number;
-  offset?: number;
-  familyId?: string;
-  seniorId?: string;
-  enabled?: boolean;
-}) {
-  const query = {
-    limit: params.limit ?? ADMIN_PAGE_SIZE,
-    offset: params.offset ?? 0,
-    familyId: params.familyId,
-    seniorId: params.seniorId,
-  };
-  return useStaffQuery(
-    adminQueryKeys.access(query),
-    () => fetchAdminAccess(query),
-    params.enabled ?? true,
-  );
-}
-
-export function useGrantAdminAccess() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (input: { familyId: string; seniorId: string }) => grantAdminAccess(input.familyId, input.seniorId),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['admin', 'access'] });
-      await queryClient.invalidateQueries({ queryKey: ['admin', 'families'] });
-      await queryClient.invalidateQueries({ queryKey: ['admin', 'seniors'] });
-      await queryClient.invalidateQueries({ queryKey: ['family'] });
-    },
-  });
-}
-
-export function useRevokeAdminAccess() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (accessId: string) => revokeAdminAccess(accessId),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['admin', 'access'] });
-      await queryClient.invalidateQueries({ queryKey: ['admin', 'families'] });
-      await queryClient.invalidateQueries({ queryKey: ['admin', 'seniors'] });
-      await queryClient.invalidateQueries({ queryKey: ['family'] });
     },
   });
 }

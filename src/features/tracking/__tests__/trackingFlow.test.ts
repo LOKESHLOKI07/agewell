@@ -11,7 +11,6 @@ import {
   LOCATION_UNAVAILABLE_MESSAGE,
   canPostTrackingPoints,
   careTrackingHref,
-  familyTrackingHref,
   formatCoordinate,
   formatCoordinatePair,
   newestSession,
@@ -332,9 +331,8 @@ describe('senior start live location', () => {
 });
 
 describe('tracking routing and query keys', () => {
-  it('routes Senior, Family, and Care Manager tracking screens', () => {
+  it('routes Senior and Care Manager tracking screens', () => {
     expect(trackingHref()).toBe('/tracking');
-    expect(familyTrackingHref()).toBe('/family/tracking');
     expect(careTrackingHref('senior-1')).toEqual({ pathname: '/care/tracking', params: { seniorId: 'senior-1' } });
   });
 

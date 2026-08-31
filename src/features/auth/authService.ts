@@ -38,6 +38,16 @@ export async function loginWithPassword(email: string, password: string): Promis
   }
 }
 
+export async function loginWithTokens(accessToken: string, refreshToken: string): Promise<AuthUser> {
+  await saveTokens({ accessToken, refreshToken });
+  try {
+    return await fetchCurrentUser();
+  } catch (error) {
+    await clearTokens();
+    throw error;
+  }
+}
+
 export async function fetchCurrentUser(): Promise<AuthUser> {
   try {
     const response = await apiClient.get('/users/me');

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, DateTime, ForeignKey, UUID
+from sqlalchemy import Column, String, DateTime, ForeignKey, UUID, Date
 import uuid
 from sqlalchemy.sql import func
 from app.db.base import Base
@@ -12,5 +12,8 @@ class FamilyMember(Base):
     last_name = Column(String)
     relationship = Column(String, nullable=True)
     requested_senior_reference = Column(String, nullable=True)
+    date_of_birth = Column(Date, nullable=True)
+    address = Column(String, nullable=True)
+    preferred_language = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

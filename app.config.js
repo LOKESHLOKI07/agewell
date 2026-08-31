@@ -9,6 +9,8 @@ module.exports = {
   ...appJson.expo,
   plugins: [
     ...(appJson.expo.plugins ?? []),
+    'expo-web-browser',
+    '@react-native-community/datetimepicker',
     [
       'react-native-maps',
       {

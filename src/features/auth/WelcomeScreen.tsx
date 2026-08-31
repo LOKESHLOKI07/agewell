@@ -1,45 +1,88 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { router, type Href } from 'expo-router';
+import { useEffect } from 'react';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { BrandMark, PrimaryButton, SecondaryButton } from '@/components';
-import { Icon, IconWell } from '@/components/ui';
-import { cardSurface, colors, minTouchSize, spacing, typography } from '@/constants/theme';
+import { AgeWellLogo, brandGreen } from '@/components/AgeWellLogo';
+import { spacing, typography } from '@/constants/theme';
+import { AuthMethodButtons } from './AuthMethodButtons';
+import { createAccountHref, emailOtpHref, signInHref } from './authEntry';
+import { useGoogleSignIn } from './useGoogleSignIn';
 
 export function WelcomeScreen() {
   const insets = useSafeAreaInsets();
+  const { continueWithGoogle, ready, busy, error } = useGoogleSignIn();
+
+  useEffect(() => {
+    if (error) {
+      Alert.alert('Google sign-in', error);
+    }
+  }, [error]);
+
+  const onGoogle = () => {
+    if (!ready) {
+      Alert.alert(
+        'Google sign-in',
+        'Google sign-in is only in the Android APK (not Expo Go). Wait for the EAS build, then install that APK.',
+      );
+      return;
+    }
+    void continueWithGoogle();
+  };
 
   return (
-    <View style={[styles.root, { paddingTop: insets.top + spacing.xl, paddingBottom: insets.bottom + spacing.xl }]}>
-      <BrandMark size="large" />
-      <Text style={styles.title}>AgeWell India</Text>
-      <Text style={styles.subtitle}>Your parents. Our care. Stay connected with trusted support at home.</Text>
-
-      <View style={styles.card}>
-        <View style={styles.row}>
-          <IconWell tone="primary" size={48} rounded="full">
-            <Icon name="heart-outline" size={22} color={colors.primary} />
-          </IconWell>
-          <Text style={styles.cardText}>Care, health coordination, and peace of mind in one place.</Text>
-        </View>
+    <View
+      style={[
+        styles.root,
+        { paddingTop: insets.top + spacing.xxxl, paddingBottom: insets.bottom + spacing.xl },
+      ]}
+    >
+      <View style={styles.hero}>
+        <AgeWellLogo />
+        <Text style={styles.title}>Welcome to AgeWell</Text>
+        <Text style={styles.subtitle}>Trusted support for you and your loved ones.</Text>
       </View>
 
-      <PrimaryButton
-        label="Sign In"
-        onPress={() => router.push('/(auth)/login' as Href)}
-        accessibilityHint="Opens the sign in form"
-      />
-      <SecondaryButton
-        label="Create Account"
-        onPress={() => router.push('/(auth)/register' as Href)}
-        accessibilityHint="Choose how you will use AgeWell"
-      />
-      <Pressable
-        onPress={() => router.push('/(auth)/login' as Href)}
-        accessibilityRole="button"
-        style={styles.linkWrap}
-      >
-        <Text style={styles.link}>Already enrolled by AgeWell staff? Sign in</Text>
-      </Pressable>
+      <View style={styles.methods}>
+        <AuthMethodButtons
+          onGoogle={onGoogle}
+          onMobile={() => router.push(createAccountHref('mobile'))}
+          onEmail={() => router.push(emailOtpHref('signup'))}
+          googleDisabled={busy}
+        />
+        <Pressable
+          onPress={() => router.push(signInHref())}
+          accessibilityRole="button"
+          accessibilityLabel="Already have an account? Sign in"
+          style={({ pressed }) => [styles.signIn, pressed ? styles.pressed : null]}
+        >
+          <Text style={styles.signInText}>Already have an account? Sign in</Text>
+        </Pressable>
+      </View>
+
+      <View style={styles.footer}>
+        <Text style={styles.legal}>
+          By continuing, you agree to our{'\n'}
+          <Text
+            style={styles.legalLink}
+            onPress={() =>
+              Alert.alert('Terms & Conditions', 'AgeWell terms will be published here.')
+            }
+            accessibilityRole="link"
+          >
+            Terms & Conditions
+          </Text>
+          {' and '}
+          <Text
+            style={styles.legalLink}
+            onPress={() =>
+              Alert.alert('Privacy Policy', 'AgeWell privacy details will be published here.')
+            }
+            accessibilityRole="link"
+          >
+            Privacy Policy
+          </Text>
+        </Text>
+      </View>
     </View>
   );
 }
@@ -47,45 +90,66 @@ export function WelcomeScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: colors.background,
-    paddingHorizontal: spacing.xl,
-    justifyContent: 'center',
-    gap: spacing.md,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 28,
+  },
+  hero: {
+    alignItems: 'center',
+    paddingTop: spacing.xl,
   },
   title: {
-    ...typography.title,
-    color: colors.text,
+    fontFamily: 'Poppins_700Bold',
+    fontSize: 26,
+    lineHeight: 32,
+    fontWeight: '700',
+    color: '#1A1A1A',
     textAlign: 'center',
-    marginTop: spacing.lg,
+    marginTop: 56,
   },
   subtitle: {
     ...typography.body,
-    color: colors.textSecondary,
+    color: '#6B6B6B',
     textAlign: 'center',
-    marginBottom: spacing.lg,
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.md,
   },
-  card: {
-    ...cardSurface,
-    padding: spacing.lg,
-    marginBottom: spacing.lg,
+  methods: {
+    marginTop: 48,
+    gap: 14,
   },
-  row: {
-    flexDirection: 'row',
+  signIn: {
+    minHeight: 44,
     alignItems: 'center',
-    gap: spacing.md,
-  },
-  cardText: {
-    ...typography.body,
-    color: colors.text,
-    flex: 1,
-  },
-  linkWrap: {
-    minHeight: minTouchSize,
     justifyContent: 'center',
-    alignItems: 'center',
+    marginTop: 4,
   },
-  link: {
-    ...typography.captionStrong,
-    color: colors.primary,
+  pressed: {
+    opacity: 0.92,
+  },
+  signInText: {
+    fontFamily: 'Poppins_500Medium',
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '500',
+    color: brandGreen,
+    textAlign: 'center',
+  },
+  footer: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.sm,
+  },
+  legal: {
+    ...typography.caption,
+    color: '#8A8A8A',
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  legalLink: {
+    color: brandGreen,
+    textDecorationLine: 'underline',
+    fontFamily: 'Poppins_500Medium',
+    fontWeight: '500',
   },
 });

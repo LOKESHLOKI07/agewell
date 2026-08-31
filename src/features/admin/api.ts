@@ -29,18 +29,13 @@ import type {
   VisitStatus,
 } from '@/features/home/types/home';
 import type { AuthRole } from '@/features/auth/authTypes';
-import type { FamilyMember } from '@/features/family/types';
-import { toFamilyMember } from '@/features/family/mappers';
 import { toIsoDate } from '@/utils/date';
 import {
   adminSeniorCreateBody,
   adminUserCreateBody,
-  toAdminAccess,
-  toAdminAccessPage,
   toAdminAuditLog,
   toAdminCareManager,
   toAdminCareManagerList,
-  toAdminFamilyPage,
   toAdminMembershipBenefit,
   toAdminMembershipPlan,
   toAdminMembershipRecord,
@@ -53,7 +48,6 @@ import {
   toAdminUserPage,
 } from './mappers';
 import type {
-  AdminAccess,
   AdminAuditLog,
   AdminCareManager,
   AdminCareManagerCreate,
@@ -157,6 +151,7 @@ export function updateAdminSenior(
     dateOfBirth?: string;
     address?: string;
     emergencyContact?: string;
+    preferredLanguage?: string;
     email?: string;
     phone?: string;
   },
@@ -167,6 +162,7 @@ export function updateAdminSenior(
   if (input.dateOfBirth !== undefined) body.date_of_birth = toIsoDate(input.dateOfBirth);
   if (input.address !== undefined) body.address = input.address;
   if (input.emergencyContact !== undefined) body.emergency_contact = input.emergencyContact;
+  if (input.preferredLanguage !== undefined) body.preferred_language = input.preferredLanguage;
   if (input.email !== undefined) body.email = input.email;
   if (input.phone !== undefined) body.phone = input.phone;
   return sendMapped('patch', `/seniors/${id}`, toAdminSenior, body);
@@ -174,82 +170,6 @@ export function updateAdminSenior(
 
 export function deleteAdminSenior(id: string): Promise<AdminSenior> {
   return sendMapped('delete', `/seniors/${id}`, toAdminSenior);
-}
-
-export function fetchAdminFamilies(params: { limit: number; offset: number }): Promise<ListPage<FamilyMember>> {
-  return getMapped('/families/', toAdminFamilyPage, params);
-}
-
-export function fetchAdminFamily(id: string): Promise<FamilyMember> {
-  return getMapped(`/families/${id}`, toFamilyMember);
-}
-
-export async function fetchAdminFamilyByUserId(userId: string): Promise<FamilyMember | null> {
-  try {
-    return await getMapped(`/families/by-user/${userId}`, toFamilyMember);
-  } catch (error) {
-    if (error instanceof ApiError && error.status === 404) return null;
-    throw error;
-  }
-}
-
-export function createAdminFamily(input: {
-  userId: string;
-  firstName: string;
-  lastName: string;
-  relationship?: string;
-  requestedSeniorReference?: string;
-}): Promise<FamilyMember> {
-  return sendMapped('post', '/families/', toFamilyMember, {
-    user_id: input.userId,
-    first_name: input.firstName,
-    last_name: input.lastName,
-    relationship: input.relationship,
-    requested_senior_reference: input.requestedSeniorReference,
-  });
-}
-
-export function updateAdminFamily(
-  id: string,
-  input: {
-    firstName?: string;
-    lastName?: string;
-    relationship?: string;
-    requestedSeniorReference?: string;
-  },
-): Promise<FamilyMember> {
-  const body: Record<string, unknown> = {};
-  if (input.firstName !== undefined) body.first_name = input.firstName;
-  if (input.lastName !== undefined) body.last_name = input.lastName;
-  if (input.relationship !== undefined) body.relationship = input.relationship;
-  if (input.requestedSeniorReference !== undefined) body.requested_senior_reference = input.requestedSeniorReference;
-  return sendMapped('patch', `/families/${id}`, toFamilyMember, body);
-}
-
-export function deleteAdminFamily(id: string): Promise<FamilyMember> {
-  return sendMapped('delete', `/families/${id}`, toFamilyMember);
-}
-
-export function fetchAdminAccess(params: {
-  limit: number;
-  offset: number;
-  familyId?: string;
-  seniorId?: string;
-}): Promise<ListPage<AdminAccess>> {
-  return getMapped('/access/', toAdminAccessPage, {
-    limit: params.limit,
-    offset: params.offset,
-    ...(params.familyId ? { family_id: params.familyId } : {}),
-    ...(params.seniorId ? { senior_id: params.seniorId } : {}),
-  });
-}
-
-export function grantAdminAccess(familyId: string, seniorId: string): Promise<AdminAccess> {
-  return sendMapped('post', '/access/', toAdminAccess, { family_id: familyId, senior_id: seniorId });
-}
-
-export function revokeAdminAccess(accessId: string): Promise<AdminAccess> {
-  return sendMapped('delete', `/access/${accessId}`, toAdminAccess);
 }
 
 export function fetchAdminCareManagers(): Promise<AdminCareManager[]> {

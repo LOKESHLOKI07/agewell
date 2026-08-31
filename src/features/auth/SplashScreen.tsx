@@ -1,28 +1,34 @@
-import { StyleSheet, Text, View } from 'react-native';
-import { BrandMark } from '@/components';
-import { colors, spacing, typography } from '@/constants/theme';
+import { StatusBar } from 'expo-status-bar';
+import { Image, Platform, StyleSheet, useWindowDimensions, View } from 'react-native';
 
-export function SplashScreen() {
+const splashImage = require('../../../assets/splash/full.png');
+
+const splashBackgroundColor = '#FEF8E8';
+
+export function SplashScreen({ onReady }: { onReady?: () => void }) {
+  const { width, height } = useWindowDimensions();
+
   return (
-    <View style={styles.screen} accessibilityLabel="AgeWell India. Your Parents. Our Care.">
-      <BrandMark />
-      <Text style={styles.tagline}>Your Parents. Our Care.</Text>
+    <View
+      style={[styles.screen, { width, height }]}
+      accessibilityLabel="AgeWell. Your Parents. Our Care."
+      onLayout={onReady}
+    >
+      <StatusBar style="dark" />
+      <Image
+        source={splashImage}
+        style={{ width, height }}
+        resizeMode={Platform.OS === 'web' ? 'contain' : 'cover'}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   screen: {
-    flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: splashBackgroundColor,
+    overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: spacing.xxl,
-  },
-  tagline: {
-    ...typography.subtitle,
-    color: colors.textSecondary,
-    marginTop: spacing.lg,
-    textAlign: 'center',
   },
 });

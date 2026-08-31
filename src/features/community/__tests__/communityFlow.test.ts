@@ -1,7 +1,6 @@
 import { apiClient } from '@/api/client';
 import { ApiError } from '@/api/errors';
 import { queryClient } from '@/api/queryClient';
-import { FAMILY_FORBIDDEN_MESSAGE } from '@/features/family/selectors';
 import { getSectionState } from '@/features/home/selectors/homeViewModel';
 import {
   cancelRegistration,
@@ -28,9 +27,9 @@ import {
   adminCommunityHref,
   canUseCommunity,
   capacityLabel,
+  COMMUNITY_FORBIDDEN_MESSAGE,
   communityEventHref,
   eventDateForRegistration,
-  familyCommunityEventHref,
   formatEventDate,
   getCommunityErrorMessage,
   isAuthorizedFamilySenior,
@@ -78,12 +77,8 @@ const listPage = {
 };
 
 describe('community routing', () => {
-  it('routes Senior, Family, and Admin community screens', () => {
+  it('routes Senior and Admin community screens', () => {
     expect(communityEventHref('evt-1')).toEqual({ pathname: '/community/events/[id]', params: { id: 'evt-1' } });
-    expect(familyCommunityEventHref('evt-1')).toEqual({
-      pathname: '/family/community/events/[id]',
-      params: { id: 'evt-1' },
-    });
     expect(adminCommunityHref('evt-1')).toBe('/(admin)/community/evt-1');
     expect(adminCommunityCreateHref()).toBe('/(admin)/community/new');
   });
@@ -172,7 +167,7 @@ describe('community registration', () => {
 
   it('selects only authorized family seniors', () => {
     const seniors = [
-      { id: 'john', userId: 'u1', firstName: 'John', lastName: 'Doe', dateOfBirth: '1940-01-01', address: '1', emergencyContact: '911' },
+      { id: 'john', userId: 'u1', firstName: 'John', lastName: 'Doe', dateOfBirth: '1940-01-01', address: '1', emergencyContact: '911', photo: null },
     ];
     expect(isAuthorizedFamilySenior(seniors, 'john')).toBe(true);
     expect(isAuthorizedFamilySenior(seniors, 'jane')).toBe(false);
@@ -226,7 +221,7 @@ describe('community registration', () => {
     expect(eventDateForRegistration(page.items[0], [toCommunityEvent(eventPayload)])).toBe(eventPayload.event_date);
   });
 
-  it('surfaces family unauthorized senior as 403 with the family copy', async () => {
+  it('surfaces unauthorized community access as 403', async () => {
     mockedPost.mockRejectedValueOnce({
       isAxiosError: true,
       response: { status: 403, data: { detail: 'forbidden' } },
@@ -234,9 +229,9 @@ describe('community registration', () => {
     await expect(registerForEvent(eventPayload.id, 'jane')).rejects.toMatchObject({
       name: 'ApiError',
       status: 403,
-      message: FAMILY_FORBIDDEN_MESSAGE,
+      message: COMMUNITY_FORBIDDEN_MESSAGE,
     });
-    expect(getCommunityErrorMessage(new ApiError('x', 403))).toBe(FAMILY_FORBIDDEN_MESSAGE);
+    expect(getCommunityErrorMessage(new ApiError('x', 403))).toBe(COMMUNITY_FORBIDDEN_MESSAGE);
   });
 });
 

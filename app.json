@@ -9,9 +9,9 @@
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#F5F6FB"
+      "image": "./assets/splash/full.png",
+      "resizeMode": "cover",
+      "backgroundColor": "#FEF8E8"
     },
     "ios": {
       "supportsTablet": true,
@@ -19,7 +19,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#5B3FD4",
+        "backgroundColor": "#FEF8E8",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -33,6 +33,15 @@
     },
     "plugins": [
       "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#FEF8E8",
+          "image": "./assets/splash/full.png",
+          "resizeMode": "cover",
+          "enableFullScreenImage_legacy": true
+        }
+      ],
       "expo-status-bar",
       [
         "expo-secure-store",
@@ -45,11 +54,20 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Allow AgeWell India to share your live location with authorized family and care staff while you are using the app.",
+          "locationWhenInUsePermission": "Allow AgeWell to use your location to check whether services are available in your area, and to share live location with authorized family and care staff while you are using the app.",
           "isIosBackgroundLocationEnabled": false,
           "isAndroidBackgroundLocationEnabled": false
         }
-      ]
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow AgeWell to use your photos so you can set a profile picture.",
+          "cameraPermission": "Allow AgeWell to use your camera so you can take a profile picture.",
+          "microphonePermission": false
+        }
+      ],
+      "@react-native-google-signin/google-signin"
     ],
     "experiments": {
       "typedRoutes": true

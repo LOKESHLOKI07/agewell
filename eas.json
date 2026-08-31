@@ -9,7 +9,8 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://mountainexplorers.ind.in:8443"
+        "EXPO_PUBLIC_API_URL": "https://mountainexplorers.ind.in:8443",
+        "EXPO_PUBLIC_GOOGLE_CLIENT_ID": "966080647084-hvo2jar2rc71jrdar0pq62e4ddgt1ctj.apps.googleusercontent.com"
       }
     }
   }

@@ -7,7 +7,13 @@ from app.modules.access.repository import AccessRepository
 from app.modules.access.service import AccessService
 from app.modules.audit.repository import AuditRepository
 from app.modules.seniors.repository import SeniorRepository
-from app.modules.seniors.schemas import SeniorCreate, SeniorDirectoryItem, SeniorResponse, SeniorUpdate
+from app.modules.seniors.schemas import (
+    SeniorCreate,
+    SeniorDirectoryItem,
+    SeniorPhotoUpdate,
+    SeniorResponse,
+    SeniorUpdate,
+)
 from app.modules.seniors.service import SeniorService
 from app.modules.users.models import User
 from app.modules.users.repository import UserRepository
@@ -29,6 +35,17 @@ async def get_my_senior_profile(
     access: AccessService = Depends(get_access_service),
 ):
     return await access.get_senior_for_user(current_user)
+
+
+@router.patch("/me", response_model=SeniorResponse)
+async def update_my_senior_photo(
+    payload: SeniorPhotoUpdate,
+    current_user: User = Depends(get_current_user),
+    access: AccessService = Depends(get_access_service),
+    service: SeniorService = Depends(get_senior_service),
+):
+    senior = await access.get_senior_for_user(current_user)
+    return await service.update_photo(senior, payload.photo)
 
 
 @router.get("/", response_model=ListPage[SeniorDirectoryItem])

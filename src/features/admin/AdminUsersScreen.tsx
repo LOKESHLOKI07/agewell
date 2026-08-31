@@ -15,7 +15,7 @@ import { AdminQueryView } from './components/AdminQueryView';
 import { AdminScreen } from './components/AdminScreen';
 import { deleteAdminUser } from './api';
 import { useDeletePeopleRecords } from './hooks/useDeletePeopleRecords';
-import { useAdminCareManagers, useAdminFamilies, useAdminSeniors, useAdminUsers } from './hooks';
+import { useAdminCareManagers, useAdminSeniors, useAdminUsers } from './hooks';
 import { adminRoleLabel, getSectionState, humanizeStatus } from './selectors';
 import type { AdminUser } from './types';
 import { ADMIN_PAGE_SIZE } from './types';
@@ -31,7 +31,6 @@ export function AdminUsersScreen() {
 
   const query = useAdminUsers({ limit: ADMIN_PAGE_SIZE, offset, role, email });
   const seniors = useAdminSeniors({ limit: 100, offset: 0 });
-  const families = useAdminFamilies({ limit: 100, offset: 0 });
   const careManagers = useAdminCareManagers();
   const items = query.data?.items ?? [];
   const deleteOne = useMemo(
@@ -64,12 +63,7 @@ export function AdminUsersScreen() {
       return;
     }
     if (user.role === 'FAMILY') {
-      const family = (families.data?.items ?? []).find((item) => item.userId === user.id);
-      if (family) {
-        router.push(`/(admin)/families/${family.id}` as Href);
-        return;
-      }
-      router.push('/(admin)/families' as Href);
+      router.push(`/(admin)/users/${user.id}` as Href);
       return;
     }
     if (user.role === 'CARE_MANAGER') {

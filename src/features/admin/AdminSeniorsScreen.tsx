@@ -14,11 +14,9 @@ import { AdminSearchPicker } from './components/AdminSearchPicker';
 import { deleteAdminSenior, updateAdminUser } from './api';
 import { useDeletePeopleRecords } from './hooks/useDeletePeopleRecords';
 import {
-  useAdminAccess,
   useAdminAppointments,
   useAdminCurrentMembership,
   useAdminEmergencies,
-  useAdminFamilies,
   useAdminMedicalRecords,
   useAdminMembershipUsage,
   useAdminSenior,
@@ -27,11 +25,10 @@ import {
   useAdminUsers,
   useAdminVisits,
   useCreateAdminSenior,
-  useGrantAdminAccess,
-  useRevokeAdminAccess,
   useUpdateAdminSenior,
 } from './hooks';
-import { adminFamilyDisplay, adminSeniorDisplay, getAdminErrorMessage, getSectionState, humanizeStatus } from './selectors';
+import { adminSeniorDisplay, getAdminErrorMessage, getSectionState, humanizeStatus } from './selectors';
+import { onboardingLanguageLabel } from '@/features/auth/onboardingProfile';
 import type { AdminSenior } from './types';
 import { ADMIN_PAGE_SIZE } from './types';
 
@@ -177,16 +174,12 @@ export function AdminSeniorDetailScreen() {
   const query = useAdminSenior(id);
   const user = useAdminUser(query.data?.userId);
   const visits = useAdminVisits({ seniorId: id, limit: 20, offset: 0 });
-  const access = useAdminAccess({ seniorId: id, limit: 50, offset: 0 });
-  const families = useAdminFamilies({ limit: 100, offset: 0 });
   const appointments = useAdminAppointments({ seniorId: id, limit: 5, offset: 0 });
   const health = useAdminMedicalRecords(id);
   const membership = useAdminCurrentMembership(id);
   const usage = useAdminMembershipUsage(id);
   const emergencies = useAdminEmergencies({ seniorId: id, limit: 5, offset: 0 });
   const update = useUpdateAdminSenior(id ?? '');
-  const grant = useGrantAdminAccess();
-  const revoke = useRevokeAdminAccess();
 
   const [editing, setEditing] = useState(edit === '1');
   const [firstName, setFirstName] = useState('');
@@ -194,14 +187,12 @@ export function AdminSeniorDetailScreen() {
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [address, setAddress] = useState('');
   const [emergencyContact, setEmergencyContact] = useState('');
+  const [preferredLanguage, setPreferredLanguage] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [accountStatus, setAccountStatus] = useState('ACTIVE');
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-  const [pendingFamilyIds, setPendingFamilyIds] = useState<string[]>([]);
-  const [confirmGrant, setConfirmGrant] = useState(false);
-  const [revokeId, setRevokeId] = useState<string | null>(null);
 
   useEffect(() => {
     if (edit === '1') setEditing(true);
@@ -214,26 +205,12 @@ export function AdminSeniorDetailScreen() {
       setDateOfBirth(toDisplayDate(query.data.dateOfBirth));
       setAddress(query.data.address);
       setEmergencyContact(query.data.emergencyContact);
+      setPreferredLanguage(query.data.preferredLanguage ?? '');
       setEmail(query.data.email ?? '');
       setPhone(query.data.phone ?? '');
       setAccountStatus(query.data.accountStatus ?? user.data?.accountStatus ?? 'ACTIVE');
     }
   }, [query.data, user.data?.accountStatus]);
-
-  const linkedFamilyIds = useMemo(
-    () => new Set((access.data?.items ?? []).map((row) => row.familyId)),
-    [access.data?.items],
-  );
-
-  const familyOptions = useMemo(
-    () =>
-      (families.data?.items ?? []).map((family) => ({
-        id: family.id,
-        title: adminFamilyDisplay(family),
-        subtitle: family.relationship ?? family.userId,
-      })),
-    [families.data?.items],
-  );
 
   const careAssociatesOnVisits = useMemo(() => {
     const names = new Set<string>();
@@ -252,7 +229,7 @@ export function AdminSeniorDetailScreen() {
   return (
     <AdminScreen
       title="Senior Details"
-      subtitle="Registration profile fields can be edited below. Family access and visits stay on this page."
+      subtitle="Registration profile fields can be edited below. Visits and related care data stay on this page."
       backHref="/(admin)/seniors"
     >
       <AdminQueryView
@@ -281,6 +258,7 @@ export function AdminSeniorDetailScreen() {
                 <Text style={styles.line}>Phone: {query.data.phone ?? user.data?.phone ?? 'Not on file'}</Text>
                 <Text style={styles.line}>Date of birth: {formatLongDate(query.data.dateOfBirth)}</Text>
                 <Text style={styles.line}>Address: {query.data.address}</Text>
+                <Text style={styles.line}>Preferred language: {onboardingLanguageLabel(query.data.preferredLanguage)}</Text>
                 <Text style={styles.line}>Emergency contact: {query.data.emergencyContact}</Text>
                 <PrimaryButton label="Edit Profile" onPress={() => setEditing(true)} />
               </>
@@ -293,6 +271,7 @@ export function AdminSeniorDetailScreen() {
                 <TextField label="Phone" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
                 <TextField label="Date of birth (DD-MM-YYYY)" value={dateOfBirth} onChangeText={setDateOfBirth} placeholder="10-03-1952" />
                 <TextField label="Address" value={address} onChangeText={setAddress} />
+                <TextField label="Preferred language (en / hi / mr)" value={preferredLanguage} onChangeText={setPreferredLanguage} autoCapitalize="none" />
                 <TextField label="Emergency contact" value={emergencyContact} onChangeText={setEmergencyContact} />
                 <TextField
                   label="Account status (ACTIVE / DISABLED)"
@@ -309,7 +288,7 @@ export function AdminSeniorDetailScreen() {
                     setFormError(null);
                     setSaving(true);
                     update.mutate(
-                      { firstName, lastName, dateOfBirth, address, emergencyContact, email, phone },
+                      { firstName, lastName, dateOfBirth, address, emergencyContact, preferredLanguage, email, phone },
                       {
                         onError: (error) => {
                           setSaving(false);
@@ -344,6 +323,7 @@ export function AdminSeniorDetailScreen() {
                       setDateOfBirth(toDisplayDate(query.data.dateOfBirth));
                       setAddress(query.data.address);
                       setEmergencyContact(query.data.emergencyContact);
+                      setPreferredLanguage(query.data.preferredLanguage ?? '');
                       setEmail(query.data.email ?? '');
                       setPhone(query.data.phone ?? '');
                       setAccountStatus(query.data.accountStatus ?? user.data?.accountStatus ?? 'ACTIVE');
@@ -354,58 +334,6 @@ export function AdminSeniorDetailScreen() {
             )}
           </PremiumCard>
         ) : null}
-
-        <PremiumCard style={styles.card}>
-          <Text style={styles.section}>Family Access</Text>
-          <Text style={styles.line}>
-            {(access.data?.items.length ?? 0)} Authorized Family Member{(access.data?.items.length ?? 0) === 1 ? '' : 's'}
-          </Text>
-          <AdminQueryView
-            state={getSectionState({
-              isPending: access.isPending,
-              isError: access.isError,
-              isEmpty: (access.data?.items.length ?? 0) === 0,
-            })}
-            error={access.error}
-            onRetry={() => void access.refetch()}
-            loadingMessage="Loading family access..."
-            emptyTitle="No family access"
-            emptyMessage="Grant access to link family members through family_senior_access."
-            errorKind="access"
-          >
-            {(access.data?.items ?? []).map((row) => (
-              <View key={row.id} style={styles.rowCard}>
-                <Text style={styles.rowTitle}>{row.familyName ?? row.familyId}</Text>
-                <Text style={styles.line}>{row.familyEmail ?? 'Email not on file'}</Text>
-                <PrimaryButton label="Remove Access" onPress={() => setRevokeId(row.id)} />
-              </View>
-            ))}
-          </AdminQueryView>
-          <AdminSearchPicker
-            label="Add Family Member"
-            multiple
-            options={familyOptions}
-            values={pendingFamilyIds}
-            disabledIds={[...linkedFamilyIds]}
-            loading={families.isPending}
-            emptyMessage="No family profiles available."
-            confirmLabel="Select family members"
-            onChangeMultiple={setPendingFamilyIds}
-          />
-          <PrimaryButton
-            label="Grant Access"
-            loading={grant.isPending}
-            onPress={() => {
-              if (!pendingFamilyIds.length) {
-                setFormError('Select at least one family member.');
-                return;
-              }
-              setFormError(null);
-              setConfirmGrant(true);
-            }}
-          />
-          {formError ? <Text style={styles.error}>{formError}</Text> : null}
-        </PremiumCard>
 
         <PremiumCard style={styles.card}>
           <Text style={styles.section}>Care / Visits</Text>
@@ -483,42 +411,6 @@ export function AdminSeniorDetailScreen() {
           ))}
         </Related>
       </AdminQueryView>
-
-      <ConfirmDialog
-        visible={confirmGrant}
-        title="Grant family access?"
-        message="Selected family members will gain authorized access to this senior."
-        confirmLabel="Grant Access"
-        onCancel={() => setConfirmGrant(false)}
-        onConfirm={() => {
-          setConfirmGrant(false);
-          void (async () => {
-            try {
-              for (const familyId of pendingFamilyIds) {
-                await grant.mutateAsync({ familyId, seniorId: id as string });
-              }
-              setPendingFamilyIds([]);
-            } catch (error) {
-              setFormError(getAdminErrorMessage(error, 'access'));
-            }
-          })();
-        }}
-      />
-      <ConfirmDialog
-        visible={Boolean(revokeId)}
-        title="Revoke family access?"
-        message="This family member will lose authorized access to this senior."
-        confirmLabel="Revoke Access"
-        onCancel={() => setRevokeId(null)}
-        onConfirm={() => {
-          if (revokeId) {
-            revoke.mutate(revokeId, {
-              onError: (error) => setFormError(getAdminErrorMessage(error, 'access')),
-            });
-          }
-          setRevokeId(null);
-        }}
-      />
     </AdminScreen>
   );
 }
@@ -532,6 +424,7 @@ export function AdminSeniorCreateScreen() {
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [address, setAddress] = useState('');
   const [emergencyContact, setEmergencyContact] = useState('');
+  const [preferredLanguage, setPreferredLanguage] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
   const userOptions = useMemo(
     () =>
@@ -558,6 +451,7 @@ export function AdminSeniorCreateScreen() {
       <TextField label="Last name" value={lastName} onChangeText={setLastName} />
       <TextField label="Date of birth (DD-MM-YYYY)" value={dateOfBirth} onChangeText={setDateOfBirth} placeholder="10-03-1952" />
       <TextField label="Address" value={address} onChangeText={setAddress} />
+      <TextField label="Preferred language (en / hi / mr)" value={preferredLanguage} onChangeText={setPreferredLanguage} autoCapitalize="none" />
       <TextField label="Emergency contact" value={emergencyContact} onChangeText={setEmergencyContact} />
       {formError ? <Text style={styles.error}>{formError}</Text> : null}
       <PrimaryButton
@@ -570,7 +464,7 @@ export function AdminSeniorCreateScreen() {
           }
           setFormError(null);
           create.mutate(
-            { userId, firstName, lastName, dateOfBirth, address, emergencyContact },
+            { userId, firstName, lastName, dateOfBirth, address, emergencyContact, preferredLanguage: preferredLanguage || undefined },
             {
               onError: (error) => setFormError(getAdminErrorMessage(error)),
               onSuccess: (senior) => router.replace(`/(admin)/seniors/${senior.id}` as Href),

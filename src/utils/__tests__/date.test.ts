@@ -8,6 +8,7 @@ describe('display date format', () => {
 
   it('converts DD-MM-YYYY back to ISO for the API', () => {
     expect(toIsoDate('10-03-1952')).toBe('1952-03-10');
+    expect(toIsoDate('10 / 03 / 1952')).toBe('1952-03-10');
     expect(toIsoDate('2026-09-15')).toBe('2026-09-15');
   });
 

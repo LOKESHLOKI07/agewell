@@ -49,11 +49,16 @@ async def test_admin_can_edit_senior_profile(client):
     patched = await client.patch(
         f"/api/v1/seniors/{me['id']}",
         headers=admin_h,
-        json={"address": "Updated Admin Address", "emergency_contact": "999"},
+        json={
+            "address": "Updated Admin Address",
+            "emergency_contact": "999",
+            "date_of_birth": "1952-03-10",
+        },
     )
     assert patched.status_code == 200, patched.text
     assert patched.json()["address"] == "Updated Admin Address"
     assert patched.json()["emergency_contact"] == "999"
+    assert patched.json()["date_of_birth"] == "1952-03-10"
     assert patched.json().get("email")
 
     forbidden = await client.patch(

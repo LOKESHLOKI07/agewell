@@ -5,6 +5,7 @@ import { colors, minTouchSize, typography, spacing } from '@/constants/theme';
 import { Avatar, Icon } from '@/components/ui';
 import { useAuthStore } from '@/features/auth/authStore';
 import { authenticatedProfileHref } from '@/features/auth/roleRouting';
+import { useSeniorProfile } from '@/features/home/hooks/queries';
 import { NotificationBell } from '@/features/notifications/components/NotificationBell';
 import { useI18n } from '@/i18n';
 import { getGreeting } from '@/utils/greeting';
@@ -38,6 +39,7 @@ export function AgeWellHeader({
   centerTitle = false,
 }: AgeWellHeaderProps) {
   const role = useAuthStore((state) => state.user?.role);
+  const photoUri = useSeniorProfile().data?.photo;
   const navigation = useNavigation();
   const { t } = useI18n();
   const greeting =
@@ -75,7 +77,7 @@ export function AgeWellHeader({
           style={styles.profileAvatar}
           onPress={() => router.push(authenticatedProfileHref(role) as Href)}
         >
-          <Avatar name={profileName} size={44} showOnline={showOnline} />
+          <Avatar name={profileName} imageUri={photoUri} size={44} showOnline={showOnline} />
           <Text style={styles.profileLabel}>{t('common.profile')}</Text>
         </Pressable>
       ) : null}

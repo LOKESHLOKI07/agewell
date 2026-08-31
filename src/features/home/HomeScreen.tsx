@@ -1,31 +1,49 @@
 import { useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { router, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, layout, spacing } from '@/constants/theme';
 import { ApiError } from '@/api/errors';
-import { useHomeData } from './hooks/useHomeData';
-import { getSectionState } from './selectors/homeViewModel';
-import { AgeWellHeader } from './components/AgeWellHeader';
-import { EmergencyBanner } from './components/EmergencyBanner';
-import { TodayOverview } from './components/TodayOverview';
-import { QuickServices } from './components/QuickServices';
-import { LiveTrackingCard } from '@/features/tracking/components/LiveTrackingCard';
-import { TrackCareAssociateCard } from '@/features/tracking/components/TrackCareAssociateCard';
+import { spacing, typography } from '@/constants/theme';
+import { useAuthStore } from '@/features/auth/authStore';
+import { canAvailServices } from '@/features/auth/serviceAreaPreference';
+import { FamilyHomeGreeting } from '@/features/home/components/FamilyHomeGreeting';
+import { FamilyHomeTopBar } from '@/features/home/components/FamilyHomeTopBar';
+import { FamilyImportantUpdates } from '@/features/home/components/FamilyImportantUpdates';
+import {
+  FamilyActiveMembershipCard,
+  FamilyMembershipPlansCarousel,
+  FamilySupportBanner,
+  FamilyTalkToExpertBanner,
+} from '@/features/home/components/FamilyMembershipSections';
+import { FamilyOurServicesGrid, FamilyQuickServices } from '@/features/home/components/FamilyServicesSections';
+import { familyHome } from '@/features/home/components/familyHomeTheme';
 import { pickTrackableVisit } from '@/features/tracking/live';
-import { seniorAssociateTrackHref } from '@/features/tracking/selectors';
 import { invalidateTrackingQueries } from '@/features/tracking/queryKeys';
-import { MembershipSummary } from './components/MembershipSummary';
-import { ExploreAgeWell } from './components/ExploreAgeWell';
-import { WhyAgeWell } from './components/WhyAgeWell';
+import { useTabScreenBottomPad } from '@/utils/safeBottom';
+import { useHomeData } from './hooks/useHomeData';
 
 function isNotFound(error: unknown): boolean {
   return error instanceof ApiError && error.status === 404;
 }
 
+function displayFirstName(greetingName: string | null, email: string | null | undefined): string {
+  if (greetingName?.trim()) {
+    return greetingName.trim().split(/\s+/)[0] ?? 'there';
+  }
+  const local = email?.split('@')[0]?.trim();
+  if (local) {
+    return local;
+  }
+  return 'there';
+}
+
 export function HomeScreen() {
   const insets = useSafeAreaInsets();
   const home = useHomeData();
+  const email = useAuthStore((state) => state.user?.email);
   const [refreshing, setRefreshing] = useState(false);
+  const bottomPad = useTabScreenBottomPad(spacing.xl);
+  const servicesLive = canAvailServices();
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -36,113 +54,78 @@ export function HomeScreen() {
     }
   };
 
-  const todayHasItems = home.viewModel.todayItems.length > 0;
-  const todayQueries = [home.visits, home.appointments, home.medications, home.serviceRequests];
-  const todayPending = todayQueries.some((query) => query.isPending);
-  const todayError = todayQueries.find((query) => query.isError)?.error;
-  const todayState = getSectionState({
-    isPending: todayPending && !todayHasItems,
-    isError: Boolean(todayError) && !todayHasItems,
-    isEmpty: !todayHasItems,
-  });
-
-  const nameState = getSectionState({
-    isPending: home.senior.isPending,
-    isError: home.senior.isError,
-    isEmpty: !home.viewModel.greetingName,
-  });
-
-  const servicesState = getSectionState({
-    isPending: home.services.isPending,
-    isError: home.services.isError,
-    isEmpty: (home.services.data?.length ?? 0) === 0,
-  });
-
   const membershipMissing = isNotFound(home.membership.error);
-  const membershipState = getSectionState({
-    isPending: home.membership.isPending,
-    isError: home.membership.isError && !membershipMissing,
-    isEmpty: membershipMissing || !home.viewModel.membership,
-  });
-
-  const usageState = getSectionState({
-    isPending: home.usage.isPending,
-    isError: home.usage.isError,
-    isEmpty: (home.usage.data?.length ?? 0) === 0,
-  });
-  const trackVisit = pickTrackableVisit(
+  const membership = home.membership.data ?? null;
+  const hasActiveMembership = Boolean(
+    membership && !membershipMissing && membership.status.toUpperCase() !== 'EXPIRED',
+  );
+  const firstName = displayFirstName(home.viewModel.greetingName, email);
+  const nextVisit = pickTrackableVisit(
     home.visits.data?.items,
     home.upcomingVisits.data?.items,
     home.myVisits.data?.items,
   );
+  const usage = home.usage.data ?? [];
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
-      <AgeWellHeader
+      <FamilyHomeTopBar
         unreadCount={home.viewModel.unreadNotificationCount}
-        profileName={home.viewModel.greetingName}
-        showGreeting
-        showTagline
+        profileName={home.viewModel.greetingName ?? email ?? firstName}
+        profilePhotoUri={home.senior.data?.photo}
+        profileHref={'/(tabs)/profile' as Href}
       />
+
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={() => void onRefresh()} tintColor={colors.primary} />
+          <RefreshControl refreshing={refreshing} onRefresh={() => void onRefresh()} tintColor={familyHome.green} />
         }
       >
-        <EmergencyBanner />
-        <TodayOverview
-          userName={home.viewModel.greetingName}
-          nameState={nameState}
-          nameError={home.senior.error}
-          onRetryName={() => {
-            void home.senior.refetch();
-          }}
-          items={home.viewModel.todayItems}
-          todayState={todayState}
-          todayError={todayError}
-          onRetryToday={() => {
-            void Promise.allSettled(todayQueries.map((query) => query.refetch()));
-          }}
+        <FamilyHomeGreeting
+          firstName={firstName}
+          subtitle="Trusted support for you and your loved ones."
         />
-        <QuickServices
-          services={home.viewModel.quickServices}
-          state={servicesState}
-          error={home.services.error}
-          onRetry={() => {
-            void home.services.refetch();
-          }}
-        />
-        <View style={styles.trackSection}>
-          <TrackCareAssociateCard
-            visit={trackVisit}
-            href={trackVisit ? seniorAssociateTrackHref(trackVisit.id) : '/visits'}
-            emptyHref="/visits"
-            actionLabel="Track"
+
+        {!servicesLive ? (
+          <View style={styles.comingSoonBanner} accessibilityRole="summary">
+            <Text style={styles.comingSoonTitle}>Coming soon in your area</Text>
+            <Text style={styles.comingSoonBody}>
+              Explore AgeWell services below. Booking and emergency dispatch open when we launch near you.
+            </Text>
+          </View>
+        ) : null}
+
+        {hasActiveMembership && servicesLive ? (
+          <FamilyImportantUpdates
+            parentStatusTitle="All Good"
+            parentStatusSubtitle="Your care team is looking after today's plan."
+            updatedLabel="Updated today"
+            nextVisit={nextVisit}
+            statusEyebrow="Your Status"
+            notificationsHref={'/notifications' as Href}
+            onOpenHealth={() => router.push('/(tabs)/health' as Href)}
+            onOpenVisits={() => router.push('/visits' as Href)}
           />
-        </View>
-        <LiveTrackingCard homeAddress={home.senior.data?.address} />
-        <MembershipSummary
-          planName={home.viewModel.membership?.planName ?? null}
-          status={home.viewModel.membership?.status ?? null}
-          startDate={home.viewModel.membership?.startDate ?? null}
-          endDate={home.viewModel.membership?.endDate ?? null}
-          usage={home.viewModel.membership?.usage ?? []}
-          membershipState={membershipState}
-          membershipError={home.membership.error}
-          onRetryMembership={() => {
-            void home.membership.refetch();
-          }}
-          usageState={usageState}
-          usageError={home.usage.error}
-          onRetryUsage={() => {
-            void home.usage.refetch();
-          }}
-        />
-        <ExploreAgeWell />
-        <WhyAgeWell />
-        <View style={{ height: layout.tabBarHeight + spacing.xl }} />
+        ) : null}
+
+        <FamilyQuickServices />
+        <FamilyOurServicesGrid />
+
+        {hasActiveMembership && membership && servicesLive ? (
+          <>
+            <FamilyActiveMembershipCard membership={membership} usage={usage} />
+            <FamilySupportBanner />
+          </>
+        ) : (
+          <>
+            <FamilyMembershipPlansCarousel />
+            <FamilyTalkToExpertBanner />
+          </>
+        )}
+
+        <View style={{ height: bottomPad }} />
       </ScrollView>
     </View>
   );
@@ -151,13 +134,29 @@ export function HomeScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: familyHome.white,
   },
-  scrollContent: {
+  content: {
     flexGrow: 1,
+    gap: spacing.xxl,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xl,
   },
-  trackSection: {
-    paddingHorizontal: layout.screenPadding,
-    paddingVertical: 12,
+  comingSoonBanner: {
+    marginHorizontal: spacing.xl,
+    borderRadius: 16,
+    backgroundColor: '#FFF4EB',
+    borderWidth: 1,
+    borderColor: '#F5D0B5',
+    padding: spacing.lg,
+    gap: spacing.xs,
+  },
+  comingSoonTitle: {
+    ...typography.bodyStrong,
+    color: '#C45C12',
+  },
+  comingSoonBody: {
+    ...typography.body,
+    color: '#6B6B6B',
   },
 });

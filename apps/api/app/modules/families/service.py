@@ -75,6 +75,9 @@ class FamilyService:
             last_name=payload.last_name.strip(),
             relationship=(payload.relationship or "").strip() or None,
             requested_senior_reference=(payload.requested_senior_reference or "").strip() or None,
+            date_of_birth=payload.date_of_birth,
+            address=(payload.address or "").strip() or None,
+            preferred_language=(payload.preferred_language or "").strip() or None,
         )
         if self.audit_repo:
             await self.audit_repo.record(
@@ -97,7 +100,7 @@ class FamilyService:
                 entity_name="family_members",
                 entity_id=str(row.id),
                 action="UPDATE",
-                changes=json.dumps(data),
+                changes=json.dumps(payload.model_dump(exclude_unset=True, mode="json")),
             )
             await self.repo.session.commit()
         return FamilyMemberResponse.model_validate(row)

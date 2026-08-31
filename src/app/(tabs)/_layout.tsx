@@ -2,11 +2,14 @@ import { Redirect, Tabs, type Href } from 'expo-router';
 import { colors, typography } from '@/constants/theme';
 import { Icon } from '@/components/ui';
 import { useAuthStore } from '@/features/auth/authStore';
-import { authenticatedHomeHref, isSeniorRole } from '@/features/auth/roleRouting';
+import { authenticatedHomeHref, isMemberHomeRole } from '@/features/auth/roleRouting';
+import { brandGreen } from '@/components/AgeWellLogo';
+import { useSafeTabBarStyle } from '@/utils/safeBottom';
 
 export default function TabsLayout() {
   const role = useAuthStore((state) => state.user?.role);
-  if (role && !isSeniorRole(role)) {
+  const tabBarStyle = useSafeTabBarStyle();
+  if (role && !isMemberHomeRole(role)) {
     return <Redirect href={authenticatedHomeHref(role) as Href} />;
   }
 
@@ -14,18 +17,12 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.primary,
+        tabBarActiveTintColor: brandGreen,
         tabBarInactiveTintColor: colors.textMuted,
         tabBarLabelStyle: {
           ...typography.captionStrong,
         },
-        tabBarStyle: {
-          backgroundColor: colors.surfaceElevated,
-          borderTopColor: colors.border,
-          height: 72,
-          paddingTop: 8,
-          paddingBottom: 10,
-        },
+        tabBarStyle,
       }}
     >
       <Tabs.Screen

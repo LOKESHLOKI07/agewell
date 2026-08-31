@@ -1,4 +1,4 @@
-import { getApiErrorMessage } from '../errors';
+import { getApiErrorMessage, isEmailAlreadyRegistered, toApiError } from '../errors';
 
 function axiosError(status?: number, extras: Record<string, unknown> = {}) {
   return {
@@ -11,6 +11,14 @@ function axiosError(status?: number, extras: Record<string, unknown> = {}) {
 describe('getApiErrorMessage', () => {
   it('maps 401 to a session expiry message', () => {
     expect(getApiErrorMessage(axiosError(401))).toBe('Your session has expired. Please sign in again.');
+  });
+
+  it('maps 401 with a server detail outside login', () => {
+    expect(
+      getApiErrorMessage(
+        axiosError(401, { data: { detail: 'Add this app redirect URI in Google Cloud Console.' } }),
+      ),
+    ).toBe('Add this app redirect URI in Google Cloud Console.');
   });
 
   it('maps login 401 to an incorrect credentials message', () => {
@@ -40,6 +48,14 @@ describe('getApiErrorMessage', () => {
     expect(
       getApiErrorMessage(axiosError(409, { data: { detail: 'Phone already exists' } })),
     ).toBe('This phone number is already registered. Sign in, or use a different number.');
+  });
+
+  it('keeps a wrapped ApiError message', () => {
+    const wrapped = toApiError(axiosError(409, { data: { detail: 'Email already exists' } }));
+    expect(getApiErrorMessage(wrapped)).toBe(
+      'This email is already registered. Sign in, or use a different email.',
+    );
+    expect(isEmailAlreadyRegistered(wrapped)).toBe(true);
   });
 
   it('maps 400 and 422 without exposing backend details', () => {

@@ -72,12 +72,21 @@ function readIosMapsKey(): string {
   return process.env.IOS_GOOGLE_MAPS_API_KEY || process.env.EXPO_PUBLIC_IOS_GOOGLE_MAPS_API_KEY || '';
 }
 
+function readGoogleWebClientId(): string {
+  return (
+    process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID ||
+    process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID ||
+    ''
+  ).trim();
+}
+
 export const ENV = {
   API_URL: apiUrl,
   ENV: process.env.NODE_ENV || 'development',
   isDev: (process.env.NODE_ENV || 'development') !== 'production',
   androidGoogleMapsApiKey: readAndroidMapsKey(),
   iosGoogleMapsApiKey: readIosMapsKey(),
+  googleWebClientId: readGoogleWebClientId(),
 };
 
 export function getApiBaseUrl(): string {

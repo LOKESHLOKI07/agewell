@@ -12,7 +12,7 @@ interface AdminQueryViewProps {
   emptyIcon?: IconName;
   emptyTitle: string;
   emptyMessage: string;
-  errorKind?: 'default' | 'access' | 'care' | 'user';
+  errorKind?: 'default' | 'care' | 'user';
   children: ReactNode;
 }
 

@@ -9,7 +9,7 @@ import { colors, spacing, typography } from '@/constants/theme';
 import { getApiErrorMessage } from '@/api/errors';
 import { useAuthStore } from './authStore';
 import { registerSenior } from './registrationApi';
-import { registrationSuccessHref } from './registrationNavigation';
+import { authenticatedHomeHref } from './roleRouting';
 import { registerSeniorSchema, type RegisterSeniorValues } from './registrationSchemas';
 
 export function RegisterSeniorScreen() {
@@ -38,13 +38,7 @@ export function RegisterSeniorScreen() {
     try {
       const result = await registerSenior(values);
       completeRegistration(result.user);
-      router.replace(
-        registrationSuccessHref({
-          email: result.user.email,
-          role: result.user.role,
-          message: result.message,
-        }) as Href,
-      );
+      router.replace(authenticatedHomeHref(result.user.role) as Href);
     } catch (error) {
       setFormError(getApiErrorMessage(error));
     }

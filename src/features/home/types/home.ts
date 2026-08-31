@@ -15,6 +15,7 @@ export interface SeniorResponse {
   date_of_birth: string;
   address: string;
   emergency_contact: string;
+  photo?: string | null;
 }
 
 export type VisitStatus =
@@ -206,6 +207,7 @@ export interface SeniorProfile {
   dateOfBirth: string;
   address: string;
   emergencyContact: string;
+  photo: string | null;
 }
 
 export interface Visit {

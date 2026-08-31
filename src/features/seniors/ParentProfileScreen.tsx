@@ -1,86 +1,134 @@
-import { useLocalSearchParams } from 'expo-router';
-import { ReactNode } from 'react';
+import { ReactNode, useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { AppHeader, ErrorState, LoadingState, Screen, SectionHeader, StatusBadge } from '@/components';
+import { ApiError } from '@/api/errors';
+import { AppHeader, ErrorState, LoadingState, Screen, SectionHeader } from '@/components';
 import { colors, radius, shadows, spacing, typography } from '@/constants/theme';
-import { getMembershipById, getSeniorById } from '@/services/seniorService';
-import { useLoad } from '@/hooks/useLoad';
-import { formatCurrencyInr } from '@/utils/date';
-import { fullName } from '@/utils/greeting';
-import { careStatusPresentation } from '@/utils/status';
+import { useAuthStore } from '@/features/auth/authStore';
+import { seniorDisplayName } from '@/features/home/api/mappers';
+import { useCurrentMembership, useSeniorProfile } from '@/features/home/hooks/queries';
+import { getSectionState } from '@/features/home/selectors/homeViewModel';
+import { toDisplayDate } from '@/utils/date';
 
+function ageFromDateOfBirth(value: string | null | undefined): number | null {
+  if (!value?.trim()) {
+    return null;
+  }
+  const match = value.trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
+  const birth = match
+    ? new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
+    : new Date(value);
+  if (Number.isNaN(birth.getTime())) {
+    return null;
+  }
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const monthDiff = today.getMonth() - birth.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+    age -= 1;
+  }
+  return age >= 0 && age < 130 ? age : null;
+}
+
+function isNotFound(error: unknown): boolean {
+  return error instanceof ApiError && error.status === 404;
+}
+
+/** Personal info for the signed-in senior — loads GET /seniors/me (not mock Lakshmi data). */
 export function ParentProfileScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const email = useAuthStore((state) => state.user?.email);
+  const phone = useAuthStore((state) => state.user?.phone);
+  const seniorQuery = useSeniorProfile();
+  const membershipQuery = useCurrentMembership();
 
-  const { data, loading, error, reload } = useLoad(async () => {
-    const senior = await getSeniorById(id);
-    if (!senior) {
-      throw new Error('Parent profile could not be found.');
-    }
-    const membership = await getMembershipById(senior.membershipId);
-    return { senior, membership };
-  }, id);
+  const seniorState = getSectionState({
+    isPending: seniorQuery.isPending,
+    isError: seniorQuery.isError,
+    isEmpty: seniorQuery.isSuccess && !seniorQuery.data,
+  });
 
-  if (loading) {
+  const membershipMissing = isNotFound(membershipQuery.error);
+  const membership = membershipMissing ? null : membershipQuery.data ?? null;
+
+  const age = useMemo(
+    () => ageFromDateOfBirth(seniorQuery.data?.dateOfBirth),
+    [seniorQuery.data?.dateOfBirth],
+  );
+
+  if (seniorState === 'loading') {
     return (
       <Screen>
-        <AppHeader title="Parent profile" showBack />
-        <LoadingState message="Loading parent profile..." />
+        <AppHeader title="Personal info" showBack />
+        <LoadingState message="Loading your profile..." />
       </Screen>
     );
   }
 
-  if (error || !data) {
+  if (seniorState === 'error' || !seniorQuery.data) {
     return (
       <Screen>
-        <AppHeader title="Parent profile" showBack />
-        <ErrorState message={error ?? 'Profile not found'} onRetry={reload} />
+        <AppHeader title="Personal info" showBack />
+        <ErrorState
+          message={
+            seniorQuery.error
+              ? seniorQuery.error instanceof Error
+                ? seniorQuery.error.message
+                : 'Could not load your profile.'
+              : 'Profile not found'
+          }
+          onRetry={() => void seniorQuery.refetch()}
+        />
       </Screen>
     );
   }
 
-  const { senior, membership } = data;
-  const address = `${senior.address.line1}, ${senior.address.area}, ${senior.address.city}, ${senior.address.state} ${senior.address.pincode}`;
+  const senior = seniorQuery.data;
+  const name = seniorDisplayName(senior);
 
   return (
     <Screen>
-      <AppHeader title={fullName(senior.firstName, senior.lastName)} subtitle="Parent profile" showBack />
-      <StatusBadge presentation={careStatusPresentation(senior.careStatus)} />
+      <AppHeader title={name} subtitle="Your AgeWell profile" showBack />
 
       <View style={styles.stack}>
         <InfoCard title="Personal information">
-          <InfoRow label="Name" value={fullName(senior.firstName, senior.lastName)} />
-          <InfoRow label="Age" value={`${senior.age}`} />
-          <InfoRow label="Gender" value={senior.gender === 'female' ? 'Female' : senior.gender === 'male' ? 'Male' : 'Other'} />
-          <InfoRow label="Address" value={address} />
+          <InfoRow label="Name" value={name} />
+          <InfoRow label="Date of birth" value={toDisplayDate(senior.dateOfBirth) || '—'} />
+          {age != null ? <InfoRow label="Age" value={`${age}`} /> : null}
+          <InfoRow label="Address" value={senior.address || '—'} />
+          {email ? <InfoRow label="Email" value={email} /> : null}
+          {phone ? <InfoRow label="Mobile" value={phone} /> : null}
         </InfoCard>
 
-        <InfoCard title="Emergency contacts">
-          {senior.emergencyContacts.map((contact) => (
-            <InfoRow
-              key={contact.id}
-              label={`${contact.name} · ${contact.relationship}`}
-              value={contact.phone}
-            />
-          ))}
-        </InfoCard>
-
-        <InfoCard title="Healthcare">
-          <InfoRow label="Primary doctor" value={`${senior.primaryDoctor.name}, ${senior.primaryDoctor.specialty}`} />
-          <InfoRow label="Hospital" value={`${senior.hospital.name}, ${senior.hospital.area}`} />
-        </InfoCard>
-
-        <InfoCard title="Care plan">
-          <InfoRow label="Plan" value={membership?.name ?? 'AgeWell Family'} />
+        <InfoCard title="Emergency contact">
           <InfoRow
-            label="Investment"
-            value={membership ? `${formatCurrencyInr(membership.priceInrPerMonth)}/month` : '—'}
+            label="On file"
+            value={senior.emergencyContact?.trim() || 'Not added yet'}
           />
         </InfoCard>
 
+        <InfoCard title="Care plan">
+          {membership ? (
+            <>
+              <InfoRow label="Plan" value={membership.planName} />
+              <InfoRow label="Status" value={membership.status} />
+              {membership.endDate ? (
+                <InfoRow label="Valid till" value={toDisplayDate(membership.endDate) || membership.endDate} />
+              ) : null}
+            </>
+          ) : (
+            <InfoRow
+              label="Plan"
+              value={
+                membershipQuery.isPending
+                  ? 'Loading…'
+                  : 'No active membership yet'
+              }
+            />
+          )}
+        </InfoCard>
+
         <Text style={styles.privacy}>
-          Detailed clinical records are not shown on Home. Only the information needed for family coordination
-          appears here.
+          Doctor and hospital details appear here after you add them in Health. This screen shows only what is saved on
+          your AgeWell account.
         </Text>
       </View>
     </Screen>

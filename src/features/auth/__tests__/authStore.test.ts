@@ -5,12 +5,22 @@ import { clearTokens, loadTokens } from '../tokenStorage';
 jest.mock('../authService', () => ({
   fetchCurrentUser: jest.fn(),
   loginWithPassword: jest.fn(),
+  loginWithTokens: jest.fn(),
   logoutAndClearLocal: jest.fn(),
 }));
 
 jest.mock('../tokenStorage', () => ({
   clearTokens: jest.fn(),
   loadTokens: jest.fn(),
+}));
+
+jest.mock('../authEntryPreference', () => ({
+  hydrateReturnToSignIn: jest.fn(async () => undefined),
+  markReturnToSignIn: jest.fn(async () => undefined),
+}));
+
+jest.mock('../serviceAreaPreference', () => ({
+  hydrateServiceAreaAvailable: jest.fn(async () => undefined),
 }));
 
 const mockedFetchCurrentUser = fetchCurrentUser as jest.MockedFunction<typeof fetchCurrentUser>;
@@ -77,13 +87,15 @@ describe('authStore', () => {
     });
   });
 
-  it('clears auth state on logout', async () => {
+  it('clears auth state on logout and remembers Sign in for next visit', async () => {
+    const { markReturnToSignIn } = require('../authEntryPreference');
     useAuthStore.setState({ status: 'AUTHENTICATED', user });
     mockedLogout.mockResolvedValue(undefined);
 
     await useAuthStore.getState().signOut();
 
     expect(mockedLogout).toHaveBeenCalled();
+    expect(markReturnToSignIn).toHaveBeenCalled();
     expect(useAuthStore.getState()).toMatchObject({
       status: 'UNAUTHENTICATED',
       user: null,

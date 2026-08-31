@@ -6,11 +6,13 @@ import { colors, spacing, typography } from '@/constants/theme';
 import { AgeWellHeader } from '@/features/home/components/AgeWellHeader';
 import { queryClient } from '@/api/queryClient';
 import { homeQueryKeys } from '@/features/home/api/homeQueryKeys';
+import { useTabScreenBottomPad } from '@/utils/safeBottom';
 import { HEALTH_OVERVIEW_LINKS } from './selectors';
 import { healthQueryKeys } from './queryKeys';
 
 export function HealthScreen() {
   const [refreshing, setRefreshing] = useState(false);
+  const bottomPad = useTabScreenBottomPad(spacing.xxxl);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -35,7 +37,7 @@ export function HealthScreen() {
       <AgeWellHeader title="My Health" showProfile={true} />
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: bottomPad }]}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={() => void onRefresh()} tintColor={colors.primary} />
         }
@@ -77,7 +79,6 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: spacing.xl,
-    paddingBottom: spacing.xxxl,
     gap: spacing.md,
   },
   sectionTitle: {

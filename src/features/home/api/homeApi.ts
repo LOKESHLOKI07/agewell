@@ -39,6 +39,15 @@ export function fetchSeniorMe(): Promise<SeniorProfile> {
   return getMapped('/seniors/me', toSeniorProfile);
 }
 
+export async function updateSeniorMePhoto(photo: string | null): Promise<SeniorProfile> {
+  try {
+    const response = await apiClient.patch('/seniors/me', { photo }, { timeout: 30000 });
+    return toSeniorProfile(response.data);
+  } catch (error) {
+    throw toApiError(error);
+  }
+}
+
 export function fetchTodayVisits(): Promise<ListPage<Visit>> {
   return getMapped('/visits/', (data) => toListPage(data, toVisit, 'visits'), { today: true });
 }

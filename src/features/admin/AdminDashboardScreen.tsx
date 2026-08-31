@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, radius, shadows, spacing, tones, typography } from '@/constants/theme';
 import { QuickAccessTile, SectionTitle } from '@/components/ui';
 import { AdminScreen } from './components/AdminScreen';
-import { useAdminCareManagers, useAdminEmergencies, useAdminFamilies, useAdminSeniors, useAdminServiceRequests, useAdminUsers, useAdminVisits } from './hooks';
+import { useAdminCareManagers, useAdminEmergencies, useAdminSeniors, useAdminServiceRequests, useAdminUsers, useAdminVisits } from './hooks';
 import { buildDashboardMetrics, getSectionState } from './selectors';
 import { useAdminLayout } from './useAdminLayout';
 
@@ -18,7 +18,6 @@ export function AdminDashboardScreen() {
   const { isDesktop } = useAdminLayout();
   const users = useAdminUsers({ limit: 1, offset: 0 });
   const seniors = useAdminSeniors({ limit: 1, offset: 0 });
-  const families = useAdminFamilies({ limit: 1, offset: 0 });
   const careManagers = useAdminCareManagers();
   const todayVisits = useAdminVisits({ limit: 1, offset: 0, today: true });
   const openEmergencies = useAdminEmergencies({ limit: 1, offset: 0, status: 'OPEN' });
@@ -27,7 +26,6 @@ export function AdminDashboardScreen() {
   const metrics = buildDashboardMetrics({
     users,
     seniors,
-    families,
     careManagers,
     todayVisits,
     openEmergencies,

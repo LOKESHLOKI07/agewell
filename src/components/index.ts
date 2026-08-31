@@ -1,5 +1,6 @@
 export { AppHeader } from './AppHeader';
 export { AppointmentCard } from './AppointmentCard';
+export { AgeWellLogo } from './AgeWellLogo';
 export { BrandMark } from './BrandMark';
 export { ConfirmDialog } from './ConfirmDialog';
 export { EmergencyButton } from './EmergencyButton';

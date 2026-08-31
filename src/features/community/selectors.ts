@@ -1,9 +1,10 @@
 import { ApiError, getApiErrorMessage } from '@/api/errors';
 import type { AuthRole } from '@/features/auth/authTypes';
-import { FAMILY_FORBIDDEN_MESSAGE } from '@/features/family/selectors';
 import type { SeniorProfile } from '@/features/home/types/home';
 import { combineDateAndTime, formatTime, splitDateAndTime, toDisplayDate } from '@/utils/date';
 import type { CommunityEvent, EventRegistration } from './types';
+
+export const COMMUNITY_FORBIDDEN_MESSAGE = "You don't have permission to access community features.";
 
 export function canUseCommunity(role: AuthRole | null | undefined): boolean {
   return role === 'SENIOR' || role === 'FAMILY' || role === 'ADMIN' || role === 'OPERATIONS';
@@ -11,10 +12,6 @@ export function canUseCommunity(role: AuthRole | null | undefined): boolean {
 
 export function communityEventHref(id: string) {
   return { pathname: '/community/events/[id]' as const, params: { id } };
-}
-
-export function familyCommunityEventHref(id: string) {
-  return { pathname: '/family/community/events/[id]' as const, params: { id } };
 }
 
 export function adminCommunityHref(id: string) {
@@ -114,7 +111,7 @@ export function eventDateToForm(value: string | null | undefined): { date: strin
 export function getCommunityErrorMessage(error: unknown): string {
   if (error instanceof ApiError) {
     if (error.status === 403) {
-      return FAMILY_FORBIDDEN_MESSAGE;
+      return COMMUNITY_FORBIDDEN_MESSAGE;
     }
     return error.message;
   }

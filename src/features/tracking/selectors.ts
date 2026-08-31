@@ -34,20 +34,12 @@ export function trackingHref() {
   return '/tracking' as const;
 }
 
-export function familyTrackingHref() {
-  return '/family/tracking' as const;
-}
-
 export function careTrackingHref(seniorId: string) {
   return { pathname: '/care/tracking' as const, params: { seniorId } };
 }
 
 export function seniorAssociateTrackHref(visitId: string) {
   return { pathname: '/visits/[id]/track' as const, params: { id: visitId } };
-}
-
-export function familyAssociateTrackHref(visitId: string) {
-  return { pathname: '/family/visits/[id]/track' as const, params: { id: visitId } };
 }
 
 export function careAssociateShareHref(visitId: string) {

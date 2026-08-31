@@ -46,9 +46,9 @@ const payload = {
   created_at: '2026-08-20T10:15:00.000Z',
 };
 
-describe('Family Mode routing', () => {
-  it('sends FAMILY to the family workspace', () => {
-    expect(authenticatedHomeHref('FAMILY')).toBe('/(family)');
+describe('legacy FAMILY routing', () => {
+  it('sends FAMILY to the shared senior home', () => {
+    expect(authenticatedHomeHref('FAMILY')).toBe('/(tabs)');
     expect(authenticatedHomeHref('SENIOR')).toBe('/(tabs)');
     expect(authenticatedHomeHref('CARE_MANAGER')).toBe('/(care)');
     expect(authenticatedHomeHref('ADMIN')).toBe('/(admin)');

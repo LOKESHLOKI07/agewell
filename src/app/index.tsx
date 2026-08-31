@@ -1,6 +1,7 @@
 import { Redirect, type Href } from 'expo-router';
 import { SplashScreen } from '@/features/auth/SplashScreen';
 import { useAuth } from '@/features/auth/useAuth';
+import { unauthenticatedEntryHref } from '@/features/auth/authEntryPreference';
 import { authenticatedHomeHref } from '@/features/auth/roleRouting';
 import { useAuthStore } from '@/features/auth/authStore';
 
@@ -13,7 +14,7 @@ export default function Index() {
   }
 
   if (status === 'UNAUTHENTICATED') {
-    return <Redirect href={'/(auth)/welcome' as Href} />;
+    return <Redirect href={unauthenticatedEntryHref()} />;
   }
 
   return <SplashScreen />;

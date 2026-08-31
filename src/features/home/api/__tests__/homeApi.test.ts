@@ -10,15 +10,18 @@ import {
   fetchTodayVisits,
   fetchUnreadNotifications,
   fetchUpcomingAppointments,
+  updateSeniorMePhoto,
 } from '../homeApi';
 
 jest.mock('@/api/client', () => ({
   apiClient: {
     get: jest.fn(),
+    patch: jest.fn(),
   },
 }));
 
 const mockedGet = apiClient.get as jest.MockedFunction<typeof apiClient.get>;
+const mockedPatch = apiClient.patch as jest.MockedFunction<typeof apiClient.patch>;
 
 function json(data: unknown) {
   mockedGet.mockResolvedValueOnce({ data } as never);
@@ -27,6 +30,7 @@ function json(data: unknown) {
 describe('homeApi', () => {
   beforeEach(() => {
     mockedGet.mockReset();
+    mockedPatch.mockReset();
   });
 
   it('loads the authenticated senior profile from GET /seniors/me', async () => {
@@ -44,8 +48,28 @@ describe('homeApi', () => {
       id: 'senior-1',
       firstName: 'John',
       lastName: 'Doe',
+      photo: null,
     });
     expect(mockedGet).toHaveBeenCalledWith('/seniors/me', { params: undefined });
+  });
+
+  it('saves the profile photo with PATCH /seniors/me', async () => {
+    const photo = 'data:image/jpeg;base64,abcd';
+    mockedPatch.mockResolvedValueOnce({
+      data: {
+        id: 'senior-1',
+        user_id: 'user-1',
+        first_name: 'John',
+        last_name: 'Doe',
+        date_of_birth: '1940-01-01',
+        address: '123',
+        emergency_contact: '911',
+        photo,
+      },
+    } as never);
+
+    await expect(updateSeniorMePhoto(photo)).resolves.toMatchObject({ photo });
+    expect(mockedPatch).toHaveBeenCalledWith('/seniors/me', { photo }, { timeout: 30000 });
   });
 
   it('loads today visits from GET /visits/?today=true', async () => {

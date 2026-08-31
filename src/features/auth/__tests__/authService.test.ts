@@ -1,5 +1,5 @@
 import { createLoginFormData } from '../authService';
-import { loginSchema } from '../schemas';
+import { loginSchema, mobileLoginSchema } from '../schemas';
 
 describe('createLoginFormData', () => {
   it('sends OAuth2 username/password form fields', () => {
@@ -22,5 +22,15 @@ describe('loginSchema', () => {
   it('rejects an empty password', () => {
     const result = loginSchema.safeParse({ email: 'senior@example.com', password: '' });
     expect(result.success).toBe(false);
+  });
+});
+
+describe('mobileLoginSchema', () => {
+  it('accepts a mobile number and password', () => {
+    const parsed = mobileLoginSchema.parse({
+      phone: '98765 43210',
+      password: '9876543210',
+    });
+    expect(parsed.phone).toBe('98765 43210');
   });
 });

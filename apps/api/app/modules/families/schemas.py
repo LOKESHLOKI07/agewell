@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from typing import Optional
 
 from pydantic import UUID4, BaseModel, ConfigDict
@@ -13,6 +13,9 @@ class FamilyMemberResponse(BaseModel):
     last_name: Optional[str] = None
     relationship: Optional[str] = None
     requested_senior_reference: Optional[str] = None
+    date_of_birth: Optional[date] = None
+    address: Optional[str] = None
+    preferred_language: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
@@ -23,6 +26,9 @@ class FamilyMemberCreate(BaseModel):
     last_name: str
     relationship: Optional[str] = None
     requested_senior_reference: Optional[str] = None
+    date_of_birth: Optional[date] = None
+    address: Optional[str] = None
+    preferred_language: Optional[str] = None
 
 
 class FamilyMemberUpdate(BaseModel):
@@ -30,3 +36,6 @@ class FamilyMemberUpdate(BaseModel):
     last_name: Optional[str] = None
     relationship: Optional[str] = None
     requested_senior_reference: Optional[str] = None
+    date_of_birth: Optional[date] = None
+    address: Optional[str] = None
+    preferred_language: Optional[str] = None

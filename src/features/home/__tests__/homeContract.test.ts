@@ -6,6 +6,8 @@ describe('Home connected sections do not use mock data', () => {
   it('never falls back to the hardcoded senior name', () => {
     expect(seniorDisplayName({ firstName: 'John', lastName: 'Doe' })).toBe('John Doe');
     expect(seniorDisplayName({ firstName: 'John', lastName: 'Doe' })).not.toBe('Meera ji');
+    expect(seniorDisplayName({ firstName: 'lokesh', lastName: 'lokesh' })).toBe('lokesh');
+    expect(seniorDisplayName({ firstName: 'Lakshmi', lastName: '' })).toBe('Lakshmi');
   });
 
   it('never fills membership usage from the old mock 32/40 meals data', () => {

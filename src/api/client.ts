@@ -8,7 +8,12 @@ function isAuthFreeRequest(config: InternalAxiosRequestConfig): boolean {
     return true;
   }
   const url = `${config.baseURL ?? ''}${config.url ?? ''}`;
-  return url.includes('/auth/login') || url.includes('/auth/refresh');
+  return (
+    url.includes('/auth/login') ||
+    url.includes('/auth/refresh') ||
+    url.includes('/auth/otp/') ||
+    url.includes('/auth/google')
+  );
 }
 
 function attachAccessToken(config: InternalAxiosRequestConfig): InternalAxiosRequestConfig {

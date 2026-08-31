@@ -44,15 +44,10 @@ export function RegistrationSuccessScreen() {
       ? 'Your application was submitted. AgeWell will review it before you can take visits.'
       : 'Your account was created and saved. You are signed in.');
 
-  const title =
-    role === 'CARE_MANAGER'
-      ? 'Application submitted'
-      : role === 'FAMILY'
-        ? 'Family account created'
-        : 'Registration successful';
+  const title = role === 'CARE_MANAGER' ? 'Application submitted' : 'Registration successful';
 
   const continueLabel =
-    role === 'CARE_MANAGER' ? 'View application status' : role === 'FAMILY' ? 'Go to family home' : 'Go to home';
+    role === 'CARE_MANAGER' ? 'View application status' : 'Go to home';
 
   const goHome = () => {
     if (didNavigate.current || !role) {
