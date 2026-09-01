@@ -26,6 +26,7 @@ export const ADMIN_NAV: readonly AdminNavItem[] = [
   { key: 'seniors', href: '/(admin)/seniors', label: 'Seniors', icon: 'person-outline' },
   { key: 'careManagers', href: '/(admin)/care-managers', label: 'Care Associates', icon: 'medkit-outline' },
   { key: 'services', href: '/(admin)/services', label: 'Services', icon: 'grid-outline' },
+  { key: 'serviceItems', href: '/(admin)/catalog/offerings', label: 'Service items', icon: 'cart-outline' },
   { key: 'requests', href: '/(admin)/requests', label: 'Requests', icon: 'clipboard-outline' },
   { key: 'visits', href: '/(admin)/visits', label: 'Visits', icon: 'calendar-outline', mobileTab: true },
   { key: 'appointments', href: '/(admin)/appointments', label: 'Appointments', icon: 'time-outline' },

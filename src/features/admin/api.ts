@@ -234,15 +234,30 @@ export function fetchAdminServices(): Promise<AdminService[]> {
   return getMapped('/services/', toAdminServiceList);
 }
 
-export function createAdminService(input: { name: string; category: string; description: string }): Promise<AdminService> {
-  return sendMapped('post', '/services/', toAdminService, input);
+export function createAdminService(input: {
+  name: string;
+  category: string;
+  description: string;
+  coverImage?: string | null;
+}): Promise<AdminService> {
+  return sendMapped('post', '/services/', toAdminService, {
+    name: input.name,
+    category: input.category,
+    description: input.description,
+    ...(input.coverImage !== undefined ? { cover_image: input.coverImage } : {}),
+  });
 }
 
 export function updateAdminService(
   id: string,
-  input: { name?: string; category?: string; description?: string },
+  input: { name?: string; category?: string; description?: string; coverImage?: string | null },
 ): Promise<AdminService> {
-  return sendMapped('patch', `/services/${id}`, toAdminService, input);
+  return sendMapped('patch', `/services/${id}`, toAdminService, {
+    ...(input.name !== undefined ? { name: input.name } : {}),
+    ...(input.category !== undefined ? { category: input.category } : {}),
+    ...(input.description !== undefined ? { description: input.description } : {}),
+    ...(input.coverImage !== undefined ? { cover_image: input.coverImage } : {}),
+  });
 }
 
 export function fetchAdminServiceRequests(params: {

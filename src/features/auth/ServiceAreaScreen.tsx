@@ -9,11 +9,8 @@ import { Icon } from '@/components/ui';
 import { minTouchSize, spacing, typography } from '@/constants/theme';
 import { signInHref } from './authEntry';
 import { useAuthStore } from './authStore';
-import {
-  getOnboardingProfile,
-  hasOnboardingProfile,
-  onboardingAccountFields,
-} from './onboardingProfile';
+import { getOnboardingProfile, getOnboardingServiceFor, hasOnboardingProfile, onboardingAccountFields } from './onboardingProfile';
+import { setMembershipKind } from './membershipPlanPreference';
 import { registerSenior } from './registrationApi';
 import { authenticatedHomeHref } from './roleRouting';
 import { SERVICE_AREA_CITIES } from './serviceArea';
@@ -58,9 +55,14 @@ export function ServiceAreaScreen() {
       await setServiceAreaAvailable(available);
       const profile = getOnboardingProfile();
       const account = onboardingAccountFields(profile);
+      const membershipKind = getOnboardingServiceFor() ?? undefined;
+      if (membershipKind) {
+        await setMembershipKind(membershipKind);
+      }
       const result = await registerSenior({
         ...account,
         emergencyContact: account.phone,
+        membershipKind,
       });
       // Go straight to home — skip registration-success so auth-guard remount doesn't flash another screen.
       completeRegistration(result.user);

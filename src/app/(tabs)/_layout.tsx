@@ -4,6 +4,7 @@ import { Icon } from '@/components/ui';
 import { useAuthStore } from '@/features/auth/authStore';
 import { authenticatedHomeHref, isMemberHomeRole } from '@/features/auth/roleRouting';
 import { brandGreen } from '@/components/AgeWellLogo';
+import { SosTabButton } from '@/features/membership/components/SosTabButton';
 import { useSafeTabBarStyle } from '@/utils/safeBottom';
 
 export default function TabsLayout() {
@@ -22,7 +23,10 @@ export default function TabsLayout() {
         tabBarLabelStyle: {
           ...typography.captionStrong,
         },
-        tabBarStyle,
+        tabBarStyle: {
+          ...tabBarStyle,
+          height: tabBarStyle.height + 8,
+        },
       }}
     >
       <Tabs.Screen
@@ -42,19 +46,26 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="health"
+        name="sos"
         options={{
-          title: 'Health',
-          tabBarIcon: ({ color, size }) => <Icon name="medkit-outline" color={color} size={size} />,
-          tabBarAccessibilityLabel: 'Health',
+          title: 'SOS',
+          tabBarLabel: () => null,
+          tabBarButton: (props) => (
+            <SosTabButton
+              accessibilityState={props.accessibilityState}
+              onPress={props.onPress}
+              onLongPress={props.onLongPress}
+            />
+          ),
+          tabBarAccessibilityLabel: 'SOS',
         }}
       />
       <Tabs.Screen
-        name="community"
+        name="orders"
         options={{
-          title: 'Community',
-          tabBarIcon: ({ color, size }) => <Icon name="people-outline" color={color} size={size} />,
-          tabBarAccessibilityLabel: 'Community',
+          title: 'Orders',
+          tabBarIcon: ({ color, size }) => <Icon name="cart-outline" color={color} size={size} />,
+          tabBarAccessibilityLabel: 'Orders',
         }}
       />
       <Tabs.Screen
@@ -65,6 +76,8 @@ export default function TabsLayout() {
           tabBarAccessibilityLabel: 'Profile',
         }}
       />
+      <Tabs.Screen name="health" options={{ href: null }} />
+      <Tabs.Screen name="community" options={{ href: null }} />
     </Tabs>
   );
 }

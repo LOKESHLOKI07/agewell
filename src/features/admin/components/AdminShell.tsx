@@ -17,7 +17,7 @@ const NAV_GROUPS: { title: string; keys: string[] }[] = [
   { title: 'Overview', keys: ['dashboard'] },
   { title: 'People', keys: ['users', 'seniors', 'careManagers'] },
   { title: 'Care ops', keys: ['visits', 'appointments', 'services', 'requests', 'emergencies'] },
-  { title: 'Programs', keys: ['community', 'memberships'] },
+  { title: 'Programs', keys: ['community', 'memberships', 'serviceItems'] },
   { title: 'System', keys: ['notifications', 'audit', 'profile'] },
 ];
 

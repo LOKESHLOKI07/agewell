@@ -13,6 +13,7 @@ class Senior(Base):
     address = Column(String)
     emergency_contact = Column(String)
     preferred_language = Column(String, nullable=True)
+    membership_kind = Column(String, nullable=True)  # single | couple
     photo = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

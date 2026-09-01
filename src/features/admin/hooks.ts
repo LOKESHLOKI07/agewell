@@ -185,7 +185,12 @@ export function useAdminServices() {
 export function useCreateAdminService() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: { name: string; category: string; description: string }) => createAdminService(input),
+    mutationFn: (input: {
+      name: string;
+      category: string;
+      description: string;
+      coverImage?: string | null;
+    }) => createAdminService(input),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: adminQueryKeys.services });
     },
@@ -195,7 +200,12 @@ export function useCreateAdminService() {
 export function useUpdateAdminService(id: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: { name?: string; category?: string; description?: string }) => updateAdminService(id, input),
+    mutationFn: (input: {
+      name?: string;
+      category?: string;
+      description?: string;
+      coverImage?: string | null;
+    }) => updateAdminService(id, input),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: adminQueryKeys.services });
     },

@@ -10,6 +10,8 @@ from app.modules.seniors.models import Senior
 from app.modules.families.models import FamilyMember
 from app.modules.care.models import CareManager
 from app.modules.services.models import Service, ServiceCategory, ServiceRequest
+from app.modules.services.addon_catalog import ADDON_BOOKING_SERVICES
+from app.modules.services.membership_catalog import MEMBERSHIP_SERVICES
 from app.modules.healthcare.models import HealthcareProvider, Medication, MedicationSchedule
 from app.modules.appointments.models import Appointment
 from app.modules.visits.models import Visit, VisitTask, VisitReport
@@ -19,6 +21,14 @@ from app.modules.community.models import CommunityEvent
 from app.modules.notifications.models import Notification
 from app.modules.emergency.models import EmergencyCase, EmergencyEvent, EmergencyType
 from app.modules.emergency.repository import CREATED_EVENT_DESCRIPTION
+from app.modules.catalog.models import FoodCuisine, FoodMenuItem, GroceryCategory, GroceryProduct, ServiceOffering
+from app.modules.catalog.seed_data import (
+    SEED_FOOD_CUISINES,
+    SEED_FOOD_MENU,
+    SEED_GROCERY_CATEGORIES,
+    SEED_GROCERY_PRODUCTS,
+    SEED_SERVICE_OFFERINGS,
+)
 from seed_health import seed_health_dev_data
 
 
@@ -74,16 +84,277 @@ async def seed_bingo_event(session: AsyncSession) -> None:
     )
     await session.commit()
 
+async def seed_membership_services(session: AsyncSession) -> int:
+    """Upsert Basic Membership + home add-on booking services by slug (idempotent)."""
+    created_or_updated = 0
+    for item in [*MEMBERSHIP_SERVICES, *ADDON_BOOKING_SERVICES]:
+        existing = (
+            await session.execute(select(Service).where(Service.slug == item["slug"]))
+        ).scalar_one_or_none()
+        if existing:
+            existing.name = item["name"]
+            existing.category = item["category"]
+            existing.description = item["description"]
+            created_or_updated += 1
+            continue
+        by_name = (
+            await session.execute(select(Service).where(Service.name == item["name"]))
+        ).scalar_one_or_none()
+        if by_name and not by_name.slug:
+            by_name.slug = item["slug"]
+            by_name.category = item["category"]
+            by_name.description = item["description"]
+            created_or_updated += 1
+            continue
+        session.add(
+            Service(
+                id=uuid.uuid4(),
+                slug=item["slug"],
+                name=item["name"],
+                category=item["category"],
+                description=item["description"],
+            )
+        )
+        created_or_updated += 1
+    await session.commit()
+    return created_or_updated
+
+
+async def seed_delivery_catalogs(session: AsyncSession) -> int:
+    """Upsert grocery + food catalog defaults by name (idempotent)."""
+    touched = 0
+    category_ids: dict[str, uuid.UUID] = {}
+    for item in SEED_GROCERY_CATEGORIES:
+        existing = (
+            await session.execute(select(GroceryCategory).where(GroceryCategory.name == item["name"]))
+        ).scalar_one_or_none()
+        if existing:
+            existing.sort_order = item["sort_order"]
+            existing.is_active = True
+            category_ids[item["key"]] = existing.id
+            touched += 1
+            continue
+        row = GroceryCategory(
+            id=uuid.uuid4(),
+            name=item["name"],
+            sort_order=item["sort_order"],
+            is_active=True,
+        )
+        session.add(row)
+        await session.flush()
+        category_ids[item["key"]] = row.id
+        touched += 1
+
+    for item in SEED_GROCERY_PRODUCTS:
+        category_id = category_ids[item["category_key"]]
+        existing = (
+            await session.execute(
+                select(GroceryProduct).where(
+                    GroceryProduct.name == item["name"],
+                    GroceryProduct.category_id == category_id,
+                )
+            )
+        ).scalar_one_or_none()
+        if existing:
+            existing.unit = item["unit"]
+            existing.price_label = item["price_label"]
+            existing.is_active = True
+            touched += 1
+            continue
+        session.add(
+            GroceryProduct(
+                id=uuid.uuid4(),
+                category_id=category_id,
+                name=item["name"],
+                unit=item["unit"],
+                price_label=item["price_label"],
+                is_active=True,
+            )
+        )
+        touched += 1
+
+    cuisine_ids: dict[str, uuid.UUID] = {}
+    for item in SEED_FOOD_CUISINES:
+        existing = (
+            await session.execute(select(FoodCuisine).where(FoodCuisine.name == item["name"]))
+        ).scalar_one_or_none()
+        if existing:
+            existing.description = item["description"]
+            existing.sort_order = item["sort_order"]
+            existing.is_active = True
+            cuisine_ids[item["key"]] = existing.id
+            touched += 1
+            continue
+        row = FoodCuisine(
+            id=uuid.uuid4(),
+            name=item["name"],
+            description=item["description"],
+            sort_order=item["sort_order"],
+            is_active=True,
+        )
+        session.add(row)
+        await session.flush()
+        cuisine_ids[item["key"]] = row.id
+        touched += 1
+
+    for item in SEED_FOOD_MENU:
+        cuisine_id = cuisine_ids[item["cuisine_key"]]
+        meal = item["meal"]
+        existing = (
+            await session.execute(
+                select(FoodMenuItem).where(
+                    FoodMenuItem.name == item["name"],
+                    FoodMenuItem.cuisine_id == cuisine_id,
+                    FoodMenuItem.meal == meal,
+                )
+            )
+        ).scalar_one_or_none()
+        if existing:
+            existing.price_label = item["price_label"]
+            existing.is_active = True
+            touched += 1
+            continue
+        session.add(
+            FoodMenuItem(
+                id=uuid.uuid4(),
+                cuisine_id=cuisine_id,
+                meal=meal,
+                name=item["name"],
+                price_label=item["price_label"],
+                is_active=True,
+            )
+        )
+        touched += 1
+
+    await session.commit()
+    return touched
+
+
+async def seed_service_offerings(session: AsyncSession) -> int:
+    """Upsert shared membership offerings by slug + title (idempotent)."""
+    touched = 0
+    for item in SEED_SERVICE_OFFERINGS:
+        existing = (
+            await session.execute(
+                select(ServiceOffering).where(
+                    ServiceOffering.service_slug == item["service_slug"],
+                    ServiceOffering.title == item["title"],
+                )
+            )
+        ).scalar_one_or_none()
+        if existing:
+            existing.description = item.get("description", "")
+            existing.badge = item.get("badge", "")
+            existing.price_label = item.get("price_label", "")
+            existing.meta_json = item.get("meta_json")
+            existing.sort_order = item.get("sort_order", 0)
+            existing.is_active = True
+            touched += 1
+            continue
+        session.add(
+            ServiceOffering(
+                id=uuid.uuid4(),
+                service_slug=item["service_slug"],
+                title=item["title"],
+                description=item.get("description", ""),
+                badge=item.get("badge", ""),
+                price_label=item.get("price_label", ""),
+                meta_json=item.get("meta_json"),
+                sort_order=item.get("sort_order", 0),
+                is_active=True,
+            )
+        )
+        touched += 1
+    await session.commit()
+    return touched
+
+
+async def seed_membership_plans(session: AsyncSession) -> int:
+    """Upsert Basic and Couple membership plans (idempotent by name)."""
+    plans = [
+        {
+            "name": "Basic Membership",
+            "price": 15499.00,
+            "benefits": [
+                ("Membership services", 1),
+                ("Entrance CCTV add-on (Rs 4,000)", 1),
+                ("Panic buttons with CCTV pack", 2),
+            ],
+        },
+        {
+            "name": "Couple Membership",
+            "price": 18499.00,
+            "benefits": [
+                ("Membership services", 1),
+                ("Entrance CCTV add-on (Rs 5,500)", 1),
+                ("Panic buttons with CCTV pack", 3),
+            ],
+        },
+    ]
+    touched = 0
+    for item in plans:
+        existing = (
+            await session.execute(select(MembershipPlan).where(MembershipPlan.name == item["name"]))
+        ).scalar_one_or_none()
+        if existing:
+            existing.price = item["price"]
+            plan_id = existing.id
+            touched += 1
+        else:
+            plan_id = uuid.uuid4()
+            session.add(MembershipPlan(id=plan_id, name=item["name"], price=item["price"]))
+            await session.flush()
+            touched += 1
+        for benefit_name, quota in item["benefits"]:
+            benefit = (
+                await session.execute(
+                    select(MembershipBenefit).where(
+                        MembershipBenefit.plan_id == plan_id,
+                        MembershipBenefit.benefit_name == benefit_name,
+                    )
+                )
+            ).scalar_one_or_none()
+            if benefit:
+                benefit.quota = quota
+                touched += 1
+                continue
+            session.add(
+                MembershipBenefit(
+                    id=uuid.uuid4(),
+                    plan_id=plan_id,
+                    benefit_name=benefit_name,
+                    quota=quota,
+                )
+            )
+            touched += 1
+    await session.commit()
+    return touched
+
+
 async def seed_data():
     async with AsyncSessionLocal() as session:
         existing = (
             await session.execute(select(User).where(User.email == "senior@example.com"))
         ).scalar_one_or_none()
+        if not existing:
+            existing = (
+                await session.execute(select(User).where(User.email == "admin@example.com"))
+            ).scalar_one_or_none()
         if existing:
             await repair_emergency_copy(session)
             await seed_operations_user(session)
             await seed_bingo_event(session)
-            print("Users already exist. Emergency event copy repaired. Community seed ensured.")
+            count = await seed_membership_services(session)
+            catalog_count = await seed_delivery_catalogs(session)
+            offerings_count = await seed_service_offerings(session)
+            plans_count = await seed_membership_plans(session)
+            print(
+                f"Users already exist. Emergency event copy repaired. "
+                f"Community seed ensured. Membership services upserted ({count}). "
+                f"Delivery catalogs upserted ({catalog_count}). "
+                f"Service offerings upserted ({offerings_count}). "
+                f"Membership plans upserted ({plans_count})."
+            )
             await seed_health_dev_data()
             return
 
@@ -120,9 +391,15 @@ async def seed_data():
         access_allowed = FamilySeniorAccess(id=uuid.uuid4(), family_id=family.id, senior_id=senior_a.id)
         session.add(access_allowed)
 
-        # Service
-        service = Service(id=uuid.uuid4(), name="Physiotherapy", category=ServiceCategory.HEALTH, description="Test")
-        session.add(service)
+        # Membership catalogue (19) + keep a sample request on tech-assistance
+        await seed_membership_services(session)
+        await seed_delivery_catalogs(session)
+        await seed_service_offerings(session)
+        await seed_membership_plans(session)
+        tech = (
+            await session.execute(select(Service).where(Service.slug == "tech-assistance"))
+        ).scalar_one()
+        service = tech
         await session.commit()
         
         # Request
@@ -149,14 +426,23 @@ async def seed_data():
         v_task = VisitTask(id=uuid.uuid4(), visit_id=visit.id, task_name="Check vitals", is_completed=True)
         v_report = VisitReport(id=uuid.uuid4(), visit_id=visit.id, summary="All good", issues_noted="None")
         
-        # Membership
-        plan = MembershipPlan(id=uuid.uuid4(), name="Premium", price=4999.00)
-        session.add(plan)
-        await session.commit()
-        
-        benefit = MembershipBenefit(id=uuid.uuid4(), plan_id=plan.id, benefit_name="Doctor Visits", quota=5)
-        membership = Membership(id=uuid.uuid4(), senior_id=senior_a.id, plan_id=plan.id, start_date=datetime.utcnow(), end_date=datetime.utcnow())
-        session.add_all([benefit, membership])
+        # Membership — use Basic as the sample senior plan
+        basic = (
+            await session.execute(select(MembershipPlan).where(MembershipPlan.name == "Basic Membership"))
+        ).scalar_one()
+        membership = Membership(
+            id=uuid.uuid4(),
+            senior_id=senior_a.id,
+            plan_id=basic.id,
+            start_date=datetime.utcnow(),
+            end_date=datetime.utcnow(),
+        )
+        benefit = (
+            await session.execute(
+                select(MembershipBenefit).where(MembershipBenefit.plan_id == basic.id).limit(1)
+            )
+        ).scalar_one()
+        session.add(membership)
         await session.commit()
         
         ledger = MembershipUsageLedger(id=uuid.uuid4(), membership_id=membership.id, benefit_id=benefit.id, used_amount=1)

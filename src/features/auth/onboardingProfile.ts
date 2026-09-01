@@ -21,6 +21,11 @@ export function formatDateOfBirthInput(value: string): string {
   return `${digits.slice(0, 2)}-${digits.slice(2, 4)}-${digits.slice(4)}`;
 }
 
+/** Keeps digits and manually typed hyphens — does not insert separators. */
+export function sanitizeDateOfBirthManualInput(value: string): string {
+  return value.replace(/[^\d-]/g, '').slice(0, DATE_OF_BIRTH_INPUT_LENGTH);
+}
+
 export function formatDateOfBirthFromDate(date: Date): string {
   const day = String(date.getDate()).padStart(2, '0');
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -86,7 +91,9 @@ const emptyProfile: PersonalDetailsValues = {
   address: '',
 };
 
-export type ServiceFor = 'myself' | 'parents';
+export type ServiceFor = 'single' | 'couple';
+
+export type MembershipKind = ServiceFor;
 
 export function splitFullName(fullName: string): { firstName: string; lastName: string } {
   const parts = fullName.trim().split(/\s+/).filter(Boolean);

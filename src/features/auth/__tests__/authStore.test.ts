@@ -23,6 +23,10 @@ jest.mock('../serviceAreaPreference', () => ({
   hydrateServiceAreaAvailable: jest.fn(async () => undefined),
 }));
 
+jest.mock('../membershipPlanPreference', () => ({
+  hydrateMembershipKind: jest.fn(async () => undefined),
+}));
+
 const mockedFetchCurrentUser = fetchCurrentUser as jest.MockedFunction<typeof fetchCurrentUser>;
 const mockedLogin = loginWithPassword as jest.MockedFunction<typeof loginWithPassword>;
 const mockedLogout = logoutAndClearLocal as jest.MockedFunction<typeof logoutAndClearLocal>;

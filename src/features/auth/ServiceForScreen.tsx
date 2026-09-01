@@ -5,22 +5,23 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { brandGreen } from '@/components/AgeWellLogo';
 import { Icon } from '@/components/ui';
 import { minTouchSize, spacing, typography } from '@/constants/theme';
+import { setMembershipKind } from './membershipPlanPreference';
 import {
   hasOnboardingProfile,
   setOnboardingServiceFor,
   type ServiceFor,
 } from './onboardingProfile';
 
-const PARENTS_TINT = '#FDEFE4';
-const MYSELF_TINT = '#E7F4E4';
+const COUPLE_TINT = '#FDEFE4';
+const SINGLE_TINT = '#E7F4E4';
 
-const myselfImage = require('../../../assets/myself.png');
-const parentsImage = require('../../../assets/parents.png');
+const singleImage = require('../../../assets/myself.png');
+const coupleImage = require('../../../assets/parents.png');
 
 export function ServiceForScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
-  const [choice, setChoice] = useState<ServiceFor>('myself');
+  const [choice, setChoice] = useState<ServiceFor>('single');
 
   const goBack = () => {
     if (navigation.canGoBack()) {
@@ -36,6 +37,7 @@ export function ServiceForScreen() {
       return;
     }
     setOnboardingServiceFor(choice);
+    void setMembershipKind(choice);
     router.push('/(auth)/location' as Href);
   };
 
@@ -49,32 +51,28 @@ export function ServiceForScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}
       >
-        <Text style={styles.title}>Looking to avail service for?</Text>
+        <Text style={styles.title}>Which membership are you looking for?</Text>
         <Text style={styles.subtitle}>Please select one option to continue.</Text>
 
         <OptionCard
-          selected={choice === 'myself'}
-          tint={MYSELF_TINT}
-          title="MYSELF"
-          description="I am looking for AgeWell services for myself."
+          selected={choice === 'single'}
+          tint={SINGLE_TINT}
+          title="SINGLE"
+          description="Basic Membership for one senior."
           illustration={
-            <Image
-              source={myselfImage}
-              style={styles.myselfImage}
-              resizeMode="contain"
-            />
+            <Image source={singleImage} style={styles.singleImage} resizeMode="contain" />
           }
-          onPress={() => setChoice('myself')}
+          onPress={() => setChoice('single')}
         />
         <OptionCard
-          selected={choice === 'parents'}
-          tint={PARENTS_TINT}
-          title="PARENTS"
-          description="I am looking for AgeWell services for my parent(s)."
+          selected={choice === 'couple'}
+          tint={COUPLE_TINT}
+          title="COUPLE"
+          description="Couple Membership for two seniors in one home."
           illustration={
-            <Image source={parentsImage} style={styles.parentsImage} resizeMode="contain" />
+            <Image source={coupleImage} style={styles.coupleImage} resizeMode="contain" />
           }
-          onPress={() => setChoice('parents')}
+          onPress={() => setChoice('couple')}
         />
       </ScrollView>
 
@@ -114,7 +112,7 @@ function OptionCard({
       onPress={onPress}
       accessibilityRole="button"
       accessibilityState={{ selected }}
-      accessibilityLabel={`${title}. ${description}`}
+      accessibilityLabel={title}
       style={({ pressed }) => [
         styles.card,
         { backgroundColor: tint },
@@ -122,16 +120,14 @@ function OptionCard({
         pressed ? styles.pressed : null,
       ]}
     >
-      <View style={styles.cardText}>
+      <View style={styles.cardCopy}>
         <Text style={styles.cardTitle}>{title}</Text>
         <Text style={styles.cardDescription}>{description}</Text>
       </View>
       <View style={styles.illustration}>{illustration}</View>
-      {selected ? (
-        <View style={styles.check}>
-          <Icon name="checkmark" size={16} color="#FFFFFF" />
-        </View>
-      ) : null}
+      <View style={[styles.radio, selected ? styles.radioSelected : null]}>
+        {selected ? <View style={styles.radioDot} /> : null}
+      </View>
     </Pressable>
   );
 }
@@ -140,96 +136,104 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-    paddingHorizontal: 28,
+    paddingHorizontal: spacing.xl,
   },
   back: {
     width: minTouchSize,
     height: minTouchSize,
+    alignItems: 'center',
     justifyContent: 'center',
-    alignItems: 'flex-start',
+    marginLeft: -spacing.sm,
   },
   title: {
-    fontFamily: 'Poppins_700Bold',
-    fontSize: 26,
-    lineHeight: 34,
-    fontWeight: '700',
+    ...typography.title,
     color: '#1A1A1A',
-    marginTop: spacing.sm,
+    marginTop: spacing.md,
   },
   subtitle: {
     ...typography.body,
-    color: '#6B6B6B',
+    color: '#6B7280',
     marginTop: spacing.sm,
     marginBottom: spacing.xl,
   },
   card: {
-    borderRadius: 20,
-    padding: spacing.lg,
-    marginBottom: spacing.md,
-    minHeight: 120,
-    flexDirection: 'row',
-    alignItems: 'center',
+    borderRadius: 24,
+    padding: spacing.xl,
+    marginBottom: spacing.lg,
+    minHeight: 168,
+    overflow: 'hidden',
     borderWidth: 2,
     borderColor: 'transparent',
-    overflow: 'hidden',
   },
   cardSelected: {
     borderColor: brandGreen,
   },
-  cardText: {
-    flex: 1,
-    paddingRight: spacing.md,
+  cardCopy: {
+    maxWidth: '58%',
+    gap: spacing.sm,
+    zIndex: 1,
   },
   cardTitle: {
     fontFamily: 'Poppins_700Bold',
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 22,
+    lineHeight: 28,
     color: '#1A1A1A',
+    fontWeight: '700',
   },
   cardDescription: {
     ...typography.body,
-    color: '#4A4A4A',
-    marginTop: spacing.xs,
+    color: '#4B5563',
+    lineHeight: 22,
   },
   illustration: {
-    width: 112,
-    height: 96,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  myselfImage: {
-    width: 92,
-    height: 92,
-    backgroundColor: 'transparent',
-  },
-  parentsImage: {
-    width: 112,
-    height: 92,
-    backgroundColor: 'transparent',
-  },
-  check: {
     position: 'absolute',
-    top: 12,
     right: 12,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: brandGreen,
+    bottom: 8,
+    zIndex: 0,
+  },
+  singleImage: {
+    width: 120,
+    height: 130,
+  },
+  coupleImage: {
+    width: 140,
+    height: 120,
+  },
+  radio: {
+    position: 'absolute',
+    top: spacing.lg,
+    right: spacing.lg,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    borderColor: '#9CA3AF',
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    zIndex: 2,
+  },
+  radioSelected: {
+    borderColor: brandGreen,
+  },
+  radioDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: brandGreen,
   },
   button: {
     minHeight: 56,
-    borderRadius: 28,
+    borderRadius: 16,
     backgroundColor: brandGreen,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  pressed: {
-    opacity: 0.9,
   },
   buttonLabel: {
     ...typography.bodyStrong,
     color: '#FFFFFF',
+  },
+  pressed: {
+    opacity: 0.9,
   },
 });

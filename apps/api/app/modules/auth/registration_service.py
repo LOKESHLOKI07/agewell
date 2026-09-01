@@ -104,6 +104,7 @@ class RegistrationService:
             address=payload.address.strip(),
             emergency_contact=payload.emergency_contact.strip(),
             preferred_language=(payload.preferred_language or "").strip() or None,
+            membership_kind=(payload.membership_kind or "").strip() or None,
         )
         self.session.add(senior)
         await self.session.commit()

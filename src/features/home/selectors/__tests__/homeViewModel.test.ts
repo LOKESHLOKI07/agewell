@@ -51,6 +51,8 @@ const serviceRequest: ServiceRequest = {
   seniorId: 'senior-1',
   serviceId: 'svc-1',
   serviceName: 'Physiotherapy',
+  serviceSlug: null,
+  notes: null,
   status: 'REQUESTED',
 };
 

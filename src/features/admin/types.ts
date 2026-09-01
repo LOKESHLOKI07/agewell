@@ -105,6 +105,8 @@ export interface AdminService {
   name: string;
   category: string;
   description: string;
+  slug: string | null;
+  coverImage: string | null;
 }
 
 export interface AdminMembershipPlan {

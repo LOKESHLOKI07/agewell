@@ -14,6 +14,7 @@ export const registerSeniorSchema = registerAccountSchema.extend({
   address: z.string().trim().min(1, 'Address is required'),
   emergencyContact: z.string().trim().min(1, 'Emergency contact is required'),
   preferredLanguage: z.enum(['en', 'hi', 'mr']).optional(),
+  membershipKind: z.enum(['single', 'couple']).optional(),
 });
 
 export const registerCareSchema = registerAccountSchema.extend({

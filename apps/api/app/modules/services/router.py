@@ -43,6 +43,15 @@ async def list_services(
     return await manager.get_services()
 
 
+@router.get("/by-slug/{slug}", response_model=ServiceResponse)
+async def get_service_by_slug(
+    slug: str,
+    _user: User = Depends(get_current_user),
+    manager: ServiceManager = Depends(get_service_manager),
+):
+    return await manager.get_service_by_slug(slug)
+
+
 @router.post("/", response_model=ServiceResponse)
 async def create_service(
     item: ServiceCreate,
@@ -94,7 +103,11 @@ async def create_request(
 ):
     scoped_senior_id = await access.resolve_senior_id(current_user, req.senior_id)
     return await manager.request_service(
-        ServiceRequestCreate(senior_id=scoped_senior_id, service_id=req.service_id)
+        ServiceRequestCreate(
+            senior_id=scoped_senior_id,
+            service_id=req.service_id,
+            notes=req.notes,
+        )
     )
 
 

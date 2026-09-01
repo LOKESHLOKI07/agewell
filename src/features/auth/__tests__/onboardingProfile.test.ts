@@ -8,6 +8,7 @@ import {
   normalizeDateOfBirth,
   onboardingAccountFields,
   parseDateOfBirth,
+  sanitizeDateOfBirthManualInput,
   personalDetailsSchema,
   setCreatedPassword,
   setOnboardingProfile,
@@ -26,13 +27,15 @@ describe('personal details', () => {
     expect(isValidDateOfBirth('32-13-2020')).toBe(false);
   });
 
-  it('inserts hyphens while typing digits so a number pad is enough', () => {
+  it('normalizes eight digits on submit without inserting hyphens while typing', () => {
     expect(formatDateOfBirthInput('10')).toBe('10');
     expect(formatDateOfBirthInput('1003')).toBe('10-03');
     expect(formatDateOfBirthInput('10031952')).toBe('10-03-1952');
     expect(formatDateOfBirthInput('10-03-195')).toBe('10-03-195');
     expect(normalizeDateOfBirth('10031952')).toBe('10-03-1952');
     expect(isValidDateOfBirth('10031952')).toBe(true);
+    expect(sanitizeDateOfBirthManualInput('10-03-1952')).toBe('10-03-1952');
+    expect(sanitizeDateOfBirthManualInput('10ab03')).toBe('1003');
   });
 
   it('converts a picked calendar date into the onboarding format', () => {

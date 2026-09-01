@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  KeyboardAvoidingView,
+  Keyboard,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -28,7 +29,11 @@ import { resolveServiceAreaFromGps, resolveServiceAreaFromQuery, serviceAreaHref
 
 const METHODS = new Set<OnboardingAuthMethod>(['google', 'mobile', 'email']);
 
-export function LocationPermissionScreen() {
+export function LocationPermissionScreen({
+  onResolved,
+}: {
+  onResolved?: (available: boolean) => Promise<void> | void;
+} = {}) {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const params = useLocalSearchParams<{ method?: string | string[] }>();
@@ -36,6 +41,9 @@ export function LocationPermissionScreen() {
   const [mode, setMode] = useState<'ask' | 'manual'>('ask');
   const [place, setPlace] = useState('');
   const [placeError, setPlaceError] = useState<string | undefined>();
+  const scrollRef = useRef<ScrollView>(null);
+  const placeFocused = useRef(false);
+  const [keyboardInset, setKeyboardInset] = useState(0);
 
   const method = normalizeMethod(params.method);
 
@@ -44,6 +52,34 @@ export function LocationPermissionScreen() {
       setOnboardingAuthMethod(method);
     }
   }, [method]);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const show = Keyboard.addListener(showEvent, (event) => {
+      setKeyboardInset(event.endCoordinates.height);
+    });
+    const hide = Keyboard.addListener(hideEvent, () => setKeyboardInset(0));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
+
+  const revealPlaceField = () => {
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        scrollRef.current?.scrollToEnd({ animated: true });
+      }, Platform.OS === 'ios' ? 250 : 80);
+    });
+  };
+
+  useEffect(() => {
+    if (keyboardInset <= 0 || !placeFocused.current) {
+      return;
+    }
+    revealPlaceField();
+  }, [keyboardInset]);
 
   const goBack = () => {
     if (mode === 'manual') {
@@ -55,10 +91,18 @@ export function LocationPermissionScreen() {
       router.back();
       return;
     }
+    if (onResolved) {
+      router.replace('/(tabs)' as Href);
+      return;
+    }
     router.replace('/(auth)/service-for' as Href);
   };
 
   const goToServiceArea = (available: boolean) => {
+    if (onResolved) {
+      void onResolved(available);
+      return;
+    }
     router.push(serviceAreaHref(available));
   };
 
@@ -117,10 +161,7 @@ export function LocationPermissionScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.root, { paddingTop: insets.top + spacing.sm, paddingBottom: insets.bottom + spacing.xl }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <View style={[styles.root, { paddingTop: insets.top + spacing.sm }]}>
       <Pressable
         onPress={goBack}
         accessibilityRole="button"
@@ -130,91 +171,111 @@ export function LocationPermissionScreen() {
         <Icon name="arrow-back" size={22} color="#1A1A1A" />
       </Pressable>
 
-      <View style={styles.body}>
-        <LocationHero />
-        {mode === 'manual' ? (
-          <>
-            <Text style={styles.title}>Enter your location</Text>
-            <Text style={styles.subtitle}>Tell us your area so we can check AgeWell service availability.</Text>
-          </>
-        ) : (
-          <>
-            <Text style={styles.title}>AgeWell needs your location</Text>
-            <Text style={styles.subtitle}>
-              We use your location to check whether AgeWell services are currently available in your area.
-            </Text>
-          </>
-        )}
-      </View>
+      <ScrollView
+        ref={scrollRef}
+        style={styles.flex}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{
+          flexGrow: 1,
+          paddingBottom: insets.bottom + spacing.xl + (Platform.OS === 'ios' ? 0 : keyboardInset),
+        }}
+      >
+        <View style={styles.body}>
+          <LocationHero />
+          {mode === 'manual' ? (
+            <>
+              <Text style={styles.title}>Enter your location</Text>
+              <Text style={styles.subtitle}>Tell us your area so we can check AgeWell service availability.</Text>
+            </>
+          ) : (
+            <>
+              <Text style={styles.title}>AgeWell needs your location</Text>
+              <Text style={styles.subtitle}>
+                We use your location to check whether AgeWell services are currently available in your area.
+              </Text>
+            </>
+          )}
+        </View>
 
-      <View style={styles.actions}>
-        {mode === 'manual' ? (
-          <>
-            <TextField
-              label="Area or city"
-              placeholder="Kandivali, Mumbai"
-              value={place}
-              onChangeText={(value) => {
-                setPlace(value);
-                if (placeError) {
-                  setPlaceError(undefined);
-                }
-              }}
-              autoCapitalize="words"
-              error={placeError}
-            />
-            <Pressable
-              onPress={() => void onCheckManual()}
-              disabled={busy}
-              accessibilityRole="button"
-              accessibilityLabel="Check availability"
-              accessibilityState={{ busy, disabled: busy }}
-              style={({ pressed }) => [
-                styles.allow,
-                pressed && !busy ? styles.pressed : null,
-                busy ? styles.disabled : null,
-              ]}
-            >
-              {busy ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <Text style={styles.allowLabel}>Check availability</Text>
-              )}
-            </Pressable>
-          </>
-        ) : (
-          <>
-            <Pressable
-              onPress={() => void onAllow()}
-              disabled={busy}
-              accessibilityRole="button"
-              accessibilityLabel="Allow Location Access"
-              accessibilityState={{ busy, disabled: busy }}
-              style={({ pressed }) => [
-                styles.allow,
-                pressed && !busy ? styles.pressed : null,
-                busy ? styles.disabled : null,
-              ]}
-            >
-              {busy ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <Text style={styles.allowLabel}>Allow Location Access</Text>
-              )}
-            </Pressable>
-            <Pressable
-              onPress={() => setMode('manual')}
-              disabled={busy}
-              accessibilityRole="button"
-              accessibilityLabel="Enter location manually"
-              style={styles.manualWrap}
-            >
-              <Text style={styles.manual}>Enter location manually</Text>
-            </Pressable>
-          </>
-        )}
-      </View>
-    </KeyboardAvoidingView>
+        <View style={styles.actions}>
+          {mode === 'manual' ? (
+            <>
+              <TextField
+                label="Area or city"
+                placeholder="Kandivali, Mumbai"
+                value={place}
+                onChangeText={(value) => {
+                  setPlace(value);
+                  if (placeError) {
+                    setPlaceError(undefined);
+                  }
+                }}
+                onFocus={() => {
+                  placeFocused.current = true;
+                  revealPlaceField();
+                }}
+                onBlur={() => {
+                  placeFocused.current = false;
+                }}
+                autoCapitalize="words"
+                error={placeError}
+              />
+              <Pressable
+                onPress={() => void onCheckManual()}
+                disabled={busy}
+                accessibilityRole="button"
+                accessibilityLabel="Check availability"
+                accessibilityState={{ busy, disabled: busy }}
+                style={({ pressed }) => [
+                  styles.allow,
+                  pressed && !busy ? styles.pressed : null,
+                  busy ? styles.disabled : null,
+                ]}
+              >
+                {busy ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.allowLabel}>Check availability</Text>
+                )}
+              </Pressable>
+            </>
+          ) : (
+            <>
+              <Pressable
+                onPress={() => void onAllow()}
+                disabled={busy}
+                accessibilityRole="button"
+                accessibilityLabel="Allow Location Access"
+                accessibilityState={{ busy, disabled: busy }}
+                style={({ pressed }) => [
+                  styles.allow,
+                  pressed && !busy ? styles.pressed : null,
+                  busy ? styles.disabled : null,
+                ]}
+              >
+                {busy ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.allowLabel}>Allow Location Access</Text>
+                )}
+              </Pressable>
+              <Pressable
+                onPress={() => setMode('manual')}
+                disabled={busy}
+                accessibilityRole="button"
+                accessibilityLabel="Enter location manually"
+                style={styles.manualWrap}
+              >
+                <Text style={styles.manual}>Enter location manually</Text>
+              </Pressable>
+            </>
+          )}
+        </View>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -260,6 +321,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 28,
+  },
+  flex: {
+    flex: 1,
   },
   back: {
     width: minTouchSize,

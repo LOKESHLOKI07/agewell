@@ -1,10 +1,9 @@
-import { createElement, type ReactNode, useEffect, useState } from 'react';
+import { createElement, type ReactNode, useEffect, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import {
   Keyboard,
-  KeyboardAvoidingView,
   Modal,
   Platform,
   Pressable,
@@ -24,11 +23,11 @@ import {
   DATE_OF_BIRTH_INPUT_LENGTH,
   ONBOARDING_LANGUAGES,
   formatDateOfBirthFromDate,
-  formatDateOfBirthInput,
   getVerifiedEmail,
   getGoogleFullName,
   parseDateOfBirth,
   personalDetailsSchema,
+  sanitizeDateOfBirthManualInput,
   setOnboardingProfile,
   splitFullName,
   type PersonalDetailsValues,
@@ -43,6 +42,9 @@ export function PersonalDetailsScreen() {
   const params = useLocalSearchParams<{ method?: string | string[] }>();
   const setLocale = useI18nStore((state) => state.setLocale);
   const [languageOpen, setLanguageOpen] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
+  const addressFocused = useRef(false);
+  const [keyboardInset, setKeyboardInset] = useState(0);
   const verifiedEmail = getVerifiedEmail();
   const googleName = splitFullName(getGoogleFullName());
   const {
@@ -72,6 +74,34 @@ export function PersonalDetailsScreen() {
     }
   }, [method]);
 
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const show = Keyboard.addListener(showEvent, (event) => {
+      setKeyboardInset(event.endCoordinates.height);
+    });
+    const hide = Keyboard.addListener(hideEvent, () => setKeyboardInset(0));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
+
+  const revealAddressField = () => {
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        scrollRef.current?.scrollToEnd({ animated: true });
+      }, Platform.OS === 'ios' ? 250 : 80);
+    });
+  };
+
+  useEffect(() => {
+    if (keyboardInset <= 0 || !addressFocused.current) {
+      return;
+    }
+    revealAddressField();
+  }, [keyboardInset]);
+
   const language = watch('language');
   const languageLabel = ONBOARDING_LANGUAGES.find((item) => item.id === language)?.label;
 
@@ -90,18 +120,21 @@ export function PersonalDetailsScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.root, { paddingTop: insets.top + spacing.sm }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <View style={[styles.root, { paddingTop: insets.top + spacing.sm }]}>
       <Pressable onPress={goBack} accessibilityRole="button" accessibilityLabel="Back" style={styles.back}>
         <Icon name="arrow-back" size={22} color="#1A1A1A" />
       </Pressable>
 
       <ScrollView
+        ref={scrollRef}
+        style={styles.flex}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
+        contentContainerStyle={{
+          paddingBottom: insets.bottom + 24 + (Platform.OS === 'ios' ? 0 : keyboardInset),
+        }}
       >
         <Text style={styles.title}>Let’s get to know you</Text>
         <Text style={styles.subtitle}>Please provide a few basic details to get started.</Text>
@@ -217,8 +250,15 @@ export function PersonalDetailsScreen() {
               <FormRow label="Residential Address" error={errors.address?.message} last>
                 <TextInput
                   value={value}
-                  onBlur={onBlur}
+                  onBlur={() => {
+                    addressFocused.current = false;
+                    onBlur();
+                  }}
                   onChangeText={onChange}
+                  onFocus={() => {
+                    addressFocused.current = true;
+                    revealAddressField();
+                  }}
                   placeholder="Enter your address"
                   placeholderTextColor="#9A9A9A"
                   style={styles.input}
@@ -266,7 +306,7 @@ export function PersonalDetailsScreen() {
           </View>
         </Pressable>
       </Modal>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
@@ -284,19 +324,25 @@ function DateOfBirthField({
   const [showPicker, setShowPicker] = useState(false);
   const [draftDate, setDraftDate] = useState(fallbackDobDate);
   const { min, max } = dobRange();
+  const parsedValue = parseDateOfBirth(value);
 
   const openPicker = () => {
     Keyboard.dismiss();
-    setDraftDate(parseDateOfBirth(value) ?? fallbackDobDate());
+    setDraftDate(parsedValue ?? fallbackDobDate());
     setShowPicker(true);
   };
 
   const closePicker = () => setShowPicker(false);
 
+  const commitDate = (date: Date) => {
+    onChange(formatDateOfBirthFromDate(date));
+    onBlur();
+  };
+
   const onAndroidChange = (event: DateTimePickerEvent, selected?: Date) => {
     setShowPicker(false);
     if (event.type === 'set' && selected) {
-      onChange(formatDateOfBirthFromDate(selected));
+      commitDate(selected);
     }
   };
 
@@ -320,10 +366,10 @@ function DateOfBirthField({
         <TextInput
           value={value}
           onBlur={onBlur}
-          onChangeText={(text) => onChange(formatDateOfBirthInput(text))}
+          onChangeText={(text) => onChange(sanitizeDateOfBirthManualInput(text))}
           placeholder="DD-MM-YYYY"
           placeholderTextColor="#9A9A9A"
-          keyboardType="number-pad"
+          keyboardType="default"
           inputMode="numeric"
           maxLength={DATE_OF_BIRTH_INPUT_LENGTH}
           style={styles.input}
@@ -342,7 +388,7 @@ function DateOfBirthField({
         />
       ) : null}
 
-      {Platform.OS !== 'android' ? (
+      {showPicker && Platform.OS !== 'android' ? (
         <Modal visible={showPicker} transparent animationType="fade" onRequestClose={closePicker}>
           <Pressable style={styles.modalBackdrop} onPress={closePicker}>
             <View style={styles.sheet} onStartShouldSetResponder={() => true}>
@@ -377,7 +423,7 @@ function DateOfBirthField({
               )}
               <Pressable
                 onPress={() => {
-                  onChange(formatDateOfBirthFromDate(draftDate));
+                  commitDate(draftDate);
                   closePicker();
                 }}
                 accessibilityRole="button"
@@ -423,6 +469,7 @@ function WebDateInput({
       border: '1px solid #E6E6E6',
       color: '#1A1A1A',
       marginBottom: 12,
+      fontFamily: 'Poppins_400Regular, Poppins, sans-serif',
     },
   });
 }
@@ -488,6 +535,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 24,
+  },
+  flex: {
+    flex: 1,
   },
   back: {
     width: minTouchSize,

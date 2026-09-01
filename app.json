@@ -18,6 +18,7 @@
       "bundleIdentifier": "in.agewell.family"
     },
     "android": {
+      "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "backgroundColor": "#FEF8E8",
         "foregroundImage": "./assets/android-icon-foreground.png",

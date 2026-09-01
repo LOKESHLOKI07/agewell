@@ -15,6 +15,10 @@ class ServiceRepository:
         result = await self.session.execute(select(Service).where(Service.id == service_id))
         return result.scalar_one_or_none()
 
+    async def get_by_slug(self, slug: str):
+        result = await self.session.execute(select(Service).where(Service.slug == slug))
+        return result.scalar_one_or_none()
+
     async def create_service(self, item: ServiceCreate) -> Service:
         db_item = Service(**item.model_dump())
         self.session.add(db_item)
@@ -34,7 +38,7 @@ class ServiceRepository:
         from sqlalchemy import func
 
         stmt = (
-            select(ServiceRequest, Service.name)
+            select(ServiceRequest, Service.name, Service.slug)
             .join(Service, ServiceRequest.service_id == Service.id)
         )
         count_stmt = select(func.count()).select_from(ServiceRequest)

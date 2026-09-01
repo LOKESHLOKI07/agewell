@@ -194,6 +194,7 @@ describe('homeApi', () => {
         name: 'Physiotherapy',
         category: 'HEALTH',
         description: 'Test',
+        slug: null,
       },
     ]);
     expect(mockedGet).toHaveBeenCalledWith('/services/', { params: undefined });

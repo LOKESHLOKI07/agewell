@@ -11,11 +11,13 @@ import * as NativeSplash from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
+import { Platform } from 'react-native';
 import { queryClient } from '@/api/queryClient';
 import { colors } from '@/constants/theme';
 import { useAuthStore } from '@/features/auth/authStore';
 import { SplashScreen } from '@/features/auth/SplashScreen';
 import { TrackingShareHost } from '@/features/tracking/TrackingShareHost';
+import { useBlurFocusedOnWebNavigate } from '@/utils/useBlurFocusedOnWebNavigate';
 
 WebBrowser.maybeCompleteAuthSession();
 void NativeSplash.preventAutoHideAsync();
@@ -32,6 +34,7 @@ export default function RootLayout() {
     Poppins_700Bold,
   });
   const [splashMinElapsed, setSplashMinElapsed] = useState(false);
+  useBlurFocusedOnWebNavigate();
 
   useEffect(() => {
     void hydrate();
@@ -71,6 +74,8 @@ export default function RootLayout() {
         screenOptions={{
           headerShown: false,
           contentStyle: { backgroundColor: colors.background },
+          // On web, animated stacks keep prior screens focusable under aria-hidden.
+          animation: Platform.OS === 'web' ? 'none' : undefined,
         }}
       >
         <Stack.Screen name="index" />
@@ -85,6 +90,7 @@ export default function RootLayout() {
           <Stack.Screen name="health" />
           <Stack.Screen name="care" />
           <Stack.Screen name="services" />
+          <Stack.Screen name="membership" />
           <Stack.Screen name="visits" />
           <Stack.Screen name="appointments" />
           <Stack.Screen name="account" />

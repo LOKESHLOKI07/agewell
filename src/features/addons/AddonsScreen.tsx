@@ -6,6 +6,7 @@ import { EmptyState, LoadingState, ErrorState } from '@/components';
 import { Icon, SectionTitle } from '@/components/ui';
 import { useServices } from '@/features/services/hooks';
 import { SERVICE_CATEGORY_LABELS, serviceRequestHref } from '@/features/services/selectors';
+import { findAddonBookNow } from './addonBookCatalog';
 import type { CatalogService, ServiceCategory } from '@/features/home/types/home';
 import { useI18n } from '@/i18n';
 import { getSectionState } from '@/features/home/selectors/homeViewModel';
@@ -80,7 +81,14 @@ export function AddonsScreen() {
               <Pressable
                 key={addon.id}
                 style={styles.addonCard}
-                onPress={() => router.push(serviceRequestHref(addon.id) as unknown as Href)}
+                onPress={() => {
+                  const bookNow = findAddonBookNow(addon.slug ?? undefined);
+                  if (bookNow) {
+                    router.push({ pathname: '/addons/[id]', params: { id: bookNow.slug } } as Href);
+                    return;
+                  }
+                  router.push(serviceRequestHref(addon.id) as unknown as Href);
+                }}
                 accessibilityRole="button"
                 accessibilityLabel={`Request ${addon.name}`}
               >

@@ -21,6 +21,7 @@ from app.modules.healthcare.router import router as healthcare_router
 from app.modules.emergency.router import router as emergency_router
 from app.modules.documents.router import router as documents_router
 from app.modules.audit.router import router as audit_router
+from app.modules.catalog.router import router as catalog_router
 
 api_router = APIRouter()
 api_router.include_router(auth_router, prefix="/auth", tags=["auth"])
@@ -44,3 +45,4 @@ api_router.include_router(healthcare_router, prefix='/healthcare', tags=['health
 api_router.include_router(emergency_router, prefix='/emergency', tags=['emergency'])
 api_router.include_router(documents_router, prefix='/documents', tags=['documents'])
 api_router.include_router(audit_router, prefix='/audit', tags=['audit'])
+api_router.include_router(catalog_router, prefix='/catalog', tags=['catalog'])

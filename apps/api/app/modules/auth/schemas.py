@@ -14,6 +14,7 @@ class RegisterSeniorRequest(BaseModel):
     address: str = Field(min_length=1, max_length=500)
     emergency_contact: str = Field(min_length=1, max_length=100)
     preferred_language: Optional[str] = Field(default=None, max_length=20)
+    membership_kind: Optional[str] = Field(default=None, max_length=20)
     identity_token: Optional[str] = Field(default=None, max_length=4096)
 
     @field_validator("email")
@@ -28,6 +29,18 @@ class RegisterSeniorRequest(BaseModel):
     @classmethod
     def normalize_last_name(cls, value: str) -> str:
         return (value or "").strip()
+
+    @field_validator("membership_kind")
+    @classmethod
+    def normalize_membership_kind(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        kind = value.strip().lower()
+        if not kind:
+            return None
+        if kind not in ("single", "couple"):
+            raise ValueError("membership_kind must be single or couple")
+        return kind
 
     @model_validator(mode="after")
     def drop_copied_last_name(self):

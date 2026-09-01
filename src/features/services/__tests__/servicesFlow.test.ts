@@ -87,6 +87,7 @@ describe('create service request', () => {
       seniorId: 'senior-1',
       serviceId: physio.id,
       status: 'REQUESTED',
+      notes: null,
     });
 
     expect(mockedPost).toHaveBeenCalledWith(

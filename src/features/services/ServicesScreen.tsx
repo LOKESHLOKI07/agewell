@@ -54,7 +54,9 @@ export function ServicesScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={styles.subtitle}>Browse AgeWell support for you and your loved ones.</Text>
+        <Text style={styles.subtitle}>
+          Basic Membership services — SOS, care visits, daily needs, health and home support.
+        </Text>
 
         <View style={styles.searchWrap}>
           <Icon name="search-outline" size={18} color={familyHome.muted} />

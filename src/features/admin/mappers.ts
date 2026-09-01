@@ -127,6 +127,8 @@ export function toAdminService(payload: unknown): AdminService {
     name: asString(data.name, 'service.name'),
     category: asString(data.category, 'service.category'),
     description: asString(data.description, 'service.description'),
+    slug: asOptionalString(data.slug),
+    coverImage: asOptionalString(data.cover_image),
   };
 }
 

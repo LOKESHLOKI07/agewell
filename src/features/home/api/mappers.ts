@@ -243,7 +243,9 @@ export function toServiceRequest(payload: unknown): ServiceRequest {
     seniorId: asId(data.senior_id, 'service_request.senior_id'),
     serviceId: asId(data.service_id, 'service_request.service_id'),
     serviceName: asString(data.service_name, 'service_request.service_name'),
+    serviceSlug: asOptionalString(data.service_slug),
     status: asString(data.status, 'service_request.status') as ServiceRequest['status'],
+    notes: asOptionalString(data.notes),
   };
 }
 
@@ -254,6 +256,7 @@ export function toCatalogService(payload: unknown): CatalogService {
     name: asString(data.name, 'service.name'),
     category: asString(data.category, 'service.category') as CatalogService['category'],
     description: asString(data.description, 'service.description'),
+    slug: asOptionalString((data as { slug?: unknown }).slug),
   };
 }
 
@@ -300,10 +303,15 @@ export function toNotification(payload: unknown): Notification {
   };
 }
 
-export function toServiceRequestCreateBody(seniorId: string, serviceId: string): ServiceRequestCreate {
+export function toServiceRequestCreateBody(
+  seniorId: string,
+  serviceId: string,
+  notes?: string | null,
+): ServiceRequestCreate {
   return {
     senior_id: seniorId,
     service_id: serviceId,
+    ...(notes ? { notes } : {}),
   };
 }
 
@@ -314,6 +322,7 @@ export function toCreatedServiceRequest(payload: unknown): CreatedServiceRequest
     seniorId: asId(data.senior_id, 'service_request.senior_id'),
     serviceId: asId(data.service_id, 'service_request.service_id'),
     status: asString(data.status, 'service_request.status') as CreatedServiceRequest['status'],
+    notes: asOptionalString(data.notes),
   };
 }
 

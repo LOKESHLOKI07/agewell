@@ -27,6 +27,7 @@ import app.modules.notifications.models
 import app.modules.community.models
 import app.modules.documents.models
 import app.modules.audit.models
+import app.modules.catalog.models
 
 config = context.config
 

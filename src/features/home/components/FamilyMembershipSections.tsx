@@ -1,4 +1,4 @@
-import { Linking, Pressable, ScrollView, StyleSheet, Text, View, Alert } from 'react-native';
+import { Linking, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View, Alert } from 'react-native';
 import { router, type Href } from 'expo-router';
 import { Icon } from '@/components/ui';
 import { spacing, typography } from '@/constants/theme';
@@ -8,6 +8,8 @@ import {
   SERVICE_AREA_LOCKED_MESSAGE,
   SERVICE_AREA_LOCKED_TITLE,
 } from '@/features/auth/serviceAreaPreference';
+import { getMembershipKind } from '@/features/auth/membershipPlanPreference';
+import { getOnboardingServiceFor } from '@/features/auth/onboardingProfile';
 import { FamilyHomeSectionHeader } from './FamilyHomePrimitives';
 import { familyHome } from './familyHomeTheme';
 
@@ -99,37 +101,54 @@ export function FamilyActiveMembershipCard({
 const PLANS = [
   {
     key: 'basic',
-    name: 'BASIC',
-    blurb: 'Essential support for independent seniors.',
-    features: ['1 Hr Daily Companion', '25 Food Deliveries', '1 Grocery / Month'],
-    price: '₹3,499',
+    name: 'Basic Membership',
+    blurb: 'Full AgeWell Basic care for one senior.',
+    features: [
+      '19 membership services included',
+      'Entrance CCTV add-on available',
+      '2 panic buttons with CCTV pack',
+    ],
+    price: '₹15,499',
+    priceNote: '+ ₹4,000 for entrance CCTV + 2 panic buttons',
     color: familyHome.green,
     soft: familyHome.greenSoft,
     button: familyHome.greenDark,
   },
   {
-    key: 'care',
-    name: 'CARE',
-    blurb: 'Regular care & assistance when you are away.',
-    features: ['2–4 Hrs Daily Companion', '40 Food Deliveries', '2 Grocery / Month'],
-    price: '₹7,999',
+    key: 'couple',
+    name: 'Couple Membership',
+    blurb: 'Shared care cover for two seniors in one home.',
+    features: [
+      '19 membership services for the couple',
+      'Entrance CCTV add-on available',
+      '3 panic buttons with CCTV pack',
+    ],
+    price: '₹18,499',
+    priceNote: '+ ₹5,500 for CCTV + 3 panic buttons',
     color: familyHome.blue,
     soft: familyHome.blueSoft,
     button: familyHome.blueDark,
   },
-  {
-    key: 'care-plus',
-    name: 'CARE+',
-    blurb: 'Complete care & peace of mind, always.',
-    features: ['4–6 Hrs Daily Companion', 'Unlimited Food', '6 Grocery / Month'],
-    price: '₹14,999',
-    color: familyHome.purple,
-    soft: familyHome.purpleSoft,
-    button: familyHome.purpleDark,
-  },
 ] as const;
 
 export function FamilyMembershipPlansCarousel() {
+  const { width: windowWidth } = useWindowDimensions();
+  const membershipKind = getMembershipKind() ?? getOnboardingServiceFor();
+  const visiblePlans = PLANS.filter((plan) => {
+    if (membershipKind === 'single') {
+      return plan.key === 'basic';
+    }
+    if (membershipKind === 'couple') {
+      return plan.key === 'couple';
+    }
+    return true;
+  });
+  // Nearly full-width card; with one plan use full content width, with two keep a peek.
+  const cardWidth =
+    visiblePlans.length === 1
+      ? Math.max(280, windowWidth - spacing.xl * 2)
+      : Math.min(320, Math.max(260, windowWidth - spacing.xl * 2 - 28));
+
   const openPlans = () => {
     if (!canAvailServices()) {
       Alert.alert(SERVICE_AREA_LOCKED_TITLE, SERVICE_AREA_LOCKED_MESSAGE);
@@ -145,9 +164,18 @@ export function FamilyMembershipPlansCarousel() {
         actionLabel="View All Plans"
         onAction={openPlans}
       />
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.plansRow}>
-        {PLANS.map((plan) => (
-          <View key={plan.key} style={[styles.planCard, { backgroundColor: plan.soft }]}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        decelerationRate="fast"
+        snapToInterval={cardWidth + spacing.md}
+        contentContainerStyle={styles.plansRow}
+      >
+        {visiblePlans.map((plan) => (
+          <View
+            key={plan.key}
+            style={[styles.planCard, { width: cardWidth, backgroundColor: plan.soft }]}
+          >
             <Text style={[styles.planCardName, { color: plan.color }]}>{plan.name}</Text>
             <Text style={styles.planBlurb}>{plan.blurb}</Text>
             <View style={styles.featureList}>
@@ -161,6 +189,7 @@ export function FamilyMembershipPlansCarousel() {
             <Text style={[styles.planPrice, { color: plan.color }]}>
               {plan.price} <Text style={styles.planPeriod}>/ month</Text>
             </Text>
+            <Text style={styles.planPriceNote}>{plan.priceNote}</Text>
             <Pressable
               onPress={openPlans}
               accessibilityRole="button"
@@ -338,10 +367,9 @@ const styles = StyleSheet.create({
   },
   plansRow: {
     gap: spacing.md,
-    paddingRight: spacing.md,
+    paddingRight: spacing.xl,
   },
   planCard: {
-    width: 240,
     borderRadius: 20,
     padding: spacing.lg,
     gap: spacing.sm,
@@ -355,7 +383,6 @@ const styles = StyleSheet.create({
   planBlurb: {
     ...typography.caption,
     color: familyHome.muted,
-    minHeight: 36,
   },
   featureList: {
     gap: 6,
@@ -382,6 +409,11 @@ const styles = StyleSheet.create({
     fontFamily: 'Poppins_500Medium',
     fontSize: 13,
     fontWeight: '500',
+  },
+  planPriceNote: {
+    ...typography.caption,
+    color: familyHome.muted,
+    lineHeight: 18,
   },
   planButton: {
     marginTop: 8,

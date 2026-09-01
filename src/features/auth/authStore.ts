@@ -5,6 +5,7 @@ import { markReturnToSignIn, hydrateReturnToSignIn } from './authEntryPreference
 import { fetchCurrentUser, loginWithPassword, loginWithTokens, logoutAndClearLocal } from './authService';
 import type { AuthStatus, AuthUser } from './authTypes';
 import { clearTokens, loadTokens } from './tokenStorage';
+import { hydrateMembershipKind } from './membershipPlanPreference';
 import { hydrateServiceAreaAvailable } from './serviceAreaPreference';
 
 interface AuthState {
@@ -31,7 +32,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   careStatus: null,
 
   hydrate: async () => {
-    await Promise.all([hydrateReturnToSignIn(), hydrateServiceAreaAvailable()]);
+    await Promise.all([
+      hydrateReturnToSignIn(),
+      hydrateServiceAreaAvailable(),
+      hydrateMembershipKind(),
+    ]);
     const tokens = await loadTokens();
     if (!tokens) {
       set({ status: 'UNAUTHENTICATED', user: null, careStatus: null });

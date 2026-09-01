@@ -3,7 +3,7 @@ import { toApiError } from '@/api/errors';
 import { toIsoDate } from '@/utils/date';
 import { fetchCurrentUser } from './authService';
 import type { AuthUser, TokenResponse } from './authTypes';
-import { getIdentityToken } from './onboardingProfile';
+import { getIdentityToken, getOnboardingServiceFor } from './onboardingProfile';
 import { saveTokens } from './tokenStorage';
 import type { RegisterCareValues, RegisterSeniorValues } from './registrationSchemas';
 
@@ -51,6 +51,7 @@ export async function registerSenior(values: RegisterSeniorValues): Promise<Regi
         address: values.address,
         emergency_contact: values.emergencyContact,
         preferred_language: values.preferredLanguage ?? null,
+        membership_kind: values.membershipKind ?? getOnboardingServiceFor(),
         identity_token: getIdentityToken() || null,
       },
       { skipAuth: true },

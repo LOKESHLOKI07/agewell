@@ -3,18 +3,35 @@ import { router, useLocalSearchParams, useNavigation, type Href } from 'expo-rou
 import { colors, typography, spacing, minTouchSize, cardSurface } from '@/constants/theme';
 import { AgeWellHeader } from '@/features/home/components/AgeWellHeader';
 import { EmptyState, LoadingState, PrimaryButton } from '@/components';
+import { AddonBookNowScreen } from '@/features/addons/AddonBookNowScreen';
+import { findAddonBookNow } from '@/features/addons/addonBookCatalog';
 import { useService } from '@/features/services/hooks';
 import { serviceRequestHref } from '@/features/services/selectors';
 import { useI18n } from '@/i18n';
 import { useAuthStore } from '@/features/auth/authStore';
 import { safeGoBack } from '@/utils/navigation';
 
+function firstParam(value: string | string[] | undefined): string | undefined {
+  return Array.isArray(value) ? value[0] : value;
+}
+
 /**
- * Replaces mock checkout. Dedicated addon purchase/payment APIs do not exist
- * for consumers — route to the real service request flow instead.
+ * Known home add-ons open a dedicated Book Now card.
+ * Other ids still use the generic catalogue request flow.
  */
 export default function AddonDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const rawId = useLocalSearchParams<{ id: string | string[] }>().id;
+  const id = firstParam(rawId);
+  const bookNow = findAddonBookNow(id);
+
+  if (bookNow) {
+    return <AddonBookNowScreen addon={bookNow} />;
+  }
+
+  return <GenericAddonRequest id={id} />;
+}
+
+function GenericAddonRequest({ id }: { id: string | undefined }) {
   const { t } = useI18n();
   const navigation = useNavigation();
   const role = useAuthStore((state) => state.user?.role);

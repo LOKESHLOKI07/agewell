@@ -133,13 +133,16 @@ export interface ServiceRequestRead {
   senior_id: string;
   service_id: string;
   service_name: string;
+  service_slug?: string | null;
   status: ServiceRequestStatus;
+  notes?: string | null;
 }
 
 /** Matches FastAPI ServiceRequestCreate. */
 export interface ServiceRequestCreate {
   senior_id: string;
   service_id: string;
+  notes?: string | null;
 }
 
 /** Matches FastAPI ServiceRequestResponse. */
@@ -148,6 +151,7 @@ export interface ServiceRequestResponse {
   senior_id: string;
   service_id: string;
   status: ServiceRequestStatus;
+  notes?: string | null;
 }
 
 export type ServiceCategory = 'CARE' | 'FOOD_HOME' | 'HEALTH' | 'MOBILITY' | 'COMMUNITY' | 'ADD_ON';
@@ -158,6 +162,7 @@ export interface ServiceResponse {
   name: string;
   category: ServiceCategory;
   description: string;
+  slug?: string | null;
 }
 
 /** Matches FastAPI MembershipBenefitItem. */
@@ -281,7 +286,9 @@ export interface ServiceRequest {
   seniorId: string;
   serviceId: string;
   serviceName: string;
+  serviceSlug: string | null;
   status: ServiceRequestStatus;
+  notes: string | null;
 }
 
 export interface CreatedServiceRequest {
@@ -289,6 +296,7 @@ export interface CreatedServiceRequest {
   seniorId: string;
   serviceId: string;
   status: ServiceRequestStatus;
+  notes: string | null;
 }
 
 export interface CatalogService {
@@ -296,6 +304,7 @@ export interface CatalogService {
   name: string;
   category: ServiceCategory;
   description: string;
+  slug?: string | null;
 }
 
 export interface CurrentMembership {

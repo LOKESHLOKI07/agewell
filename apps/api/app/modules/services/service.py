@@ -33,6 +33,12 @@ class ServiceManager:
     async def get_services(self):
         return await self.repo.get_all_services()
 
+    async def get_service_by_slug(self, slug: str):
+        service = await self.repo.get_by_slug(slug)
+        if not service:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Service not found")
+        return service
+
     async def update_service(self, service_id, payload: ServiceUpdate):
         service = await self.repo.get_by_id(service_id)
         if not service:
@@ -65,9 +71,11 @@ class ServiceManager:
                 senior_id=request.senior_id,
                 service_id=request.service_id,
                 service_name=service_name,
+                service_slug=service_slug,
                 status=request.status,
+                notes=request.notes,
             )
-            for request, service_name in rows
+            for request, service_name, service_slug in rows
         ]
         return ListPage(
             items=items,
@@ -95,5 +103,7 @@ class ServiceManager:
             senior_id=request.senior_id,
             service_id=request.service_id,
             service_name=service.name if service else "",
+            service_slug=service.slug if service else None,
             status=request.status,
+            notes=request.notes,
         )
