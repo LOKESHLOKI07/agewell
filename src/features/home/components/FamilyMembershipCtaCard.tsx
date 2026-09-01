@@ -1,22 +1,9 @@
-import { Alert, Image, Pressable, StyleSheet, Text, View } from 'react-native';
-import { router, type Href } from 'expo-router';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { spacing, typography } from '@/constants/theme';
-import {
-  canAvailServices,
-  SERVICE_AREA_LOCKED_MESSAGE,
-  SERVICE_AREA_LOCKED_TITLE,
-} from '@/features/auth/serviceAreaPreference';
+import { openMembershipPurchase } from '@/features/membership/openMembershipPurchase';
 import { familyHome } from './familyHomeTheme';
 
 const coupleImage = require('../../../../assets/parents.png');
-
-function openMembershipPlans() {
-  if (!canAvailServices()) {
-    Alert.alert(SERVICE_AREA_LOCKED_TITLE, SERVICE_AREA_LOCKED_MESSAGE);
-    return;
-  }
-  router.push('/account/membership' as Href);
-}
 
 export function FamilyMembershipCtaCard() {
   return (
@@ -26,7 +13,7 @@ export function FamilyMembershipCtaCard() {
           <Text style={styles.title}>Get Membership to access all services</Text>
           <Text style={styles.subtitle}>Join AgeWell membership and enjoy complete care.</Text>
           <Pressable
-            onPress={openMembershipPlans}
+            onPress={() => openMembershipPurchase()}
             accessibilityRole="button"
             accessibilityLabel="View membership plans"
             style={({ pressed }) => [styles.button, pressed ? styles.pressed : null]}

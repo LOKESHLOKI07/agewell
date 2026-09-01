@@ -5,9 +5,9 @@ import { familyHome } from './familyHomeTheme';
 
 const SERVICE_AREA_LABEL = 'Kandivali & Borivali, Mumbai';
 
-export function FamilyServiceableAreaBanner() {
+export function FamilyServiceableAreaBanner({ flush = false }: { flush?: boolean }) {
   return (
-    <View style={styles.banner} accessibilityRole="summary">
+    <View style={[styles.banner, flush ? styles.flush : null]} accessibilityRole="summary">
       <View style={styles.iconWrap}>
         <Icon name="location" size={18} color={familyHome.greenDark} />
       </View>
@@ -31,6 +31,14 @@ const styles = StyleSheet.create({
     borderColor: '#D7ECD8',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
+  },
+  flush: {
+    marginHorizontal: 0,
+    marginTop: -spacing.md,
+    borderRadius: 0,
+    borderLeftWidth: 0,
+    borderRightWidth: 0,
+    paddingHorizontal: spacing.xl,
   },
   iconWrap: {
     width: 36,

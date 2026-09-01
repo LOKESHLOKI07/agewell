@@ -1,8 +1,9 @@
 import { Image, Pressable, StyleSheet, View } from 'react-native';
 import { router, type Href } from 'expo-router';
-import { Avatar } from '@/components/ui';
+import { Avatar, Icon } from '@/components/ui';
 import { minTouchSize, spacing } from '@/constants/theme';
 import { NotificationBell } from '@/features/notifications/components/NotificationBell';
+import { familyHome } from './familyHomeTheme';
 
 const logo = require('../../../../assets/splash/agewell_logo.png');
 
@@ -11,6 +12,8 @@ interface FamilyHomeTopBarProps {
   profileName: string | null;
   profilePhotoUri?: string | null;
   profileHref?: Href;
+  /** Member home mockup: bell + chat instead of the profile avatar. */
+  showChat?: boolean;
 }
 
 export function FamilyHomeTopBar({
@@ -18,6 +21,7 @@ export function FamilyHomeTopBar({
   profileName,
   profilePhotoUri,
   profileHref = '/(tabs)/profile' as Href,
+  showChat = false,
 }: FamilyHomeTopBarProps) {
   return (
     <View style={styles.row}>
@@ -33,14 +37,25 @@ export function FamilyHomeTopBar({
 
       <View style={styles.right}>
         <NotificationBell unreadCount={unreadCount} />
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Profile"
-          onPress={() => router.push(profileHref)}
-          style={styles.avatarBtn}
-        >
-          <Avatar name={profileName} imageUri={profilePhotoUri} size={36} />
-        </Pressable>
+        {showChat ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Chat with AgeWell"
+            onPress={() => router.push('/account/help' as Href)}
+            style={styles.avatarBtn}
+          >
+            <Icon name="chatbubble-outline" size={22} color={familyHome.text} />
+          </Pressable>
+        ) : (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Profile"
+            onPress={() => router.push(profileHref)}
+            style={styles.avatarBtn}
+          >
+            <Avatar name={profileName} imageUri={profilePhotoUri} size={36} />
+          </Pressable>
+        )}
       </View>
     </View>
   );

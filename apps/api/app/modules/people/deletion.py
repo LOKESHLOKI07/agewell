@@ -15,7 +15,7 @@ from app.modules.documents.models import DocumentMetadata
 from app.modules.emergency.models import EmergencyCase, EmergencyEvent
 from app.modules.families.models import FamilyMember
 from app.modules.healthcare.models import HealthDocument, LabResult, MedicalRecord, Medication, MedicationSchedule
-from app.modules.memberships.models import Membership, MembershipUsageLedger
+from app.modules.memberships.models import Membership, MembershipRequest, MembershipUsageLedger
 from app.modules.notifications.models import Notification, NotificationPreference
 from app.modules.orders.models import Order, OrderItem
 from app.modules.payments.models import Payment, PaymentTransaction
@@ -59,6 +59,7 @@ async def delete_senior_record(session: AsyncSession, senior_id, *, also_user: b
 
     membership_ids = select(Membership.id).where(Membership.senior_id == senior_id)
     await session.execute(delete(MembershipUsageLedger).where(MembershipUsageLedger.membership_id.in_(membership_ids)))
+    await session.execute(delete(MembershipRequest).where(MembershipRequest.senior_id == senior_id))
     await session.execute(delete(Membership).where(Membership.senior_id == senior_id))
 
     medication_ids = select(Medication.id).where(Medication.senior_id == senior_id)

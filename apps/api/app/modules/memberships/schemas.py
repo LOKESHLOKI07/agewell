@@ -1,7 +1,8 @@
 from datetime import datetime
-from typing import List, Optional
+from enum import Enum
+from typing import List, Literal, Optional
 
-from pydantic import UUID4, BaseModel, ConfigDict
+from pydantic import UUID4, BaseModel, ConfigDict, Field
 
 
 class MembershipBenefitItem(BaseModel):
@@ -55,4 +56,33 @@ class MembershipRecordResponse(BaseModel):
     status: str
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
+
+
+class MembershipRequestStatus(str, Enum):
+    REQUESTED = "REQUESTED"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+
+
+class MembershipRequestCreate(BaseModel):
+    plan_key: Literal["basic", "couple"]
+    senior_id: Optional[UUID4] = None
+    notes: Optional[str] = Field(default=None, max_length=2000)
+
+
+class MembershipRequestReview(BaseModel):
+    status: Literal["APPROVED", "REJECTED"]
+
+
+class MembershipRequestResponse(BaseModel):
+    id: UUID4
+    senior_id: UUID4
+    senior_name: Optional[str] = None
+    plan_id: UUID4
+    plan_name: str
+    plan_price: Optional[float] = None
+    status: str
+    notes: Optional[str] = None
+    created_at: Optional[datetime] = None
+    reviewed_at: Optional[datetime] = None
 

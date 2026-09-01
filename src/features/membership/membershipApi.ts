@@ -5,9 +5,12 @@ import {
   toCreatedServiceRequest,
   toServiceRequestCreateBody,
 } from '@/features/home/api/mappers';
-import type { CatalogService, CreatedServiceRequest } from '@/features/home/types/home';
+import type { CatalogService, CreatedServiceRequest, ListPage } from '@/features/home/types/home';
 import { createServiceRequest } from '@/features/services/api';
 import { fetchSeniorMe } from '@/features/home/api/homeApi';
+import { toMembershipRequest, toMembershipRequestPage } from './mappers';
+import type { MembershipPlanKey } from './planCatalog';
+import type { MembershipRequest, MembershipRequestStatus } from './membershipTypes';
 
 export async function fetchServiceBySlug(slug: string): Promise<CatalogService> {
   try {
@@ -45,6 +48,40 @@ export async function createServiceRequestWithNotes(input: {
       toServiceRequestCreateBody(input.seniorId, input.serviceId, input.notes),
     );
     return toCreatedServiceRequest(response.data);
+  } catch (error) {
+    throw toApiError(error);
+  }
+}
+
+export async function fetchMembershipRequests(params?: {
+  status?: MembershipRequestStatus;
+  limit?: number;
+  offset?: number;
+}): Promise<ListPage<MembershipRequest>> {
+  try {
+    const response = await apiClient.get('/memberships/requests', {
+      params: {
+        limit: params?.limit ?? 50,
+        offset: params?.offset ?? 0,
+        ...(params?.status ? { status: params.status } : {}),
+      },
+    });
+    return toMembershipRequestPage(response.data);
+  } catch (error) {
+    throw toApiError(error);
+  }
+}
+
+export async function createMembershipPurchaseRequest(input: {
+  planKey: MembershipPlanKey;
+  notes?: string;
+}): Promise<MembershipRequest> {
+  try {
+    const response = await apiClient.post('/memberships/requests', {
+      plan_key: input.planKey,
+      notes: input.notes,
+    });
+    return toMembershipRequest(response.data);
   } catch (error) {
     throw toApiError(error);
   }

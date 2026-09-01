@@ -32,3 +32,16 @@ class MembershipUsageLedger(Base):
     benefit_id = Column(UUID(as_uuid=True), ForeignKey("membership_benefits.id"))
     used_amount = Column(Integer)
     date_used = Column(DateTime, server_default=func.now())
+
+
+class MembershipRequest(Base):
+    """Family/senior purchase request. Admin approve creates an ACTIVE Membership."""
+
+    __tablename__ = "membership_requests"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    senior_id = Column(UUID(as_uuid=True), ForeignKey("seniors.id"), nullable=False)
+    plan_id = Column(UUID(as_uuid=True), ForeignKey("membership_plans.id"), nullable=False)
+    status = Column(String, nullable=False, default="REQUESTED")  # REQUESTED | APPROVED | REJECTED
+    notes = Column(String, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    reviewed_at = Column(DateTime(timezone=True), nullable=True)

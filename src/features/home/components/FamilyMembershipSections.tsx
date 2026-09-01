@@ -1,15 +1,12 @@
-import { Linking, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View, Alert } from 'react-native';
+import { Linking, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { router, type Href } from 'expo-router';
 import { Icon } from '@/components/ui';
 import { spacing, typography } from '@/constants/theme';
 import type { CurrentMembership, MembershipUsage } from '@/features/home/types/home';
-import {
-  canAvailServices,
-  SERVICE_AREA_LOCKED_MESSAGE,
-  SERVICE_AREA_LOCKED_TITLE,
-} from '@/features/auth/serviceAreaPreference';
 import { getMembershipKind } from '@/features/auth/membershipPlanPreference';
 import { getOnboardingServiceFor } from '@/features/auth/onboardingProfile';
+import { MEMBERSHIP_PLAN_CATALOG } from '@/features/membership/planCatalog';
+import { openMembershipPurchase } from '@/features/membership/openMembershipPurchase';
 import { FamilyHomeSectionHeader } from './FamilyHomePrimitives';
 import { familyHome } from './familyHomeTheme';
 
@@ -98,43 +95,15 @@ export function FamilyActiveMembershipCard({
   );
 }
 
-const PLANS = [
-  {
-    key: 'basic',
-    name: 'Basic Membership',
-    blurb: 'Full AgeWell Basic care for one senior.',
-    features: [
-      '19 membership services included',
-      'Entrance CCTV add-on available',
-      '2 panic buttons with CCTV pack',
-    ],
-    price: '₹15,499',
-    priceNote: '+ ₹4,000 for entrance CCTV + 2 panic buttons',
-    color: familyHome.green,
-    soft: familyHome.greenSoft,
-    button: familyHome.greenDark,
-  },
-  {
-    key: 'couple',
-    name: 'Couple Membership',
-    blurb: 'Shared care cover for two seniors in one home.',
-    features: [
-      '19 membership services for the couple',
-      'Entrance CCTV add-on available',
-      '3 panic buttons with CCTV pack',
-    ],
-    price: '₹18,499',
-    priceNote: '+ ₹5,500 for CCTV + 3 panic buttons',
-    color: familyHome.blue,
-    soft: familyHome.blueSoft,
-    button: familyHome.blueDark,
-  },
-] as const;
+const PLAN_THEME = {
+  basic: { color: familyHome.green, soft: familyHome.greenSoft, button: familyHome.greenDark },
+  couple: { color: familyHome.blue, soft: familyHome.blueSoft, button: familyHome.blueDark },
+} as const;
 
 export function FamilyMembershipPlansCarousel() {
   const { width: windowWidth } = useWindowDimensions();
   const membershipKind = getMembershipKind() ?? getOnboardingServiceFor();
-  const visiblePlans = PLANS.filter((plan) => {
+  const visiblePlans = MEMBERSHIP_PLAN_CATALOG.filter((plan) => {
     if (membershipKind === 'single') {
       return plan.key === 'basic';
     }
@@ -149,20 +118,12 @@ export function FamilyMembershipPlansCarousel() {
       ? Math.max(280, windowWidth - spacing.xl * 2)
       : Math.min(320, Math.max(260, windowWidth - spacing.xl * 2 - 28));
 
-  const openPlans = () => {
-    if (!canAvailServices()) {
-      Alert.alert(SERVICE_AREA_LOCKED_TITLE, SERVICE_AREA_LOCKED_MESSAGE);
-      return;
-    }
-    router.push('/account/membership' as Href);
-  };
-
   return (
     <View style={styles.section}>
       <FamilyHomeSectionHeader
         title="Membership Plans"
         actionLabel="View All Plans"
-        onAction={openPlans}
+        onAction={() => openMembershipPurchase(visiblePlans[0]?.key)}
       />
       <ScrollView
         horizontal
@@ -174,29 +135,29 @@ export function FamilyMembershipPlansCarousel() {
         {visiblePlans.map((plan) => (
           <View
             key={plan.key}
-            style={[styles.planCard, { width: cardWidth, backgroundColor: plan.soft }]}
+            style={[styles.planCard, { width: cardWidth, backgroundColor: PLAN_THEME[plan.key].soft }]}
           >
-            <Text style={[styles.planCardName, { color: plan.color }]}>{plan.name}</Text>
+            <Text style={[styles.planCardName, { color: PLAN_THEME[plan.key].color }]}>{plan.name}</Text>
             <Text style={styles.planBlurb}>{plan.blurb}</Text>
             <View style={styles.featureList}>
               {plan.features.map((feature) => (
                 <View key={feature} style={styles.featureRow}>
-                  <Icon name="checkmark" size={14} color={plan.color} />
+                  <Icon name="checkmark" size={14} color={PLAN_THEME[plan.key].color} />
                   <Text style={styles.featureText}>{feature}</Text>
                 </View>
               ))}
             </View>
-            <Text style={[styles.planPrice, { color: plan.color }]}>
+            <Text style={[styles.planPrice, { color: PLAN_THEME[plan.key].color }]}>
               {plan.price} <Text style={styles.planPeriod}>/ month</Text>
             </Text>
             <Text style={styles.planPriceNote}>{plan.priceNote}</Text>
             <Pressable
-              onPress={openPlans}
+              onPress={() => openMembershipPurchase(plan.key)}
               accessibilityRole="button"
               accessibilityLabel={`View ${plan.name} details`}
               style={({ pressed }) => [
                 styles.planButton,
-                { backgroundColor: plan.button },
+                { backgroundColor: PLAN_THEME[plan.key].button },
                 pressed ? styles.pressed : null,
               ]}
             >

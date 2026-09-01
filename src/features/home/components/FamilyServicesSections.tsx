@@ -67,27 +67,38 @@ function FamilyServiceGrid({
   );
 }
 
-export function FamilyOurServicesGrid() {
+export function FamilyOurServicesGrid({
+  title = 'Our Basic Membership Services',
+  showViewAll = false,
+}: {
+  title?: string;
+  showViewAll?: boolean;
+}) {
   const items = homeBasicMembershipServices();
 
   return (
     <View style={styles.section}>
-      <FamilyHomeSectionHeader title="Our Basic Membership Services" />
+      <FamilyHomeSectionHeader
+        title={title}
+        actionLabel={showViewAll ? 'View All' : undefined}
+        onAction={showViewAll ? () => router.push('/(tabs)/services' as Href) : undefined}
+      />
       <FamilyServiceGrid items={items} onPressItem={(item) => openOrLock(item.href, item.bookable)} />
     </View>
   );
 }
 
-export function FamilyAddOnServices() {
+export function FamilyAddOnServices({ showViewAll = false }: { showViewAll?: boolean }) {
   const items = homeAddOnServices();
 
   return (
     <View style={styles.section}>
-      <FamilyHomeSectionHeader title="Add-on Services" />
-      <FamilyServiceGrid
-        items={items}
-        onPressItem={(item) => openOrLock(item.href, false)}
+      <FamilyHomeSectionHeader
+        title="Add-on Services"
+        actionLabel={showViewAll ? 'View All' : undefined}
+        onAction={showViewAll ? () => router.push('/addons' as Href) : undefined}
       />
+      <FamilyServiceGrid items={items} onPressItem={(item) => openOrLock(item.href, false)} />
     </View>
   );
 }

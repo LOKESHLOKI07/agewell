@@ -3,6 +3,7 @@ import { useAuthStore } from '@/features/auth/authStore';
 import type { AuthRole } from '@/features/auth/authTypes';
 import type { EmergencyStatus } from '@/features/emergency/types/emergency';
 import type { AppointmentStatus, NotificationPriority, ServiceRequestStatus, VisitStatus } from '@/features/home/types/home';
+import type { MembershipRequestStatus } from '@/features/membership/membershipTypes';
 import {
   approveAdminCareManager,
   createAdminCareManager,
@@ -23,6 +24,7 @@ import {
   fetchAdminMembershipBenefits,
   fetchAdminMembershipPlans,
   fetchAdminMembershipRecords,
+  fetchAdminMembershipRequests,
   fetchAdminMembershipUsage,
   fetchAdminNotifications,
   fetchAdminProviders,
@@ -37,6 +39,7 @@ import {
   fetchAdminVisitReports,
   fetchAdminVisitTasks,
   fetchAdminVisits,
+  reviewAdminMembershipRequest,
   updateAdminCareManager,
   updateAdminEmergencyStatus,
   updateAdminSenior,
@@ -324,6 +327,26 @@ export function useAdminMembershipBenefits(params: { limit?: number; offset?: nu
 export function useAdminMembershipRecords(params: { limit?: number; offset?: number; seniorId?: string } = {}) {
   const query = { limit: params.limit ?? ADMIN_PAGE_SIZE, offset: params.offset ?? 0, seniorId: params.seniorId };
   return useStaffQuery(adminQueryKeys.membershipRecords(query), () => fetchAdminMembershipRecords(query));
+}
+
+export function useAdminMembershipRequests(params: {
+  limit?: number;
+  offset?: number;
+  status?: MembershipRequestStatus;
+} = {}) {
+  const query = { limit: params.limit ?? ADMIN_PAGE_SIZE, offset: params.offset ?? 0, status: params.status };
+  return useStaffQuery(adminQueryKeys.membershipRequests(query), () => fetchAdminMembershipRequests(query));
+}
+
+export function useReviewAdminMembershipRequest() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { id: string; status: Extract<MembershipRequestStatus, 'APPROVED' | 'REJECTED'> }) =>
+      reviewAdminMembershipRequest(input.id, input.status),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'memberships'] });
+    },
+  });
 }
 
 export function useAdminCurrentMembership(seniorId: string | undefined) {

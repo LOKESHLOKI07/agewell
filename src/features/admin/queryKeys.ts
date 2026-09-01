@@ -19,6 +19,7 @@ export const adminQueryKeys = {
   membershipPlans: (params?: Record<string, unknown>) => ['admin', 'memberships', 'plans', params ?? {}] as const,
   membershipBenefits: (params?: Record<string, unknown>) => ['admin', 'memberships', 'benefits', params ?? {}] as const,
   membershipRecords: (params?: Record<string, unknown>) => ['admin', 'memberships', 'records', params ?? {}] as const,
+  membershipRequests: (params?: Record<string, unknown>) => ['admin', 'memberships', 'requests', params ?? {}] as const,
   emergencies: (params?: Record<string, unknown>) => ['admin', 'emergencies', params ?? {}] as const,
   emergency: (id: string) => ['admin', 'emergencies', id] as const,
   emergencyEvents: (id: string) => ['admin', 'emergencies', id, 'events'] as const,

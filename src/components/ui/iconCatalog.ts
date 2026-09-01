@@ -69,6 +69,7 @@ import {
   UserPlus,
   Users,
   Utensils,
+  MessageCircle,
 } from 'lucide-react-native';
 
 type LucideGlyph = ComponentType<{ size?: number; color?: string; strokeWidth?: number }>;
@@ -160,6 +161,7 @@ export const ICONS = {
   location: MapPin,
   siren: Siren,
   sparkles: Sparkles,
+  'chatbubble-outline': MessageCircle,
 } as const satisfies Record<string, LucideGlyph>;
 
 export type IconName = keyof typeof ICONS;

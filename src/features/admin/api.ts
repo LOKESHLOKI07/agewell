@@ -29,6 +29,8 @@ import type {
   VisitStatus,
 } from '@/features/home/types/home';
 import type { AuthRole } from '@/features/auth/authTypes';
+import { toMembershipRequest, toMembershipRequestPage } from '@/features/membership/mappers';
+import type { MembershipRequest, MembershipRequestStatus } from '@/features/membership/membershipTypes';
 import { toIsoDate } from '@/utils/date';
 import {
   adminSeniorCreateBody,
@@ -387,6 +389,25 @@ export function fetchAdminCurrentMembership(seniorId: string): Promise<CurrentMe
 
 export function fetchAdminMembershipUsage(seniorId: string): Promise<MembershipUsage[]> {
   return getMapped('/memberships/current/usage', toMembershipUsageList, { senior_id: seniorId });
+}
+
+export function fetchAdminMembershipRequests(params: {
+  limit: number;
+  offset: number;
+  status?: MembershipRequestStatus;
+}): Promise<ListPage<MembershipRequest>> {
+  return getMapped('/memberships/requests', toMembershipRequestPage, {
+    limit: params.limit,
+    offset: params.offset,
+    ...(params.status ? { status: params.status } : {}),
+  });
+}
+
+export function reviewAdminMembershipRequest(
+  id: string,
+  status: Extract<MembershipRequestStatus, 'APPROVED' | 'REJECTED'>,
+): Promise<MembershipRequest> {
+  return sendMapped('patch', `/memberships/requests/${id}`, toMembershipRequest, { status });
 }
 
 export function fetchAdminEmergencies(params: {

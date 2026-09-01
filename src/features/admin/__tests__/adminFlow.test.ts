@@ -12,12 +12,14 @@ import {
   fetchAdminCareManagers,
   fetchAdminEmergencies,
   fetchAdminMembershipPlans,
+  fetchAdminMembershipRequests,
   fetchAdminNotifications,
   fetchAdminSeniors,
   fetchAdminServiceRequests,
   fetchAdminServices,
   fetchAdminUsers,
   fetchAdminVisits,
+  reviewAdminMembershipRequest,
   updateAdminEmergencyStatus,
   updateAdminService,
   updateAdminServiceRequest,
@@ -316,6 +318,44 @@ describe('admin APIs', () => {
     jsonGet({
       items: [
         {
+          id: 'mreq-1',
+          senior_id: seniorPayload.id,
+          senior_name: 'John Doe',
+          plan_id: 'plan-1',
+          plan_name: 'Basic Membership',
+          plan_price: 15499,
+          status: 'REQUESTED',
+          notes: null,
+          created_at: '2026-09-01T09:00:00.000Z',
+          reviewed_at: null,
+        },
+      ],
+      total: 1,
+      limit: 20,
+      offset: 0,
+    });
+    const requests = await fetchAdminMembershipRequests({ limit: 20, offset: 0, status: 'REQUESTED' });
+    expect(requests.items[0].planName).toBe('Basic Membership');
+    expect(requests.items[0].seniorName).toBe('John Doe');
+
+    jsonRequest({
+      id: 'mreq-1',
+      senior_id: seniorPayload.id,
+      senior_name: 'John Doe',
+      plan_id: 'plan-1',
+      plan_name: 'Basic Membership',
+      plan_price: 15499,
+      status: 'APPROVED',
+      notes: null,
+      created_at: '2026-09-01T09:00:00.000Z',
+      reviewed_at: '2026-09-01T10:00:00.000Z',
+    });
+    const reviewed = await reviewAdminMembershipRequest('mreq-1', 'APPROVED');
+    expect(reviewed.status).toBe('APPROVED');
+
+    jsonGet({
+      items: [
+        {
           id: 'em-1',
           senior_id: seniorPayload.id,
           type: 'AGEWELL_SUPPORT',
@@ -440,6 +480,7 @@ describe('admin error and empty states', () => {
     expect(adminQueryKeys.users().slice(0, 2)).toEqual(['admin', 'users']);
     expect(adminQueryKeys.seniors().slice(0, 2)).toEqual(['admin', 'seniors']);
     expect(adminQueryKeys.emergencies().slice(0, 2)).toEqual(['admin', 'emergencies']);
+    expect(adminQueryKeys.membershipRequests().slice(0, 3)).toEqual(['admin', 'memberships', 'requests']);
   });
 });
 
