@@ -4,13 +4,14 @@ import { Alert, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { queryClient } from '@/api/queryClient';
 import { Avatar, ConfirmDialog, MenuRow, Screen } from '@/components';
-import { colors, minTouchSize, radius, spacing, typography } from '@/constants/theme';
+import { minTouchSize, radius, spacing, typography } from '@/constants/theme';
 import { AUTH_ROLE_LABELS } from '@/features/auth/authTypes';
 import { useAuth } from '@/features/auth/useAuth';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { updateSeniorMePhoto } from '@/features/home/api/homeApi';
 import { homeQueryKeys } from '@/features/home/api/homeQueryKeys';
 import { seniorDisplayName } from '@/features/home/api/mappers';
+import { familyHome } from '@/features/home/components/familyHomeTheme';
 import { useSeniorProfile } from '@/features/home/hooks/queries';
 import { pickProfilePhoto } from './profilePhoto';
 
@@ -111,7 +112,9 @@ export function ProfileScreen() {
         />
         <Text style={styles.hint}>{updatingPhoto ? 'Saving photo…' : 'Tap to add a photo'}</Text>
         <Text style={styles.name}>{displayName}</Text>
-        <Text style={styles.meta}>{roleLabel}</Text>
+        <View style={styles.rolePill}>
+          <Text style={styles.rolePillText}>{roleLabel}</Text>
+        </View>
         {user?.email ? <Text style={styles.meta}>{user.email}</Text> : null}
         {user?.phone ? <Text style={styles.meta}>{user.phone}</Text> : null}
       </View>
@@ -221,19 +224,33 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: spacing.xxl,
     gap: spacing.sm,
+    paddingVertical: spacing.lg,
+    borderRadius: 20,
+    backgroundColor: familyHome.greenSoft,
   },
   hint: {
     ...typography.caption,
-    color: colors.textMuted,
+    color: familyHome.muted,
   },
   name: {
     ...typography.heading,
-    color: colors.text,
+    color: familyHome.text,
     textAlign: 'center',
+  },
+  rolePill: {
+    marginTop: spacing.xs,
+    borderRadius: 20,
+    backgroundColor: familyHome.green,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+  },
+  rolePillText: {
+    ...typography.captionStrong,
+    color: familyHome.white,
   },
   meta: {
     ...typography.body,
-    color: colors.textSecondary,
+    color: familyHome.muted,
     textAlign: 'center',
   },
   menu: {
@@ -241,14 +258,14 @@ const styles = StyleSheet.create({
   },
   sheetOverlay: {
     flex: 1,
-    backgroundColor: colors.overlay,
+    backgroundColor: 'rgba(26, 26, 26, 0.46)',
     justifyContent: 'flex-end',
   },
   sheetBackdrop: {
     ...StyleSheet.absoluteFill,
   },
   sheet: {
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: familyHome.white,
     borderTopLeftRadius: radius.xl,
     borderTopRightRadius: radius.xl,
     paddingHorizontal: spacing.xxl,
@@ -258,11 +275,11 @@ const styles = StyleSheet.create({
   },
   sheetTitle: {
     ...typography.heading,
-    color: colors.text,
+    color: familyHome.text,
   },
   sheetMessage: {
     ...typography.body,
-    color: colors.textSecondary,
+    color: familyHome.muted,
     marginBottom: spacing.md,
   },
   sheetAction: {
@@ -274,14 +291,14 @@ const styles = StyleSheet.create({
   },
   sheetActionLabel: {
     ...typography.bodyStrong,
-    color: colors.text,
+    color: familyHome.green,
   },
   sheetDestructive: {
     ...typography.bodyStrong,
-    color: colors.emergency,
+    color: familyHome.red,
   },
   sheetCancel: {
     ...typography.bodyStrong,
-    color: colors.textSecondary,
+    color: familyHome.muted,
   },
 });

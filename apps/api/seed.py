@@ -1,7 +1,7 @@
 import asyncio
 import uuid
 from datetime import datetime, date
-from sqlalchemy import select, update
+from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import AsyncSessionLocal
 from app.modules.users.models import User, RoleEnum
@@ -11,15 +11,30 @@ from app.modules.families.models import FamilyMember
 from app.modules.care.models import CareManager
 from app.modules.services.models import Service, ServiceCategory, ServiceRequest
 from app.modules.services.addon_catalog import ADDON_BOOKING_SERVICES
+from app.modules.services.extra_catalog import EXTRA_SERVICES
 from app.modules.services.membership_catalog import MEMBERSHIP_SERVICES
 from app.modules.healthcare.models import HealthcareProvider, Medication, MedicationSchedule
 from app.modules.appointments.models import Appointment
 from app.modules.visits.models import Visit, VisitTask, VisitReport
-from app.modules.memberships.models import MembershipPlan, MembershipBenefit, Membership, MembershipUsageLedger
+from app.modules.memberships.models import (
+    MembershipPlan,
+    MembershipBenefit,
+    Membership,
+    MembershipRequest,
+    MembershipUsageLedger,
+)
 from app.modules.addons.models import AddOn, AddOnCategory
 from app.modules.community.models import CommunityEvent
 from app.modules.notifications.models import Notification
-from app.modules.emergency.models import EmergencyCase, EmergencyEvent, EmergencyType
+from app.modules.emergency.models import (
+    EmergencyCase,
+    EmergencyEvent,
+    EmergencyRecipient,
+    EmergencyType,
+    RECIPIENT_PENDING,
+    RECIPIENT_ROLES,
+    TRIGGER_APP_SOS,
+)
 from app.modules.emergency.repository import CREATED_EVENT_DESCRIPTION
 from app.modules.catalog.models import FoodCuisine, FoodMenuItem, GroceryCategory, GroceryProduct, ServiceOffering
 from app.modules.catalog.seed_data import (
@@ -46,6 +61,55 @@ async def repair_emergency_copy(session: AsyncSession) -> None:
         .where(EmergencyEvent.event_description == FALSE_DISPATCH_COPY)
         .values(event_description=CREATED_EVENT_DESCRIPTION)
     )
+    await session.commit()
+
+
+async def repair_emergency_sos_rows(session: AsyncSession) -> None:
+    cases = (await session.execute(select(EmergencyCase))).scalars().all()
+    for index, case in enumerate(cases, start=1):
+        year = (case.created_at or datetime.utcnow()).year
+        if not case.case_number:
+            case.case_number = f"AW-EMG-{year}-{index:06d}"
+        if not case.trigger_source:
+            case.trigger_source = TRIGGER_APP_SOS
+        if case.triggered_at is None:
+            case.triggered_at = case.created_at or datetime.utcnow()
+        existing_roles = {
+            row.role
+            for row in (
+                await session.execute(select(EmergencyRecipient).where(EmergencyRecipient.case_id == case.id))
+            ).scalars().all()
+        }
+        notified_at = case.alert_sent_at or case.triggered_at or case.created_at
+        for role in RECIPIENT_ROLES:
+            if role in existing_roles:
+                continue
+            session.add(
+                EmergencyRecipient(
+                    id=uuid.uuid4(),
+                    case_id=case.id,
+                    role=role,
+                    status=RECIPIENT_PENDING,
+                    notified_at=notified_at,
+                )
+            )
+    await session.commit()
+
+
+async def repair_john_service_area(session: AsyncSession) -> None:
+    """Demo senior John must be eligible for SOS / widget tests."""
+    user = (
+        await session.execute(select(User).where(User.email == "senior@example.com"))
+    ).scalar_one_or_none()
+    if not user:
+        return
+    senior = (
+        await session.execute(select(Senior).where(Senior.user_id == user.id))
+    ).scalar_one_or_none()
+    if not senior:
+        return
+    senior.address = "Kandivali West"
+    senior.in_service_area = True
     await session.commit()
 
 
@@ -85,9 +149,9 @@ async def seed_bingo_event(session: AsyncSession) -> None:
     await session.commit()
 
 async def seed_membership_services(session: AsyncSession) -> int:
-    """Upsert Basic Membership + home add-on booking services by slug (idempotent)."""
+    """Upsert Single Membership + home add-on booking services by slug (idempotent)."""
     created_or_updated = 0
-    for item in [*MEMBERSHIP_SERVICES, *ADDON_BOOKING_SERVICES]:
+    for item in [*MEMBERSHIP_SERVICES, *ADDON_BOOKING_SERVICES, *EXTRA_SERVICES]:
         existing = (
             await session.execute(select(Service).where(Service.slug == item["slug"]))
         ).scalar_one_or_none()
@@ -270,12 +334,23 @@ async def seed_service_offerings(session: AsyncSession) -> int:
 
 
 async def seed_membership_plans(session: AsyncSession) -> int:
-    """Upsert Basic and Couple membership plans (idempotent by name)."""
+    """Upsert Single and Couple membership plans (idempotent by name)."""
+    legacy_basic = (
+        await session.execute(select(MembershipPlan).where(MembershipPlan.name == "Basic Membership"))
+    ).scalar_one_or_none()
+    existing_single = (
+        await session.execute(select(MembershipPlan).where(MembershipPlan.name == "Single Membership"))
+    ).scalar_one_or_none()
+    if legacy_basic and not existing_single:
+        legacy_basic.name = "Single Membership"
+        await session.flush()
+
     plans = [
         {
-            "name": "Basic Membership",
+            "name": "Single Membership",
             "price": 15499.00,
             "benefits": [
+                ("Companion Visits", 20),
                 ("Membership services", 1),
                 ("Entrance CCTV add-on (Rs 4,000)", 1),
                 ("Panic buttons with CCTV pack", 2),
@@ -285,6 +360,7 @@ async def seed_membership_plans(session: AsyncSession) -> int:
             "name": "Couple Membership",
             "price": 18499.00,
             "benefits": [
+                ("Companion Visits", 20),
                 ("Membership services", 1),
                 ("Entrance CCTV add-on (Rs 5,500)", 1),
                 ("Panic buttons with CCTV pack", 3),
@@ -328,7 +404,80 @@ async def seed_membership_plans(session: AsyncSession) -> int:
             )
             touched += 1
     await session.commit()
-    return touched
+    retired = await retire_obsolete_membership_plans(session)
+    return touched + retired
+
+
+CANONICAL_PLAN_NAMES = ("Single Membership", "Couple Membership")
+
+
+async def retire_obsolete_membership_plans(session: AsyncSession) -> int:
+    """Remove leftover plans such as Premium. AgeWell only sells Single and Couple."""
+    single = (
+        await session.execute(select(MembershipPlan).where(MembershipPlan.name == "Single Membership"))
+    ).scalar_one_or_none()
+    if not single:
+        return 0
+
+    obsolete = (
+        await session.execute(select(MembershipPlan).where(MembershipPlan.name.notin_(CANONICAL_PLAN_NAMES)))
+    ).scalars().all()
+    if not obsolete:
+        return 0
+
+    removed = 0
+    for plan in obsolete:
+        benefit_ids = select(MembershipBenefit.id).where(MembershipBenefit.plan_id == plan.id)
+        await session.execute(delete(MembershipUsageLedger).where(MembershipUsageLedger.benefit_id.in_(benefit_ids)))
+        await session.execute(
+            update(Membership).where(Membership.plan_id == plan.id).values(plan_id=single.id)
+        )
+        await session.execute(
+            update(MembershipRequest).where(MembershipRequest.plan_id == plan.id).values(plan_id=single.id)
+        )
+        await session.execute(delete(MembershipBenefit).where(MembershipBenefit.plan_id == plan.id))
+        await session.execute(delete(MembershipPlan).where(MembershipPlan.id == plan.id))
+        removed += 1
+        print(f"Removed obsolete membership plan: {plan.name}")
+    await session.commit()
+    return removed
+
+
+async def repair_care_manager_assignment(session: AsyncSession) -> None:
+    care = (
+        await session.execute(
+            select(CareManager).where(CareManager.staff_kind == "CARE_MANAGER").order_by(CareManager.employee_id.asc())
+        )
+    ).scalars().first()
+    if care:
+        if not care.experience:
+            care.experience = "3+ years in eldercare support"
+        if not care.languages:
+            care.languages = "Kandivali & Borivali"
+        if not care.availability:
+            care.availability = "Compassionate • Reliable • Always Available"
+    seniors = (await session.execute(select(Senior))).scalars().all()
+    for senior in seniors:
+        if getattr(senior, "care_manager_id", None):
+            continue
+        visit = (
+            await session.execute(
+                select(Visit)
+                .join(CareManager, Visit.care_manager_id == CareManager.id)
+                .where(
+                    Visit.senior_id == senior.id,
+                    CareManager.staff_kind == "CARE_MANAGER",
+                    Visit.care_manager_id.is_not(None),
+                )
+                .order_by(Visit.scheduled_at.desc().nulls_last())
+                .limit(1)
+            )
+        ).scalars().first()
+        if visit and visit.care_manager_id:
+            senior.care_manager_id = visit.care_manager_id
+        elif care and senior.first_name == "John":
+            senior.care_manager_id = care.id
+    await session.commit()
 
 
 async def seed_data():
@@ -342,6 +491,9 @@ async def seed_data():
             ).scalar_one_or_none()
         if existing:
             await repair_emergency_copy(session)
+            await repair_emergency_sos_rows(session)
+            await repair_john_service_area(session)
+            await repair_care_manager_assignment(session)
             await seed_operations_user(session)
             await seed_bingo_event(session)
             count = await seed_membership_services(session)
@@ -365,13 +517,27 @@ async def seed_data():
         u_family_b = User(id=uuid.uuid4(), email="family2@example.com", phone="333", role=RoleEnum.FAMILY, hashed_password=pw_hash)
         u_senior_b = User(id=uuid.uuid4(), email="senior2@example.com", phone="444", role=RoleEnum.SENIOR, hashed_password=pw_hash)
         u_care_mgr = User(id=uuid.uuid4(), email="care@example.com", phone="555", role=RoleEnum.CARE_MANAGER, hashed_password=pw_hash)
+        u_companion = User(id=uuid.uuid4(), email="companion@example.com", phone="557", role=RoleEnum.CARE_MANAGER, hashed_password=pw_hash)
+        u_delivery = User(id=uuid.uuid4(), email="delivery@example.com", phone="558", role=RoleEnum.CARE_MANAGER, hashed_password=pw_hash)
         u_admin = User(id=uuid.uuid4(), email="admin@example.com", phone="666", role=RoleEnum.ADMIN, hashed_password=pw_hash)
         u_ops = User(id=uuid.uuid4(), email=OPERATIONS_EMAIL, phone=OPERATIONS_PHONE, role=RoleEnum.OPERATIONS, hashed_password=pw_hash)
-        session.add_all([u_senior, u_family, u_family_b, u_senior_b, u_care_mgr, u_admin, u_ops])
+        session.add_all(
+            [u_senior, u_family, u_family_b, u_senior_b, u_care_mgr, u_companion, u_delivery, u_admin, u_ops]
+        )
         await session.commit()
 
         # Profiles
-        senior_a = Senior(id=uuid.uuid4(), user_id=u_senior.id, first_name="John", last_name="Doe", date_of_birth=date(1940, 1, 1), address="123", emergency_contact="911")
+        senior_a = Senior(
+            id=uuid.uuid4(),
+            user_id=u_senior.id,
+            first_name="John",
+            last_name="Doe",
+            date_of_birth=date(1940, 1, 1),
+            address="Kandivali West",
+            emergency_contact="911",
+            in_service_area=True,
+            care_manager_id=None,
+        )
         senior_b = Senior(id=uuid.uuid4(), user_id=u_senior_b.id, first_name="Jane", last_name="Doe", date_of_birth=date(1945, 1, 1), address="456", emergency_contact="911")
         family = FamilyMember(id=uuid.uuid4(), user_id=u_family.id, first_name="Son", last_name="Doe")
         care_mgr = CareManager(
@@ -381,9 +547,34 @@ async def seed_data():
             first_name="Rohit",
             last_name="Sharma",
             skills="Nursing",
+            experience="3+ years in eldercare support",
+            languages="Kandivali & Borivali",
+            availability="Compassionate • Reliable • Always Available",
             status="ACTIVE",
+            staff_kind="CARE_MANAGER",
         )
-        session.add_all([senior_a, senior_b, family, care_mgr])
+        companion = CareManager(
+            id=uuid.uuid4(),
+            user_id=u_companion.id,
+            employee_id="CP01",
+            first_name="Meera",
+            last_name="Iyer",
+            skills="Companionship",
+            status="ACTIVE",
+            staff_kind="COMPANION",
+        )
+        delivery = CareManager(
+            id=uuid.uuid4(),
+            user_id=u_delivery.id,
+            employee_id="DE01",
+            first_name="Arjun",
+            last_name="Singh",
+            skills="Delivery",
+            status="ACTIVE",
+            staff_kind="DELIVERY_EXECUTIVE",
+        )
+        senior_a.care_manager_id = care_mgr.id
+        session.add_all([senior_a, senior_b, family, care_mgr, companion, delivery])
         await session.commit()
         
         # Access
@@ -391,15 +582,15 @@ async def seed_data():
         access_allowed = FamilySeniorAccess(id=uuid.uuid4(), family_id=family.id, senior_id=senior_a.id)
         session.add(access_allowed)
 
-        # Membership catalogue (19) + keep a sample request on tech-assistance
+        # Membership catalogue (21 Single + add-ons) + sample request on cyber-security
         await seed_membership_services(session)
         await seed_delivery_catalogs(session)
         await seed_service_offerings(session)
         await seed_membership_plans(session)
-        tech = (
-            await session.execute(select(Service).where(Service.slug == "tech-assistance"))
+        cyber = (
+            await session.execute(select(Service).where(Service.slug == "cyber-security"))
         ).scalar_one()
-        service = tech
+        service = cyber
         await session.commit()
         
         # Request
@@ -420,26 +611,87 @@ async def seed_data():
         
         # Visit
         visit = Visit(id=uuid.uuid4(), senior_id=senior_a.id, care_manager_id=care_mgr.id, scheduled_at=datetime.utcnow())
-        session.add(visit)
+        companion_visit = Visit(
+            id=uuid.uuid4(),
+            senior_id=senior_a.id,
+            care_manager_id=companion.id,
+            scheduled_at=datetime.utcnow(),
+            notes="Kandivali West",
+        )
+        session.add_all([visit, companion_visit])
         await session.commit()
         
         v_task = VisitTask(id=uuid.uuid4(), visit_id=visit.id, task_name="Check vitals", is_completed=True)
+        companion_tasks = [
+            VisitTask(id=uuid.uuid4(), visit_id=companion_visit.id, task_name="Medication Reminder", is_completed=False),
+            VisitTask(id=uuid.uuid4(), visit_id=companion_visit.id, task_name="Walking Assistance", is_completed=False),
+            VisitTask(id=uuid.uuid4(), visit_id=companion_visit.id, task_name="Digital Assistance", is_completed=False),
+            VisitTask(id=uuid.uuid4(), visit_id=companion_visit.id, task_name="General Meetup", is_completed=False),
+        ]
         v_report = VisitReport(id=uuid.uuid4(), visit_id=visit.id, summary="All good", issues_noted="None")
+
+        from app.modules.deliveries.models import StaffDelivery, DeliveryStatus
+        from app.modules.training.models import TrainingModule, StaffTrainingProgress, StaffDocument, TrainingStatus
+
+        deliveries = [
+            StaffDelivery(
+                id=uuid.uuid4(),
+                care_manager_id=delivery.id,
+                senior_id=senior_a.id,
+                title="Grocery",
+                customer_name="Mrs. Shah",
+                location="Kandivali West",
+                status=DeliveryStatus.EN_ROUTE,
+                scheduled_at=datetime.utcnow(),
+            ),
+            StaffDelivery(
+                id=uuid.uuid4(),
+                care_manager_id=delivery.id,
+                senior_id=senior_b.id,
+                title="Food",
+                customer_name="Mr. Patil",
+                location="Borivali East",
+                status=DeliveryStatus.PENDING,
+                scheduled_at=datetime.utcnow(),
+            ),
+        ]
+        modules = [
+            TrainingModule(id=uuid.uuid4(), title="Elderly Care Basics"),
+            TrainingModule(id=uuid.uuid4(), title="First Aid Training"),
+            TrainingModule(id=uuid.uuid4(), title="Emergency Response"),
+            TrainingModule(id=uuid.uuid4(), title="Customer Privacy"),
+        ]
+        session.add_all(modules)
+        await session.commit()
+        training_progress = [
+            StaffTrainingProgress(
+                id=uuid.uuid4(), care_manager_id=companion.id, module_id=modules[0].id, status=TrainingStatus.COMPLETED
+            ),
+            StaffTrainingProgress(
+                id=uuid.uuid4(), care_manager_id=companion.id, module_id=modules[1].id, status=TrainingStatus.COMPLETED
+            ),
+            StaffTrainingProgress(
+                id=uuid.uuid4(), care_manager_id=companion.id, module_id=modules[2].id, status=TrainingStatus.IN_PROGRESS
+            ),
+        ]
+        staff_doc = StaffDocument(
+            id=uuid.uuid4(), care_manager_id=companion.id, title="Aadhaar Card", verified="VERIFIED"
+        )
         
-        # Membership — use Basic as the sample senior plan
-        basic = (
-            await session.execute(select(MembershipPlan).where(MembershipPlan.name == "Basic Membership"))
+        # Membership — use Single as the sample senior plan
+        single = (
+            await session.execute(select(MembershipPlan).where(MembershipPlan.name == "Single Membership"))
         ).scalar_one()
         membership = Membership(
             id=uuid.uuid4(),
             senior_id=senior_a.id,
-            plan_id=basic.id,
+            plan_id=single.id,
             start_date=datetime.utcnow(),
             end_date=datetime.utcnow(),
         )
         benefit = (
             await session.execute(
-                select(MembershipBenefit).where(MembershipBenefit.plan_id == basic.id).limit(1)
+                select(MembershipBenefit).where(MembershipBenefit.plan_id == single.id).limit(1)
             )
         ).scalar_one()
         session.add(membership)
@@ -463,13 +715,31 @@ async def seed_data():
         notification = Notification(id=uuid.uuid4(), user_id=u_senior.id, title="Welcome", message="Welcome to AgeWell")
         
         # Emergency
-        e_case = EmergencyCase(id=uuid.uuid4(), senior_id=senior_a.id, type=EmergencyType.MEDICAL)
+        e_case = EmergencyCase(
+            id=uuid.uuid4(),
+            senior_id=senior_a.id,
+            type=EmergencyType.MEDICAL,
+            case_number="AW-EMG-2026-000001",
+            trigger_source=TRIGGER_APP_SOS,
+            location_text=senior_a.address,
+        )
         session.add(e_case)
         await session.commit()
         
         e_event = EmergencyEvent(id=uuid.uuid4(), case_id=e_case.id, event_description=CREATED_EVENT_DESCRIPTION)
+        e_recipients = [
+            EmergencyRecipient(
+                id=uuid.uuid4(),
+                case_id=e_case.id,
+                role=role,
+                status=RECIPIENT_PENDING,
+            )
+            for role in RECIPIENT_ROLES
+        ]
 
-        session.add_all([req, schedule, appointment, v_task, v_report, ledger, addon, event, notification, e_event])
+        session.add_all(
+            [req, schedule, appointment, v_task, *companion_tasks, v_report, ledger, addon, event, notification, e_event, *e_recipients, *deliveries, *training_progress, staff_doc]
+        )
         await session.commit()
 
         print("Total mock records initialized successfully covering all Phase 3 domains.")

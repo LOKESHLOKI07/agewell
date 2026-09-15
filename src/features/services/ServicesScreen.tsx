@@ -1,8 +1,6 @@
 import { useMemo, useState } from 'react';
 import {
-  Alert,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -10,29 +8,29 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { KeyboardAwareScrollView } from '@/components/KeyboardAwareScrollView';
 import { Icon } from '@/components/ui';
 import { spacing, typography } from '@/constants/theme';
-import {
-  canAvailServices,
-  SERVICE_AREA_LOCKED_MESSAGE,
-  SERVICE_AREA_LOCKED_TITLE,
-} from '@/features/auth/serviceAreaPreference';
 import { AgeWellHeader } from '@/features/home/components/AgeWellHeader';
 import { familyHome } from '@/features/home/components/familyHomeTheme';
+import { useHasActiveMembership } from '@/features/membership/useHasActiveMembership';
 import { useTabScreenBottomPad } from '@/utils/safeBottom';
 import { allMarketplaceServices, type MarketplaceService } from './serviceCatalog';
 
-function openService(service: MarketplaceService) {
-  if (service.bookable && !canAvailServices()) {
-    Alert.alert(SERVICE_AREA_LOCKED_TITLE, SERVICE_AREA_LOCKED_MESSAGE);
-    return;
+const GRID_COLUMNS = 3;
+
+function chunkItems<T>(items: T[], size: number): T[][] {
+  const rows: T[][] = [];
+  for (let index = 0; index < items.length; index += size) {
+    rows.push(items.slice(index, index + size));
   }
-  router.push(service.href);
+  return rows;
 }
 
 export function ServicesScreen() {
   const insets = useSafeAreaInsets();
   const bottomPad = useTabScreenBottomPad(spacing.xxl);
+  const { hasMembership } = useHasActiveMembership();
   const [query, setQuery] = useState('');
   const services = useMemo(() => {
     const term = query.trim().toLowerCase();
@@ -46,16 +44,22 @@ export function ServicesScreen() {
     );
   }, [query]);
 
+  const rows = chunkItems(services, GRID_COLUMNS);
+
+  const openService = (service: MarketplaceService) => {
+    router.push(service.href);
+  };
+
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
       <AgeWellHeader title="Our Services" showBack={false} showProfile showBell={false} />
-      <ScrollView
+      <KeyboardAwareScrollView
         contentContainerStyle={[styles.content, { paddingBottom: bottomPad }]}
         showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
       >
         <Text style={styles.subtitle}>
-          Basic Membership services — SOS, care visits, daily needs, health and home support.
+          Single Membership — 21 services in brochure order.
+          {!hasMembership ? ' Browse freely; membership is required to use a service.' : ''}
         </Text>
 
         <View style={styles.searchWrap}>
@@ -70,30 +74,43 @@ export function ServicesScreen() {
           />
         </View>
 
-        <View style={styles.list}>
-          {services.map((service) => (
-            <Pressable
-              key={service.id}
-              onPress={() => openService(service)}
-              accessibilityRole="button"
-              accessibilityLabel={`${service.title}. ${service.description}`}
-              style={({ pressed }) => [styles.card, pressed ? styles.pressed : null]}
-            >
-              <View style={[styles.iconCircle, { backgroundColor: service.background }]}>
-                <Icon name={service.icon} size={22} color={service.color} />
-              </View>
-              <View style={styles.cardText}>
-                <Text style={styles.cardTitle}>{service.title}</Text>
-                <Text style={styles.cardDescription}>{service.description}</Text>
-              </View>
-            </Pressable>
+        <View style={styles.grid}>
+          {rows.map((row, rowIndex) => (
+            <View key={`row-${rowIndex}`} style={styles.gridRow}>
+              {row.map((service) => (
+                <Pressable
+                  key={service.id}
+                  onPress={() => openService(service)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${service.title}. ${service.description}`}
+                  style={({ pressed }) => [
+                    styles.gridCard,
+                    { backgroundColor: service.background },
+                    pressed ? styles.pressed : null,
+                  ]}
+                >
+                  <View style={[styles.iconCircle, { backgroundColor: familyHome.white }]}>
+                    <Icon name={service.icon} size={22} color={service.color} />
+                  </View>
+                  <Text style={styles.gridLabel} numberOfLines={3}>
+                    {service.title}
+                  </Text>
+                </Pressable>
+              ))}
+              {/* Keep last row aligned when it has fewer than GRID_COLUMNS items */}
+              {row.length < GRID_COLUMNS
+                ? Array.from({ length: GRID_COLUMNS - row.length }).map((_, index) => (
+                    <View key={`pad-${rowIndex}-${index}`} style={styles.gridCardSpacer} />
+                  ))
+                : null}
+            </View>
           ))}
         </View>
 
         {services.length === 0 ? (
           <Text style={styles.empty}>No services match your search.</Text>
         ) : null}
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </View>
   );
 }
@@ -129,41 +146,40 @@ const styles = StyleSheet.create({
     color: familyHome.text,
     paddingVertical: spacing.sm,
   },
-  list: {
-    gap: spacing.md,
+  grid: {
+    gap: spacing.sm,
     marginTop: spacing.sm,
   },
-  card: {
+  gridRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    borderWidth: 1,
-    borderColor: familyHome.border,
+    gap: spacing.sm,
+  },
+  gridCard: {
+    flex: 1,
+    minHeight: 112,
     borderRadius: 16,
-    backgroundColor: familyHome.white,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.sm,
     paddingVertical: spacing.md,
-    minHeight: 84,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  gridCardSpacer: {
+    flex: 1,
   },
   iconCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  cardText: {
-    flex: 1,
-    gap: 4,
-  },
-  cardTitle: {
-    ...typography.bodyStrong,
+  gridLabel: {
+    ...typography.captionStrong,
     color: familyHome.text,
-  },
-  cardDescription: {
-    ...typography.caption,
-    color: familyHome.muted,
-    lineHeight: 18,
+    textAlign: 'center',
+    fontSize: 12,
+    lineHeight: 16,
   },
   empty: {
     ...typography.body,
@@ -172,6 +188,6 @@ const styles = StyleSheet.create({
     marginTop: spacing.xl,
   },
   pressed: {
-    opacity: 0.92,
+    opacity: 0.9,
   },
 });

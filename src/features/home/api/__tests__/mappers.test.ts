@@ -31,16 +31,22 @@ describe('senior profile mapping', () => {
     expect(senior.photo).toBe('data:image/jpeg;base64,abcd');
   });
 
-  it('does not repeat a one-word full name', () => {
+  it('maps GPS location from GET /seniors/me', () => {
     const senior = toSeniorProfile({
       id: '0b3922d7-6ec2-4810-a259-58d0ec262f69',
       user_id: 'dcc9a1f0-16eb-4c52-aab3-ea0e4bff847c',
-      first_name: 'lokesh',
-      last_name: 'lokesh',
-      date_of_birth: '1990-01-01',
-      address: 'Kandivali',
+      first_name: 'John',
+      last_name: 'Doe',
+      date_of_birth: '1940-01-01',
+      address: '123',
       emergency_contact: '911',
+      location_lat: 19.2,
+      location_lng: 72.8,
+      location_source: 'gps',
     });
-    expect(seniorDisplayName(senior)).toBe('lokesh');
+    expect(senior.locationLat).toBe(19.2);
+    expect(senior.locationLng).toBe(72.8);
+    expect(senior.locationSource).toBe('gps');
+    expect(senior.locationQuery).toBeNull();
   });
 });

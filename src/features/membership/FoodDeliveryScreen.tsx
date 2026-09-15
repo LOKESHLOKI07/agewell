@@ -16,10 +16,18 @@ import { AgeWellHeader } from '@/features/home/components/AgeWellHeader';
 import { familyHome } from '@/features/home/components/familyHomeTheme';
 import type { FoodCuisine } from './catalogTypes';
 import { MembershipServiceHero } from './MembershipServiceHero';
+import { gatedMembershipScreen } from './MembershipServiceGate';
 import { useFoodCatalog } from './useCatalog';
 import { useMembershipSubmit } from './useMembershipSubmit';
 
-export function FoodDeliveryScreen() {
+export const FoodDeliveryScreen = gatedMembershipScreen(
+  'food',
+  'Food Delivery',
+  FoodDeliveryLive,
+  { requireMembership: false },
+);
+
+function FoodDeliveryLive() {
   const insets = useSafeAreaInsets();
   const catalog = useFoodCatalog(false);
   const cuisines = catalog.data?.cuisines ?? [];
@@ -59,7 +67,7 @@ export function FoodDeliveryScreen() {
   if (catalog.isPending) {
     return (
       <View style={[styles.root, { paddingTop: insets.top }]}>
-        <AgeWellHeader title="Food Delivery" showBack showProfile={false} showBell={false} />
+        <AgeWellHeader title="Food Delivery (Add-on)" showBack showProfile={false} showBell={false} />
         <ActivityIndicator color={familyHome.green} style={{ marginTop: spacing.xxl }} />
       </View>
     );
@@ -68,7 +76,7 @@ export function FoodDeliveryScreen() {
   if (catalog.isError) {
     return (
       <View style={[styles.root, { paddingTop: insets.top }]}>
-        <AgeWellHeader title="Food Delivery" showBack showProfile={false} showBell={false} />
+        <AgeWellHeader title="Food Delivery (Add-on)" showBack showProfile={false} showBell={false} />
         <View style={styles.emptyBox}>
           <Text style={styles.empty}>Unable to load food catalog.</Text>
           <Pressable onPress={() => void catalog.refetch()} accessibilityRole="button">
@@ -82,11 +90,11 @@ export function FoodDeliveryScreen() {
   if (!cuisine) {
     return (
       <View style={[styles.root, { paddingTop: insets.top }]}>
-        <AgeWellHeader title="Food Delivery" showBack showProfile={false} showBell={false} />
+        <AgeWellHeader title="Food Delivery (Add-on)" showBack showProfile={false} showBell={false} />
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <MembershipServiceHero slug="food" />
           <Text style={styles.lead}>Choose a cuisine</Text>
-          <Text style={styles.hint}>Next-day order · menus managed by AgeWell</Text>
+          <Text style={styles.hint}>Breakfast, lunch and dinner · monthly or daily home-made tiffin · next-day orders</Text>
           {cuisines.map((item) => (
             <Pressable
               key={item.id}

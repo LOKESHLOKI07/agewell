@@ -8,6 +8,7 @@ export const trackingQueryKeys = {
   careAssociate: (visitId: string) => ['tracking', 'careAssociate', visitId] as const,
   careAssociateLatest: (visitId: string) => ['tracking', 'careAssociate', visitId, 'latest'] as const,
   careAssociateSession: (visitId: string) => ['tracking', 'careAssociate', visitId, 'session'] as const,
+  deliveryExecutiveLatest: (deliveryId: string) => ['tracking', 'deliveryExecutive', deliveryId, 'latest'] as const,
 };
 
 export async function invalidateTrackingQueries() {

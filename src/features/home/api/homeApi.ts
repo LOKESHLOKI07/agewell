@@ -48,6 +48,33 @@ export async function updateSeniorMePhoto(photo: string | null): Promise<SeniorP
   }
 }
 
+export type SeniorLocationUpdate = {
+  inServiceArea: boolean;
+  locationLat?: number | null;
+  locationLng?: number | null;
+  locationQuery?: string | null;
+  locationSource?: 'gps' | 'manual' | null;
+};
+
+export async function updateSeniorMeServiceArea(input: SeniorLocationUpdate | boolean): Promise<SeniorProfile> {
+  try {
+    const payload =
+      typeof input === 'boolean'
+        ? { in_service_area: input }
+        : {
+            in_service_area: input.inServiceArea,
+            location_lat: input.locationLat ?? null,
+            location_lng: input.locationLng ?? null,
+            location_query: input.locationQuery ?? null,
+            location_source: input.locationSource ?? null,
+          };
+    const response = await apiClient.patch('/seniors/me', payload);
+    return toSeniorProfile(response.data);
+  } catch (error) {
+    throw toApiError(error);
+  }
+}
+
 export function fetchTodayVisits(): Promise<ListPage<Visit>> {
   return getMapped('/visits/', (data) => toListPage(data, toVisit, 'visits'), { today: true });
 }

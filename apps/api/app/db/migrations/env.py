@@ -28,6 +28,9 @@ import app.modules.community.models
 import app.modules.documents.models
 import app.modules.audit.models
 import app.modules.catalog.models
+import app.modules.attendance.models
+import app.modules.deliveries.models
+import app.modules.training.models
 
 config = context.config
 

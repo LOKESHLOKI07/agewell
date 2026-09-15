@@ -6,10 +6,17 @@ import { AgeWellHeader } from '@/features/home/components/AgeWellHeader';
 import { familyHome } from '@/features/home/components/familyHomeTheme';
 import { parseOfferingMeta } from './catalogTypes';
 import { MembershipServiceHero } from './MembershipServiceHero';
+import { gatedMembershipScreen } from './MembershipServiceGate';
 import { useMembershipSubmit } from './useMembershipSubmit';
 import { useServiceOfferings } from './useCatalog';
 
-export function EventsTripsScreen() {
+export const EventsTripsScreen = gatedMembershipScreen(
+  'events-trips',
+  'Events & Trips',
+  EventsTripsLive,
+);
+
+function EventsTripsLive() {
   const insets = useSafeAreaInsets();
   const { submitting, submit } = useMembershipSubmit('events-trips');
   const catalog = useServiceOfferings('events-trips');
@@ -25,7 +32,8 @@ export function EventsTripsScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <MembershipServiceHero slug="events-trips" />
         <Text style={styles.hint}>
-          Interest-based local events · one nearby outing arranged monthly · members get first priority
+          Interest-based local events · members get first priority · at least one supported tour a year within
+          Maharashtra / India (companion help with luggage, boarding, hotel, medication and emergency — tours cost extra)
         </Text>
         {catalog.isPending ? <Text style={styles.hint}>Loading events…</Text> : null}
         {catalog.isError ? (

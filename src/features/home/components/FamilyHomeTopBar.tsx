@@ -5,7 +5,7 @@ import { minTouchSize, spacing } from '@/constants/theme';
 import { NotificationBell } from '@/features/notifications/components/NotificationBell';
 import { familyHome } from './familyHomeTheme';
 
-const logo = require('../../../../assets/splash/agewell_logo.png');
+const logo = require('../../../../assets/logo_splash.png');
 
 interface FamilyHomeTopBarProps {
   unreadCount: number;
@@ -78,8 +78,8 @@ const styles = StyleSheet.create({
     marginLeft: 0,
   },
   logo: {
-    width: 112,
-    height: 46,
+    width: 56,
+    height: 56,
   },
   right: {
     flexDirection: 'row',

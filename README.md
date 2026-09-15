@@ -13,6 +13,8 @@ Phase 1 is a **polished Family mobile app UI prototype** built with React Native
 - React Hook Form + Zod
 - ESLint + Prettier
 
+Home-screen emergency widget (additional entry into the existing SOS API): see [docs/AGEWELL_EMERGENCY_WIDGET.md](docs/AGEWELL_EMERGENCY_WIDGET.md).
+
 ## Install
 
 ```bash

@@ -2,6 +2,7 @@ import { apiClient } from '@/api/client';
 import { toApiError } from '@/api/errors';
 import { toListPage, toNotification } from '@/features/home/api/mappers';
 import type { ListPage, Notification } from '@/features/home/types/home';
+import type { AppVariant } from '@/config/appVariant';
 
 export async function fetchNotifications(): Promise<ListPage<Notification>> {
   try {
@@ -44,6 +45,30 @@ export async function markAllNotificationsRead(): Promise<{ updated: number }> {
     const response = await apiClient.post('/notifications/read-all');
     const data = response.data as { updated?: unknown };
     return { updated: typeof data.updated === 'number' ? data.updated : 0 };
+  } catch (error) {
+    throw toApiError(error);
+  }
+}
+
+export async function registerDevicePushToken(input: {
+  token: string;
+  platform: 'ios' | 'android' | 'web';
+  appVariant?: AppVariant | null;
+}): Promise<void> {
+  try {
+    await apiClient.post('/notifications/device-tokens', {
+      token: input.token,
+      platform: input.platform,
+      app_variant: input.appVariant ?? undefined,
+    });
+  } catch (error) {
+    throw toApiError(error);
+  }
+}
+
+export async function unregisterDevicePushToken(token: string): Promise<void> {
+  try {
+    await apiClient.delete('/notifications/device-tokens', { data: { token } });
   } catch (error) {
     throw toApiError(error);
   }

@@ -4,6 +4,8 @@ import { Icon, type IconName } from '@/components/ui';
 import { spacing, typography } from '@/constants/theme';
 import { useCommunityEvents } from '@/features/community/hooks';
 import { communityEventHref } from '@/features/community/selectors';
+import { useMemberDeliveries } from '@/features/deliveries/hooks';
+import { findDeliveryForRequest, isDeliveryTrackable, seniorDeliveryTrackHref } from '@/features/deliveries/selectors';
 import {
   formatEventWhen,
   shortOrderId,
@@ -26,6 +28,8 @@ function deliveryIcon(slug: string | null): IconName {
 
 export function FamilyUpcomingSplit({ requests }: { requests: ServiceRequest[] }) {
   const eventsQuery = useCommunityEvents();
+  const memberDeliveriesQuery = useMemberDeliveries();
+  const memberDeliveries = memberDeliveriesQuery.data?.items ?? [];
   const deliveries = upcomingDeliveries(requests);
   const events = upcomingCommunityEvents(eventsQuery.data?.items ?? []);
   const showDeliveries = deliveries.length > 0;
@@ -43,12 +47,16 @@ export function FamilyUpcomingSplit({ requests }: { requests: ServiceRequest[] }
             <View style={styles.headerRow}>
               <Text style={styles.heading}>Upcoming Deliveries</Text>
             </View>
-            {deliveries.map((item) => (
+            {deliveries.map((item) => {
+              const linked = findDeliveryForRequest(item, memberDeliveries);
+              const trackable = isDeliveryTrackable(linked);
+              const href = linked ? seniorDeliveryTrackHref(linked.id) : ('/(tabs)/orders' as const);
+              return (
               <Pressable
                 key={item.id}
-                onPress={() => router.push('/(tabs)/orders' as Href)}
+                onPress={() => router.push(href as Href)}
                 accessibilityRole="button"
-                accessibilityLabel={`${item.serviceName}, ${humanizeStatus(item.status)}`}
+                accessibilityLabel={`${item.serviceName}, ${humanizeStatus(item.status)}${trackable ? ', track live' : ''}`}
                 style={({ pressed }) => [styles.card, pressed ? styles.pressed : null]}
               >
                 <View style={[styles.iconWell, { backgroundColor: familyHome.greenSoft }]}>
@@ -62,11 +70,14 @@ export function FamilyUpcomingSplit({ requests }: { requests: ServiceRequest[] }
                     Order ID: {shortOrderId(item.id)}
                   </Text>
                   <View style={styles.pill}>
-                    <Text style={styles.pillText}>{humanizeStatus(item.status)}</Text>
+                    <Text style={styles.pillText}>
+                      {trackable ? 'En route · Track' : humanizeStatus(item.status)}
+                    </Text>
                   </View>
                 </View>
               </Pressable>
-            ))}
+              );
+            })}
           </View>
         ) : null}
 

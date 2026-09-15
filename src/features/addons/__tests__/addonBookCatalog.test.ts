@@ -14,7 +14,7 @@ jest.mock('@/features/home/components/familyHomeTheme', () => ({
 import { ADDON_BOOK_NOW, findAddonBookNow } from '../addonBookCatalog';
 
 describe('addon book now catalogue', () => {
-  it('covers the four home add-on slugs', () => {
+  it('covers the five home add-on slugs including food', () => {
     expect(ADDON_BOOK_NOW.map((item) => item.slug)).toEqual([
       'emergency-companion',
       'stool-cleaning',
@@ -23,8 +23,9 @@ describe('addon book now catalogue', () => {
     ]);
   });
 
-  it('lists hospital companion durations and massage starting price', () => {
-    expect(findAddonBookNow('emergency-companion')?.options?.map((item) => item.id)).toEqual(['12h', '24h']);
-    expect(findAddonBookNow('ayurvedic-massage')?.lines.join(' ')).toMatch(/₹800/);
+  it('lists hospital companion 8–10 hour options and brochure massage prices', () => {
+    expect(findAddonBookNow('emergency-companion')?.options?.map((item) => item.id)).toEqual(['8h', '10h']);
+    expect(findAddonBookNow('maid-assistance')?.lines.join(' ')).toMatch(/₹6,500/);
+    expect(findAddonBookNow('ayurvedic-massage')?.options?.map((item) => item.price)).toEqual(['₹1,500', '₹2,000']);
   });
 });

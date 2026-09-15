@@ -4,10 +4,7 @@ import { Controller, useForm } from 'react-hook-form';
 import {
   ActivityIndicator,
   Alert,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -15,9 +12,10 @@ import {
 import { router, useNavigation, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AgeWellLogo, brandGreen } from '@/components/AgeWellLogo';
-import { TextField } from '@/components';
+import { KeyboardAwareScrollView, TextField } from '@/components';
 import { Icon } from '@/components/ui';
 import { minTouchSize, spacing, typography } from '@/constants/theme';
+import { isCareApp } from '@/config/appVariant';
 import { AuthMethodButtons } from './AuthMethodButtons';
 import { emailOtpHref, forgotPasswordHref } from './authEntry';
 import { useAuth } from './useAuth';
@@ -57,12 +55,9 @@ export function LoginScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.root, { paddingTop: insets.top + spacing.md }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <ScrollView
-        keyboardShouldPersistTaps="handled"
+    <View style={[styles.root, { paddingTop: insets.top + spacing.md }]}>
+      <KeyboardAwareScrollView
+        style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: insets.bottom + spacing.xl, flexGrow: 1 }}
       >
@@ -72,16 +67,20 @@ export function LoginScreen() {
 
         {step === 'methods' ? (
           <SignInMethods
-            onGoogle={() => {
-              if (!ready) {
-                Alert.alert(
-                  'Google sign-in',
-                  'Google sign-in is only in the Android APK (not Expo Go). Wait for the EAS build, then install that APK.',
-                );
-                return;
-              }
-              void continueWithGoogle();
-            }}
+            onGoogle={
+              isCareApp()
+                ? undefined
+                : () => {
+                    if (!ready) {
+                      Alert.alert(
+                        'Google sign-in',
+                        'Google sign-in is only in the Android APK (not Expo Go). Wait for the EAS build, then install that APK.',
+                      );
+                      return;
+                    }
+                    void continueWithGoogle();
+                  }
+            }
             onMobile={() => setStep('mobile')}
             onEmail={() => router.push(emailOtpHref('signin'))}
             googleDisabled={busy}
@@ -89,8 +88,8 @@ export function LoginScreen() {
         ) : null}
         {step === 'email' ? <EmailSignIn signIn={signIn} /> : null}
         {step === 'mobile' ? <MobileSignIn signIn={signIn} /> : null}
-      </ScrollView>
-    </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
+    </View>
   );
 }
 
@@ -100,7 +99,7 @@ function SignInMethods({
   onEmail,
   googleDisabled = false,
 }: {
-  onGoogle: () => void;
+  onGoogle?: () => void;
   onMobile: () => void;
   onEmail: () => void;
   googleDisabled?: boolean;
@@ -110,7 +109,9 @@ function SignInMethods({
       <View style={styles.hero}>
         <AgeWellLogo compact />
         <Text style={styles.title}>Sign in</Text>
-        <Text style={styles.subtitle}>Choose how you want to sign in to AgeWell.</Text>
+        <Text style={styles.subtitle}>
+          {isCareApp() ? 'Choose how you want to sign in to AgeWell Care.' : 'Choose how you want to sign in to AgeWell.'}
+        </Text>
       </View>
       <AuthMethodButtons
         onGoogle={onGoogle}
@@ -118,13 +119,15 @@ function SignInMethods({
         onEmail={onEmail}
         googleDisabled={googleDisabled}
       />
-      <Pressable
-        style={styles.linkWrap}
-        onPress={() => router.replace('/(auth)/welcome' as Href)}
-        accessibilityRole="button"
-      >
-        <Text style={styles.link}>New to AgeWell? Create an account</Text>
-      </Pressable>
+      {!isCareApp() ? (
+        <Pressable
+          style={styles.linkWrap}
+          onPress={() => router.replace('/(auth)/welcome' as Href)}
+          accessibilityRole="button"
+        >
+          <Text style={styles.link}>New to AgeWell? Create an account</Text>
+        </Pressable>
+      ) : null}
     </>
   );
 }

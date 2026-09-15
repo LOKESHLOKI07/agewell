@@ -1,5 +1,6 @@
 import { Redirect, Tabs, type Href } from 'expo-router';
 import { colors, typography } from '@/constants/theme';
+import { isCareApp } from '@/config/appVariant';
 import { Icon } from '@/components/ui';
 import { useAuthStore } from '@/features/auth/authStore';
 import { authenticatedHomeHref, isMemberHomeRole } from '@/features/auth/roleRouting';
@@ -10,6 +11,9 @@ import { useSafeTabBarStyle } from '@/utils/safeBottom';
 export default function TabsLayout() {
   const role = useAuthStore((state) => state.user?.role);
   const tabBarStyle = useSafeTabBarStyle();
+  if (isCareApp()) {
+    return <Redirect href={authenticatedHomeHref(role ?? 'SENIOR') as Href} />;
+  }
   if (role && !isMemberHomeRole(role)) {
     return <Redirect href={authenticatedHomeHref(role) as Href} />;
   }
@@ -26,6 +30,8 @@ export default function TabsLayout() {
         tabBarStyle: {
           ...tabBarStyle,
           height: tabBarStyle.height + 8,
+          backgroundColor: colors.white,
+          borderTopColor: colors.border,
         },
       }}
     >

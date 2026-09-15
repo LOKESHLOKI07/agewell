@@ -1,4 +1,25 @@
-import type { CareManagerProfile, CareManagerResponse, VisitReport, VisitReportResponse, VisitTask, VisitTaskResponse } from './types';
+import type {
+  AttendanceRecord,
+  AttendanceResponse,
+  CareManagerProfile,
+  CareManagerResponse,
+  Delivery,
+  DeliveryResponse,
+  DeliveryStatus,
+  StaffDocument,
+  StaffDocumentResponse,
+  TrainingHome,
+  TrainingHomeResponse,
+  TrainingModule,
+  TrainingModuleResponse,
+  TrainingStatus,
+  VisitReport,
+  VisitReportResponse,
+  VisitTask,
+  VisitTaskResponse,
+} from './types';
+import { DELIVERY_STATUSES, TRAINING_STATUSES } from './types';
+import { parseStaffKind } from './staffKind';
 
 function asRecord(payload: unknown, label: string): Record<string, unknown> {
   if (!payload || typeof payload !== 'object') {
@@ -31,6 +52,13 @@ function asBoolean(value: unknown, label: string): boolean {
   return value;
 }
 
+function asString(value: unknown, label: string): string {
+  if (typeof value !== 'string' || value.length === 0) {
+    throw new Error(`Invalid ${label}`);
+  }
+  return value;
+}
+
 export function toCareManagerProfile(payload: unknown): CareManagerProfile {
   const data = asRecord(payload, 'care manager') as unknown as CareManagerResponse;
   return {
@@ -40,6 +68,7 @@ export function toCareManagerProfile(payload: unknown): CareManagerProfile {
     name: asOptionalString(data.name),
     skills: asOptionalString(data.skills),
     status: asOptionalString(data.status),
+    staffKind: parseStaffKind(data.staff_kind),
   };
 }
 
@@ -86,4 +115,73 @@ export function toVisitReportList(payload: unknown): VisitReport[] {
     throw new Error('Invalid visit reports');
   }
   return payload.map(toVisitReport);
+}
+
+export function toAttendanceRecord(payload: unknown): AttendanceRecord | null {
+  if (payload === null || payload === undefined) {
+    return null;
+  }
+  const data = asRecord(payload, 'attendance') as unknown as AttendanceResponse;
+  return {
+    id: asId(data.id, 'attendance.id'),
+    careManagerId: asId(data.care_manager_id, 'attendance.care_manager_id'),
+    checkInAt: asString(data.check_in_at, 'attendance.check_in_at'),
+    checkOutAt: asOptionalString(data.check_out_at),
+    location: asOptionalString(data.location),
+    status: asString(data.status, 'attendance.status'),
+  };
+}
+
+function asDeliveryStatus(value: unknown): DeliveryStatus {
+  if (typeof value === 'string' && (DELIVERY_STATUSES as readonly string[]).includes(value)) {
+    return value as DeliveryStatus;
+  }
+  throw new Error('Invalid delivery status');
+}
+
+export function toDelivery(payload: unknown): Delivery {
+  const data = asRecord(payload, 'delivery') as unknown as DeliveryResponse;
+  return {
+    id: asId(data.id, 'delivery.id'),
+    careManagerId: asId(data.care_manager_id, 'delivery.care_manager_id'),
+    seniorId: asOptionalString(data.senior_id),
+    serviceRequestId: asOptionalString(data.service_request_id),
+    title: asString(data.title, 'delivery.title'),
+    customerName: asOptionalString(data.customer_name),
+    location: asOptionalString(data.location),
+    status: asDeliveryStatus(data.status),
+    scheduledAt: asOptionalString(data.scheduled_at),
+  };
+}
+
+function asTrainingStatus(value: unknown): TrainingStatus {
+  if (typeof value === 'string' && (TRAINING_STATUSES as readonly string[]).includes(value)) {
+    return value as TrainingStatus;
+  }
+  return 'PENDING';
+}
+
+export function toTrainingModule(payload: unknown): TrainingModule {
+  const data = asRecord(payload, 'training module') as unknown as TrainingModuleResponse;
+  return {
+    id: asId(data.id, 'module.id'),
+    title: asString(data.title, 'module.title'),
+    status: asTrainingStatus(data.status),
+  };
+}
+
+export function toStaffDocument(payload: unknown): StaffDocument {
+  const data = asRecord(payload, 'staff document') as unknown as StaffDocumentResponse;
+  return {
+    id: asId(data.id, 'document.id'),
+    title: asString(data.title, 'document.title'),
+    verified: asString(data.verified, 'document.verified'),
+  };
+}
+
+export function toTrainingHome(payload: unknown): TrainingHome {
+  const data = asRecord(payload, 'training home') as unknown as TrainingHomeResponse;
+  const modules = Array.isArray(data.modules) ? data.modules.map(toTrainingModule) : [];
+  const documents = Array.isArray(data.documents) ? data.documents.map(toStaffDocument) : [];
+  return { modules, documents };
 }

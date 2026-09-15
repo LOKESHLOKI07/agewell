@@ -5,6 +5,7 @@ import { AgeWellHeader } from '@/features/home/components/AgeWellHeader';
 import { EmptyState, LoadingState, PrimaryButton } from '@/components';
 import { AddonBookNowScreen } from '@/features/addons/AddonBookNowScreen';
 import { findAddonBookNow } from '@/features/addons/addonBookCatalog';
+import { MembershipServiceGate } from '@/features/membership/MembershipServiceGate';
 import { useService } from '@/features/services/hooks';
 import { serviceRequestHref } from '@/features/services/selectors';
 import { useI18n } from '@/i18n';
@@ -63,19 +64,42 @@ function GenericAddonRequest({ id }: { id: string | undefined }) {
   }
 
   return (
+    <MembershipServiceGate slug={service.slug ?? id ?? 'addon'} title={service.name} requireMembership={false}>
+      <GenericAddonRequestLive
+        name={service.name}
+        description={service.description}
+        serviceId={service.id}
+        noPayment={t('addons.noPayment')}
+      />
+    </MembershipServiceGate>
+  );
+}
+
+function GenericAddonRequestLive({
+  name,
+  description,
+  serviceId,
+  noPayment,
+}: {
+  name: string;
+  description: string | null;
+  serviceId: string;
+  noPayment: string;
+}) {
+  return (
     <View style={styles.container}>
       <AgeWellHeader title="Request add-on" showBack />
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.summaryCard}>
-          <Text style={styles.title}>{service.name}</Text>
-          <Text style={styles.description}>{service.description || 'No description on file.'}</Text>
+          <Text style={styles.title}>{name}</Text>
+          <Text style={styles.description}>{description || 'No description on file.'}</Text>
           <View style={styles.divider} />
-          <Text style={styles.note}>{t('addons.noPayment')}</Text>
+          <Text style={styles.note}>{noPayment}</Text>
         </View>
 
         <PrimaryButton
           label="Continue to request"
-          onPress={() => router.push(serviceRequestHref(service.id) as unknown as Href)}
+          onPress={() => router.push(serviceRequestHref(serviceId) as unknown as Href)}
         />
 
         <Pressable

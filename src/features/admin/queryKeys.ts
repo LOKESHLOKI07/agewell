@@ -28,4 +28,5 @@ export const adminQueryKeys = {
   healthRecords: (seniorId: string) => ['admin', 'health', seniorId] as const,
   membershipCurrent: (seniorId: string) => ['admin', 'memberships', 'current', seniorId] as const,
   membershipUsage: (seniorId: string) => ['admin', 'memberships', 'usage', seniorId] as const,
+  careActivities: (seniorId: string) => ['admin', 'careActivities', seniorId] as const,
 };

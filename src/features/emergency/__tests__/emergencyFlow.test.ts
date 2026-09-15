@@ -19,6 +19,7 @@ import {
   emergencyStatusLabel,
   emergencyTypeLabel,
   getEmergencyCreateErrorMessage,
+  recipientStatusLabel,
 } from '../selectors';
 
 jest.mock('@/api/client', () => ({
@@ -77,22 +78,26 @@ describe('Emergency type selection', () => {
 
   it('maps MEDICAL correctly', () => {
     expect(emergencyTypeLabel('MEDICAL')).toBe('Medical Emergency');
-    expect(toEmergencyCreateBody('MEDICAL')).toEqual({ type: 'MEDICAL' });
+    expect(toEmergencyCreateBody('MEDICAL')).toEqual({ type: 'MEDICAL', trigger_source: 'APP_SOS' });
+    expect(toEmergencyCreateBody('MEDICAL', 'HOME_PANIC_BUTTON')).toEqual({
+      type: 'MEDICAL',
+      trigger_source: 'HOME_PANIC_BUTTON',
+    });
   });
 
   it('maps HOSPITAL correctly', () => {
     expect(emergencyTypeLabel('HOSPITAL')).toBe('Hospital Assistance');
-    expect(toEmergencyCreateBody('HOSPITAL')).toEqual({ type: 'HOSPITAL' });
+    expect(toEmergencyCreateBody('HOSPITAL')).toEqual({ type: 'HOSPITAL', trigger_source: 'APP_SOS' });
   });
 
   it('maps CARE_MANAGER correctly', () => {
     expect(emergencyTypeLabel('CARE_MANAGER')).toBe('Care Manager Assistance');
-    expect(toEmergencyCreateBody('CARE_MANAGER')).toEqual({ type: 'CARE_MANAGER' });
+    expect(toEmergencyCreateBody('CARE_MANAGER')).toEqual({ type: 'CARE_MANAGER', trigger_source: 'APP_SOS' });
   });
 
   it('maps AGEWELL_SUPPORT correctly', () => {
     expect(emergencyTypeLabel('AGEWELL_SUPPORT')).toBe('AgeWell Support');
-    expect(toEmergencyCreateBody('AGEWELL_SUPPORT')).toEqual({ type: 'AGEWELL_SUPPORT' });
+    expect(toEmergencyCreateBody('AGEWELL_SUPPORT')).toEqual({ type: 'AGEWELL_SUPPORT', trigger_source: 'APP_SOS' });
   });
 });
 
@@ -115,7 +120,7 @@ describe('confirmation and create payload', () => {
     mockedPost.mockResolvedValueOnce({ data: casePayload } as never);
     const created = await createEmergency('MEDICAL');
     expect(created.id).toBe(casePayload.id);
-    expect(mockedPost).toHaveBeenCalledWith('/emergency/', { type: 'MEDICAL' });
+    expect(mockedPost).toHaveBeenCalledWith('/emergency/', { type: 'MEDICAL', trigger_source: 'APP_SOS' });
     expect(mockedPost.mock.calls[0][1]).not.toHaveProperty('senior_id');
   });
 
@@ -217,7 +222,7 @@ describe('emergency errors and safety', () => {
   });
 
   it('does not use mock emergency data or hardcoded senior UUIDs in the create body', () => {
-    expect(toEmergencyCreateBody('HOSPITAL')).toEqual({ type: 'HOSPITAL' });
+    expect(toEmergencyCreateBody('HOSPITAL')).toEqual({ type: 'HOSPITAL', trigger_source: 'APP_SOS' });
     expect(JSON.stringify(toEmergencyCreateBody('HOSPITAL'))).not.toMatch(/0b3922d7/);
     expect(emergencyQueryKeys.list).toEqual(['emergency', 'list']);
     expect(emergencyQueryKeys.detail('abc')).toEqual(['emergency', 'abc']);
@@ -232,6 +237,25 @@ describe('emergency errors and safety', () => {
     expect(copy).not.toMatch(/gps|location permission|ambulance is on the way|emergency services have been contacted/i);
     expect(findActiveEmergency([toEmergencyCase(casePayload)])?.id).toBe(casePayload.id);
     expect(findActiveEmergency([toEmergencyCase({ ...casePayload, status: 'RESOLVED' })])).toBeNull();
+    expect(
+      toEmergencyCase({
+        ...casePayload,
+        case_number: 'AW-EMG-2026-000124',
+        trigger_source: 'HOME_PANIC_BUTTON',
+        recipients: [
+          {
+            id: 'r1',
+            role: 'FAMILY',
+            label: 'Family Member',
+            status: 'PENDING',
+            notified_at: casePayload.created_at,
+            responded_at: null,
+          },
+        ],
+      }).recipients[0],
+    ).toMatchObject({ role: 'FAMILY', status: 'PENDING' });
+    expect(recipientStatusLabel('PENDING', null, casePayload.created_at)).toBe('Alert sent');
+    expect(recipientStatusLabel('PENDING', null, null)).toBe('Standing by');
     expect(getSectionState({ isPending: true, isError: false, isEmpty: true })).toBe('loading');
     expect(toEmergencyEvent({
       id: 'evt-1',

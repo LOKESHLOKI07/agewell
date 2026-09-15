@@ -22,6 +22,12 @@ describe('authEntryPreference', () => {
     expect(unauthenticatedEntryHref()).toBe('/(auth)/login');
   });
 
+  it('opens Sign in for the Care app even on first visit', () => {
+    process.env.EXPO_PUBLIC_APP_VARIANT = 'care';
+    expect(unauthenticatedEntryHref()).toBe('/(auth)/login');
+    delete process.env.EXPO_PUBLIC_APP_VARIANT;
+  });
+
   it('restores the Sign in preference after hydrate', async () => {
     await markReturnToSignIn();
     resetAuthEntryPreference();

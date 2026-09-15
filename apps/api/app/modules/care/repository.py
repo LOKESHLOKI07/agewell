@@ -1,10 +1,12 @@
-from typing import Optional
+from typing import Optional, Sequence
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.care.models import CareManager
+from app.modules.care.models import CARE_STAFF_KIND_CARE_MANAGER, CareManager, CareManagerActivity
+from app.modules.seniors.models import Senior
+from app.modules.users.models import User
 from app.modules.visits.models import Visit
 
 
@@ -29,7 +31,117 @@ class CareManagerRepository:
             .order_by(CareManager.employee_id.asc().nulls_last())
         )
         result = await self.session.execute(stmt)
-        return list(result.scalars().all())
+        rows = list(result.scalars().all())
+        standing = await self.get_standing_assignment(senior_id)
+        if standing and all(row.id != standing.id for row in rows):
+            rows.insert(0, standing)
+        return rows
+
+    async def get_standing_assignment(self, senior_id: UUID) -> Optional[CareManager]:
+        senior = (
+            await self.session.execute(select(Senior).where(Senior.id == senior_id))
+        ).scalars().first()
+        assigned_id = getattr(senior, "care_manager_id", None) if senior else None
+        if not assigned_id:
+            return None
+        row = await self.get_by_id(assigned_id)
+        if not row:
+            return None
+        kind = (row.staff_kind or CARE_STAFF_KIND_CARE_MANAGER).upper()
+        if kind != CARE_STAFF_KIND_CARE_MANAGER:
+            return None
+        return row
+
+    async def get_assigned_for_senior(
+        self,
+        senior_id: UUID,
+        staff_kind: str = CARE_STAFF_KIND_CARE_MANAGER,
+    ) -> Optional[CareManager]:
+        kind = (staff_kind or CARE_STAFF_KIND_CARE_MANAGER).upper()
+        if kind == CARE_STAFF_KIND_CARE_MANAGER:
+            standing = await self.get_standing_assignment(senior_id)
+            if standing:
+                return standing
+            stmt = (
+                select(CareManager)
+                .join(Visit, Visit.care_manager_id == CareManager.id)
+                .where(
+                    Visit.senior_id == senior_id,
+                    or_(
+                        CareManager.staff_kind == CARE_STAFF_KIND_CARE_MANAGER,
+                        CareManager.staff_kind.is_(None),
+                    ),
+                )
+                .order_by(Visit.scheduled_at.desc().nulls_last())
+                .limit(1)
+            )
+        else:
+            # Companions / other staff kinds are assigned via visits only.
+            stmt = (
+                select(CareManager)
+                .join(Visit, Visit.care_manager_id == CareManager.id)
+                .where(
+                    Visit.senior_id == senior_id,
+                    CareManager.staff_kind == kind,
+                )
+                .order_by(Visit.scheduled_at.desc().nulls_last())
+                .limit(1)
+            )
+        result = await self.session.execute(stmt)
+        return result.scalars().first()
+
+    async def get_user_phone(self, user_id: Optional[UUID]) -> Optional[str]:
+        if not user_id:
+            return None
+        user = (await self.session.execute(select(User).where(User.id == user_id))).scalars().first()
+        return user.phone if user else None
+
+    async def get_activity(self, activity_id: UUID) -> Optional[tuple[CareManagerActivity, Optional[CareManager]]]:
+        result = await self.session.execute(
+            select(CareManagerActivity, CareManager)
+            .outerjoin(CareManager, CareManagerActivity.care_manager_id == CareManager.id)
+            .where(CareManagerActivity.id == activity_id)
+        )
+        row = result.first()
+        return (row[0], row[1]) if row else None
+
+    async def list_activities(
+        self,
+        *,
+        senior_id: Optional[UUID] = None,
+        senior_ids: Optional[Sequence[UUID]] = None,
+        care_manager_id: Optional[UUID] = None,
+        limit: int = 50,
+        offset: int = 0,
+    ):
+        from sqlalchemy import func
+
+        stmt = select(CareManagerActivity, CareManager).outerjoin(
+            CareManager, CareManagerActivity.care_manager_id == CareManager.id
+        )
+        count_stmt = select(func.count()).select_from(CareManagerActivity)
+        if senior_id is not None:
+            stmt = stmt.where(CareManagerActivity.senior_id == senior_id)
+            count_stmt = count_stmt.where(CareManagerActivity.senior_id == senior_id)
+        elif senior_ids is not None:
+            if len(senior_ids) == 0:
+                return [], 0
+            stmt = stmt.where(CareManagerActivity.senior_id.in_(list(senior_ids)))
+            count_stmt = count_stmt.where(CareManagerActivity.senior_id.in_(list(senior_ids)))
+        if care_manager_id is not None:
+            stmt = stmt.where(CareManagerActivity.care_manager_id == care_manager_id)
+            count_stmt = count_stmt.where(CareManagerActivity.care_manager_id == care_manager_id)
+        total = (await self.session.execute(count_stmt)).scalar_one()
+        result = await self.session.execute(
+            stmt.order_by(CareManagerActivity.occurred_at.desc().nulls_last()).offset(offset).limit(limit)
+        )
+        return result.all(), int(total)
+
+    async def add_activity(self, row: CareManagerActivity) -> CareManagerActivity:
+        self.session.add(row)
+        await self.session.flush()
+        await self.session.refresh(row)
+        return row
 
     async def get_by_id(self, care_manager_id: UUID) -> Optional[CareManager]:
         result = await self.session.execute(select(CareManager).where(CareManager.id == care_manager_id))
@@ -50,6 +162,7 @@ class CareManagerRepository:
             languages=getattr(payload, "languages", None),
             availability=getattr(payload, "availability", None),
             status=payload.status,
+            staff_kind=getattr(payload, "staff_kind", None) or "CARE_MANAGER",
         )
         self.session.add(row)
         await self.session.commit()

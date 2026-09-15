@@ -22,6 +22,9 @@ from app.modules.emergency.router import router as emergency_router
 from app.modules.documents.router import router as documents_router
 from app.modules.audit.router import router as audit_router
 from app.modules.catalog.router import router as catalog_router
+from app.modules.attendance.router import router as attendance_router
+from app.modules.deliveries.router import router as deliveries_router
+from app.modules.training.router import router as training_router
 
 api_router = APIRouter()
 api_router.include_router(auth_router, prefix="/auth", tags=["auth"])
@@ -46,3 +49,6 @@ api_router.include_router(emergency_router, prefix='/emergency', tags=['emergenc
 api_router.include_router(documents_router, prefix='/documents', tags=['documents'])
 api_router.include_router(audit_router, prefix='/audit', tags=['audit'])
 api_router.include_router(catalog_router, prefix='/catalog', tags=['catalog'])
+api_router.include_router(attendance_router, prefix='/attendance', tags=['attendance'])
+api_router.include_router(deliveries_router, prefix='/deliveries', tags=['deliveries'])
+api_router.include_router(training_router, prefix='/training', tags=['training'])

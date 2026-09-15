@@ -1,5 +1,12 @@
 import * as Location from 'expo-location';
-import { LOCATION_PERMISSION_MESSAGE, LOCATION_SERVICES_MESSAGE, toPointTimestamp } from './selectors';
+import { promptToEnableLocationServices, readDevicePosition } from '@/utils/deviceLocation';
+import {
+  LOCATION_NO_FIX_MESSAGE,
+  LOCATION_PERMISSION_BLOCKED_MESSAGE,
+  LOCATION_PERMISSION_MESSAGE,
+  LOCATION_SERVICES_MESSAGE,
+  toPointTimestamp,
+} from './selectors';
 import type { TrackingPermissionState, TrackingPointCreate } from './types';
 
 export interface ForegroundCoordinates {
@@ -23,30 +30,32 @@ export async function checkForegroundPermission(): Promise<PermissionCheck> {
     return { state: 'granted', message: null };
   }
   if (current.status === 'denied' && current.canAskAgain === false) {
-    return { state: 'denied', message: LOCATION_PERMISSION_MESSAGE };
+    return { state: 'denied', message: LOCATION_PERMISSION_BLOCKED_MESSAGE };
   }
   return { state: 'unknown', message: null };
 }
 
 export async function requestForegroundPermission(): Promise<PermissionCheck> {
-  const enabled = await Location.hasServicesEnabledAsync();
-  if (!enabled) {
+  const result = await Location.requestForegroundPermissionsAsync();
+  if (result.status !== 'granted') {
+    return {
+      state: 'denied',
+      message: result.canAskAgain === false ? LOCATION_PERMISSION_BLOCKED_MESSAGE : LOCATION_PERMISSION_MESSAGE,
+    };
+  }
+  const servicesOn = await promptToEnableLocationServices();
+  if (!servicesOn) {
     return { state: 'unavailable', message: LOCATION_SERVICES_MESSAGE };
   }
-  const result = await Location.requestForegroundPermissionsAsync();
-  if (result.status === 'granted') {
-    return { state: 'granted', message: null };
-  }
-  return { state: 'denied', message: LOCATION_PERMISSION_MESSAGE };
+  return { state: 'granted', message: null };
 }
 
 export async function readForegroundCoordinates(): Promise<ForegroundCoordinates> {
-  const position = await Location.getCurrentPositionAsync({});
-  return {
-    latitude: position.coords.latitude,
-    longitude: position.coords.longitude,
-    timestamp: position.timestamp,
-  };
+  try {
+    return await readDevicePosition();
+  } catch {
+    throw new Error(LOCATION_NO_FIX_MESSAGE);
+  }
 }
 
 export function toTrackingPointCreate(coords: ForegroundCoordinates): TrackingPointCreate {
@@ -60,13 +69,16 @@ export function toTrackingPointCreate(coords: ForegroundCoordinates): TrackingPo
 export async function watchForegroundCoordinates(
   onUpdate: (coords: ForegroundCoordinates) => void,
 ): Promise<() => void> {
-  const subscription = await Location.watchPositionAsync({}, (position) => {
-    onUpdate({
-      latitude: position.coords.latitude,
-      longitude: position.coords.longitude,
-      timestamp: position.timestamp,
-    });
-  });
+  const subscription = await Location.watchPositionAsync(
+    { accuracy: Location.Accuracy.Balanced },
+    (position) => {
+      onUpdate({
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+        timestamp: position.timestamp,
+      });
+    },
+  );
   return () => {
     subscription.remove();
   };

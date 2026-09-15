@@ -89,6 +89,15 @@ async def list_membership_records(
     return await service.list_memberships(senior_id=senior_id, limit=limit, offset=offset)
 
 
+@router.post("/records/{membership_id}/cancel", response_model=MembershipRecordResponse)
+async def cancel_membership_record(
+    membership_id: UUID,
+    _staff: User = Depends(require_staff),
+    service: MembershipService = Depends(get_membership_service),
+):
+    return await service.cancel_membership(membership_id)
+
+
 @router.post("/requests", response_model=MembershipRequestResponse)
 async def create_membership_request(
     payload: MembershipRequestCreate,

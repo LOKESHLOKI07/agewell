@@ -9,6 +9,11 @@ export interface MembershipRequest {
   planPrice: number | null;
   status: MembershipRequestStatus;
   notes: string | null;
+  familyContact1Name: string | null;
+  familyContact1Phone: string | null;
+  familyContact2Name: string | null;
+  familyContact2Phone: string | null;
+  preferredHospital: string | null;
   createdAt: string | null;
   reviewedAt: string | null;
 }

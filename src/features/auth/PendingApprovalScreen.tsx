@@ -18,8 +18,7 @@ export function PendingApprovalScreen() {
         </IconWell>
         <Text style={styles.title}>Pending review</Text>
         <Text style={styles.body}>
-          Your Care Associate application is with AgeWell operations. You cannot access seniors or visits until you are
-          approved.
+          Your application is with AgeWell operations. You cannot take visits or deliveries until you are approved.
         </Text>
         <View style={styles.card}>
           <Text style={styles.label}>Current status</Text>

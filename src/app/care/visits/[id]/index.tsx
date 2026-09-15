@@ -1,1 +1,1 @@
-export { CareVisitDetailScreen as default } from '@/features/care/CareVisitDetailScreen';
+export { StaffTaskDetailScreen as default } from '@/features/care/StaffTaskDetailScreen';

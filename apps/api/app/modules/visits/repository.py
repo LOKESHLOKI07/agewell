@@ -68,9 +68,29 @@ class VisitRepository:
         )
         return list(result.scalars().all())
 
+    async def get_task(self, visit_id: UUID, task_id: UUID) -> Optional[VisitTask]:
+        result = await self.session.execute(
+            select(VisitTask).where(VisitTask.id == task_id, VisitTask.visit_id == visit_id)
+        )
+        return result.scalar_one_or_none()
+
+    async def update_task(self, task: VisitTask, data: dict) -> VisitTask:
+        for field, value in data.items():
+            setattr(task, field, value)
+        await self.session.commit()
+        await self.session.refresh(task)
+        return task
+
     async def list_reports(self, visit_id: UUID) -> list[VisitReport]:
         result = await self.session.execute(select(VisitReport).where(VisitReport.visit_id == visit_id))
         return list(result.scalars().all())
+
+    async def create_report(self, **kwargs) -> VisitReport:
+        report = VisitReport(**kwargs)
+        self.session.add(report)
+        await self.session.commit()
+        await self.session.refresh(report)
+        return report
 
     async def create(self, **kwargs) -> Visit:
         visit = Visit(**kwargs)

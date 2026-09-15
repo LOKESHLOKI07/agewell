@@ -4,6 +4,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ConfirmDialog } from '@/components';
 import { colors, minTouchSize, spacing, typography } from '@/constants/theme';
+import { isCareApp } from '@/config/appVariant';
 import { AUTH_ROLE_LABELS, type AuthRole, isAuthRole } from '@/features/auth/authTypes';
 import { useAuth } from '@/features/auth/useAuth';
 import { CareScreen } from '@/features/care/components/CareScreen';
@@ -14,13 +15,17 @@ export function RoleUnavailableScreen() {
   const { signOut } = useAuth();
   const [confirmVisible, setConfirmVisible] = useState(false);
   const label = role && isAuthRole(role) ? AUTH_ROLE_LABELS[role as AuthRole] : 'This';
+  const careApp = isCareApp();
+  const body = careApp
+    ? 'AgeWell Care is for care managers, companions, and delivery executives. Sign out and open the AgeWell member app.'
+    : role === 'CARE_MANAGER'
+      ? 'Care staff should use the AgeWell Care app, not the member app. Sign out and open AgeWell Care.'
+      : 'You are signed in, but this role does not have a workspace in this app.';
 
   return (
     <View style={[styles.safe, { paddingTop: insets.top }]}>
-      <CareScreen title={`${label} mode`} subtitle="This workspace is not available yet.">
-        <Text style={styles.body}>
-          You are signed in, but this role does not have a mobile workspace in this phase.
-        </Text>
+      <CareScreen title={`${label} account`} subtitle={careApp ? 'Wrong app for this account.' : 'Use a different AgeWell app.'}>
+        <Text style={styles.body}>{body}</Text>
         <Pressable
           style={styles.logout}
           onPress={() => setConfirmVisible(true)}

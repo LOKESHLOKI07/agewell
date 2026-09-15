@@ -4,11 +4,12 @@ export default function NotificationSettingsScreen() {
   return (
     <SimpleInfoScreen title="Notifications" subtitle="How AgeWell alerts work">
       <InfoParagraph>
-        In-app notifications come from your AgeWell account. You can mark them read from the Notifications screen.
+        Emergency SOS alerts are delivered as phone push notifications (Android via FCM, iPhone via APNs through Expo).
+        When you allow notifications, they can sound and vibrate even if AgeWell is closed or your phone is locked —
+        subject to your device notification settings.
       </InfoParagraph>
       <InfoParagraph>
-        Push, SMS, and WhatsApp delivery are not available in the app yet. When those channels are connected, this
-        screen will let you manage preferences.
+        In-app notifications also appear in the Notifications screen. SMS and WhatsApp are not connected yet.
       </InfoParagraph>
     </SimpleInfoScreen>
   );

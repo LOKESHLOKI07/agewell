@@ -15,7 +15,7 @@ export default function AdminLayout() {
       <Stack
         screenOptions={{
           headerShown: false,
-          contentStyle: { backgroundColor: colors.background },
+          contentStyle: { backgroundColor: colors.adminCanvas },
         }}
       />
     </AdminShell>

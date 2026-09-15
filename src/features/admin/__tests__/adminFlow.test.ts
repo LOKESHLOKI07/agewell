@@ -19,6 +19,7 @@ import {
   fetchAdminServices,
   fetchAdminUsers,
   fetchAdminVisits,
+  provisionAdminStaff,
   reviewAdminMembershipRequest,
   updateAdminEmergencyStatus,
   updateAdminService,
@@ -35,6 +36,7 @@ import {
   adminCareManagerDisplay,
   adminOverflowNav,
   adminSeniorDisplay,
+  adminSeniorLocationLabel,
   buildDashboardMetrics,
   canEnterAdminUi,
   containsSecretField,
@@ -42,6 +44,13 @@ import {
   isAdminPathActive,
   isDesktopWidth,
 } from '../selectors';
+import {
+  buildDashboardCards,
+  greetingForHour,
+  resolveAdminSearchTarget,
+  visitStatusCounts,
+} from '../dashboardModel';
+import type { EmergencyCase } from '@/features/emergency/types/emergency';
 
 jest.mock('@/api/client', () => ({
   apiClient: {
@@ -80,9 +89,15 @@ const seniorPayload = {
   first_name: 'John',
   last_name: 'Doe',
   date_of_birth: '1940-01-01',
-  address: '123',
+  address: 'Kandivali West, Mumbai',
   emergency_contact: '911',
   email: 'senior@example.com',
+  in_service_area: true,
+  has_membership: false,
+  location_lat: 19.205,
+  location_lng: 72.852,
+  location_query: null,
+  location_source: 'gps',
 };
 
 describe('Admin / Operations routing', () => {
@@ -97,7 +112,7 @@ describe('Admin / Operations routing', () => {
   it('does not send Senior, Family, or Care Manager to Admin UI', () => {
     expect(authenticatedHomeHref('SENIOR')).toBe('/(tabs)');
     expect(authenticatedHomeHref('FAMILY')).toBe('/(tabs)');
-    expect(authenticatedHomeHref('CARE_MANAGER')).toBe('/(care)');
+    expect(authenticatedHomeHref('CARE_MANAGER', { variant: 'care' })).toBe('/(care)');
     expect(canEnterAdminUi('SENIOR')).toBe(false);
     expect(canEnterAdminUi('FAMILY')).toBe(false);
     expect(canEnterAdminUi('CARE_MANAGER')).toBe(false);
@@ -114,6 +129,11 @@ describe('admin layout helpers', () => {
     expect(isAdminPathActive('/users/abc', '/(admin)/users')).toBe(true);
     expect(isAdminPathActive('/', '/(admin)')).toBe(true);
     expect(isAdminPathActive('/users', '/(admin)')).toBe(false);
+    expect(ADMIN_NAV.some((item) => item.label === 'Care Team')).toBe(true);
+    expect(ADMIN_NAV.some((item) => item.label === 'Add-on Services')).toBe(true);
+    expect(ADMIN_NAV.find((item) => item.label === 'Add-on Services')?.href).toBe('/(admin)/addon-services');
+    expect(isAdminPathActive('/addon-services', '/(admin)/services')).toBe(false);
+    expect(ADMIN_NAV.some((item) => item.label === 'Settings')).toBe(true);
   });
 });
 
@@ -164,9 +184,15 @@ describe('admin APIs', () => {
 
   it('lists seniors from paginated APIs', async () => {
     jsonGet({ items: [seniorPayload], total: 2, limit: 20, offset: 0 });
-    const seniors = await fetchAdminSeniors({ limit: 20, offset: 0 });
+    const seniors = await fetchAdminSeniors({ limit: 20, offset: 0, segment: 'in_area_no_membership' });
     expect(adminSeniorDisplay(seniors.items[0])).toBe('John Doe');
     expect(seniors.items[0].email).toBe('senior@example.com');
+    expect(seniors.items[0].inServiceArea).toBe(true);
+    expect(seniors.items[0].hasMembership).toBe(false);
+    expect(adminSeniorLocationLabel(seniors.items[0])).toBe('GPS 19.20500, 72.85200');
+    expect(mockedGet).toHaveBeenCalledWith('/seniors/', {
+      params: { limit: 20, offset: 0, segment: 'in_area_no_membership' },
+    });
   });
 
   it('creates and edits care managers and maps Rohit Sharma', async () => {
@@ -203,6 +229,46 @@ describe('admin APIs', () => {
         first_name: 'Asha',
         last_name: 'Khan',
         skills: 'Nursing',
+        status: 'ACTIVE',
+      },
+    });
+  });
+
+  it('provisions staff with login and role in one request', async () => {
+    const cm = {
+      id: 'cm-2',
+      user_id: 'user-new',
+      employee_id: 'DE-001',
+      first_name: 'Ravi',
+      last_name: 'Singh',
+      staff_kind: 'DELIVERY_EXECUTIVE',
+      status: 'ACTIVE',
+    };
+    jsonRequest(cm);
+    await provisionAdminStaff({
+      email: 'ravi@example.com',
+      phone: '9876543210',
+      password: 'password123',
+      employeeId: 'DE-001',
+      firstName: 'Ravi',
+      lastName: 'Singh',
+      staffKind: 'DELIVERY_EXECUTIVE',
+    });
+    expect(mockedRequest).toHaveBeenCalledWith({
+      method: 'post',
+      url: '/care/provision',
+      data: {
+        email: 'ravi@example.com',
+        phone: '9876543210',
+        password: 'password123',
+        first_name: 'Ravi',
+        last_name: 'Singh',
+        employee_id: 'DE-001',
+        staff_kind: 'DELIVERY_EXECUTIVE',
+        skills: null,
+        experience: null,
+        languages: null,
+        availability: null,
         status: 'ACTIVE',
       },
     });
@@ -322,7 +388,7 @@ describe('admin APIs', () => {
           senior_id: seniorPayload.id,
           senior_name: 'John Doe',
           plan_id: 'plan-1',
-          plan_name: 'Basic Membership',
+          plan_name: 'Single Membership',
           plan_price: 15499,
           status: 'REQUESTED',
           notes: null,
@@ -335,7 +401,7 @@ describe('admin APIs', () => {
       offset: 0,
     });
     const requests = await fetchAdminMembershipRequests({ limit: 20, offset: 0, status: 'REQUESTED' });
-    expect(requests.items[0].planName).toBe('Basic Membership');
+    expect(requests.items[0].planName).toBe('Single Membership');
     expect(requests.items[0].seniorName).toBe('John Doe');
 
     jsonRequest({
@@ -343,7 +409,7 @@ describe('admin APIs', () => {
       senior_id: seniorPayload.id,
       senior_name: 'John Doe',
       plan_id: 'plan-1',
-      plan_name: 'Basic Membership',
+      plan_name: 'Single Membership',
       plan_price: 15499,
       status: 'APPROVED',
       notes: null,
@@ -474,6 +540,55 @@ describe('admin error and empty states', () => {
     expect(metrics.find((item) => item.key === 'visits')?.state).toBe('loading');
     expect(metrics.find((item) => item.key === 'emergencies')?.value).toBe(0);
     expect(metrics.find((item) => item.key === 'careManagers')?.value).toBe(1);
+  });
+
+  it('builds dashboard cards from live totals and search targets without inventing values', () => {
+    const cards = buildDashboardCards({
+      seniors: { isPending: false, isError: false, data: { total: 20 } },
+      membershipSeniors: { isPending: false, isError: false, data: { total: 14 } },
+      outsideAreaSeniors: { isPending: false, isError: false, data: { total: 1 } },
+      inAreaNoMembershipSeniors: { isPending: false, isError: false, data: { total: 5 } },
+      todayVisits: {
+        isPending: false,
+        isError: false,
+        data: { total: 18 },
+        items: [
+          { id: '1', seniorId: 's', careManagerId: null, employeeId: null, careManagerName: null, status: 'COMPLETED', scheduledAt: null, notes: null },
+          { id: '2', seniorId: 's', careManagerId: null, employeeId: null, careManagerName: null, status: 'SCHEDULED', scheduledAt: null, notes: null },
+          { id: '3', seniorId: 's', careManagerId: null, employeeId: null, careManagerName: null, status: 'NO_SHOW', scheduledAt: null, notes: null },
+        ],
+      },
+      openEmergencies: {
+        isPending: false,
+        isError: false,
+        data: { total: 2 },
+        items: [
+          { id: 'e1', seniorId: 's', type: 'MEDICAL', status: 'OPEN', createdAt: null },
+          { id: 'e2', seniorId: 's', type: 'AGEWELL_SUPPORT', status: 'OPEN', createdAt: null },
+        ] as EmergencyCase[],
+      },
+      pendingRequests: { isPending: false, isError: false, data: { total: 5 } },
+      assignedRequests: { isPending: false, isError: false, data: { total: 2 } },
+      users: { isPending: false, isError: false, data: { total: 39 } },
+      careManagerUsers: { isPending: false, isError: false, data: { total: 6 } },
+      adminUsers: { isPending: false, isError: false, data: { total: 4 } },
+    });
+    expect(cards.find((item) => item.key === 'seniors')?.value).toBe(20);
+    expect(cards.find((item) => item.key === 'seniors')?.breakdown).toEqual([
+      expect.objectContaining({ label: 'membership', value: 14 }),
+      expect.objectContaining({ label: 'need attention', value: 5 }),
+      expect.objectContaining({ label: 'outside area', value: 1 }),
+    ]);
+    expect(visitStatusCounts(cards.find((item) => item.key === 'visits') ? [
+      { id: '1', seniorId: 's', careManagerId: null, employeeId: null, careManagerName: null, status: 'COMPLETED', scheduledAt: null, notes: null },
+      { id: '2', seniorId: 's', careManagerId: null, employeeId: null, careManagerName: null, status: 'SCHEDULED', scheduledAt: null, notes: null },
+      { id: '3', seniorId: 's', careManagerId: null, employeeId: null, careManagerName: null, status: 'NO_SHOW', scheduledAt: null, notes: null },
+    ] : [])).toEqual({ completed: 1, upcoming: 1, missed: 1 });
+    expect(cards.find((item) => item.key === 'users')?.breakdown?.find((row) => row.label === 'others')?.value).toBe(29);
+    expect(greetingForHour(15)).toBe('Good afternoon');
+    expect(resolveAdminSearchTarget('visits').href).toBe('/(admin)/visits');
+    expect(resolveAdminSearchTarget('a@b.com')).toEqual({ href: '/(admin)/users', params: { email: 'a@b.com' } });
+    expect(resolveAdminSearchTarget('Meera').href).toBe('/(admin)/seniors');
   });
 
   it('uses admin query keys', () => {

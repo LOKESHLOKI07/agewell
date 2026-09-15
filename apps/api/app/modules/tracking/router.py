@@ -9,6 +9,7 @@ from app.api.schemas import ListPage
 from app.modules.access.repository import AccessRepository
 from app.modules.access.service import FORBIDDEN, AccessService
 from app.modules.seniors.repository import SeniorRepository
+from app.modules.deliveries.repository import DeliveryRepository
 from app.modules.tracking.repository import TrackingRepository
 from app.modules.tracking.schemas import (
     CareAssociateLatestLocationResponse,
@@ -29,7 +30,7 @@ router = APIRouter()
 
 
 def get_tracking_service(db: AsyncSession = Depends(get_db)):
-    return TrackingService(TrackingRepository(db), VisitRepository(db))
+    return TrackingService(TrackingRepository(db), VisitRepository(db), DeliveryRepository(db))
 
 
 def get_access_service(db: AsyncSession = Depends(get_db)):
@@ -199,6 +200,32 @@ async def get_visit_care_associate_session(
     service: TrackingService = Depends(get_tracking_service),
 ):
     return await service.get_visit_care_associate_session(visit_id, current_user, access)
+
+
+@router.get(
+    "/deliveries/{delivery_id}/executive/latest",
+    response_model=CareAssociateLatestLocationResponse,
+)
+async def get_delivery_executive_latest(
+    delivery_id: UUID,
+    current_user: User = Depends(get_current_user),
+    access: AccessService = Depends(get_access_service),
+    service: TrackingService = Depends(get_tracking_service),
+):
+    return await service.get_delivery_executive_latest(delivery_id, current_user, access)
+
+
+@router.get(
+    "/deliveries/{delivery_id}/executive",
+    response_model=CareAssociateTrackingSessionResponse,
+)
+async def get_delivery_executive_session(
+    delivery_id: UUID,
+    current_user: User = Depends(get_current_user),
+    access: AccessService = Depends(get_access_service),
+    service: TrackingService = Depends(get_tracking_service),
+):
+    return await service.get_delivery_executive_session(delivery_id, current_user, access)
 
 
 @router.get("/", response_model=ListPage[TrackingSessionResponse])

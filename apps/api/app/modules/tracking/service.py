@@ -6,6 +6,7 @@ from fastapi import HTTPException, status
 from app.api.schemas import ListPage
 from app.modules.access.service import AccessService
 from app.modules.tracking.models import LocationPoint, LocationSession
+from app.modules.deliveries.repository import DeliveryRepository
 from app.modules.tracking.repository import TrackingRepository
 from app.modules.tracking.schemas import (
     CareAssociateLatestLocationResponse,
@@ -18,7 +19,9 @@ from app.modules.tracking.schemas import (
 from app.modules.visits.repository import VisitRepository
 
 UNAVAILABLE = "Care associate tracking is unavailable"
+DELIVERY_UNAVAILABLE = "Delivery executive tracking is unavailable"
 NOT_ASSIGNED = "Care manager is not assigned to this visit"
+DELIVERY_NOT_ASSIGNED = "Delivery executive is not assigned to this order"
 
 
 def to_session_response(row: LocationSession) -> TrackingSessionResponse:
@@ -42,9 +45,15 @@ def to_care_latest_response(row: LocationPoint) -> CareAssociateLatestLocationRe
 
 
 class TrackingService:
-    def __init__(self, repo: TrackingRepository, visit_repo: Optional[VisitRepository] = None):
+    def __init__(
+        self,
+        repo: TrackingRepository,
+        visit_repo: Optional[VisitRepository] = None,
+        delivery_repo: Optional[DeliveryRepository] = None,
+    ):
         self.repo = repo
         self.visit_repo = visit_repo
+        self.delivery_repo = delivery_repo
 
     async def create_session(self, user_id: UUID) -> TrackingSessionResponse:
         row = await self.repo.create_session(user_id=user_id)
@@ -185,3 +194,40 @@ class TrackingService:
             limit=limit,
             offset=offset,
         )
+
+    async def resolve_delivery_executive_session(
+        self,
+        delivery_id: UUID,
+        user,
+        access: AccessService,
+    ) -> LocationSession:
+        if self.delivery_repo is None:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Delivery repository is required")
+        delivery = await self.delivery_repo.get_by_id(delivery_id)
+        if not delivery:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Delivery not found")
+        await access.ensure_delivery_access(user, delivery)
+        care_manager = await self.delivery_repo.get_care_manager(delivery.care_manager_id)
+        if care_manager is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=DELIVERY_NOT_ASSIGNED)
+        if care_manager.user_id is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=DELIVERY_UNAVAILABLE)
+        session = await self.repo.get_newest_session_for_user(care_manager.user_id)
+        if not session:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=DELIVERY_UNAVAILABLE)
+        return session
+
+    async def get_delivery_executive_latest(
+        self, delivery_id: UUID, user, access: AccessService
+    ) -> CareAssociateLatestLocationResponse:
+        session = await self.resolve_delivery_executive_session(delivery_id, user, access)
+        row = await self.repo.get_latest_point(session.id)
+        if not row:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Location point not found")
+        return to_care_latest_response(row)
+
+    async def get_delivery_executive_session(
+        self, delivery_id: UUID, user, access: AccessService
+    ) -> CareAssociateTrackingSessionResponse:
+        session = await self.resolve_delivery_executive_session(delivery_id, user, access)
+        return to_care_session_response(session)

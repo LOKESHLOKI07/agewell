@@ -17,6 +17,7 @@ import {
   ASSOCIATE_SHARE_CONFIRM_MESSAGE,
   ASSOCIATE_SHARE_CONFIRM_TITLE,
   LOCATION_PERMISSION_MESSAGE,
+  isLocationPermissionDeniedMessage,
 } from './selectors';
 import {
   associateDisplayName,
@@ -140,12 +141,16 @@ export function CareAssociateShareScreen({ visitId }: CareAssociateShareScreenPr
         <FollowChip visible={followMode === 'free' && Boolean(associateCoord)} onPress={() => setFollowMode('follow')} />
       </View>
       <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, spacing.lg) }]}>
-        {shareError === LOCATION_PERMISSION_MESSAGE ? (
+        {isLocationPermissionDeniedMessage(shareError) ? (
           <View style={styles.notice}>
-            <ErrorState title="Permission denied" message={LOCATION_PERMISSION_MESSAGE} onRetry={() => setConfirmOpen(true)} />
+            <ErrorState
+              title="Permission denied"
+              message={shareError ?? LOCATION_PERMISSION_MESSAGE}
+              onRetry={() => setConfirmOpen(true)}
+            />
           </View>
         ) : null}
-        {shareError && shareError !== LOCATION_PERMISSION_MESSAGE ? (
+        {shareError && !isLocationPermissionDeniedMessage(shareError) ? (
           <View style={styles.notice}>
             <ErrorState title="Could not share location" message={shareError} onRetry={() => setConfirmOpen(true)} />
           </View>

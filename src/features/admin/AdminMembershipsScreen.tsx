@@ -99,9 +99,16 @@ export function AdminMembershipsScreen() {
               render: (item) => <Text style={cell}>{humanizeStatus(item.status)}</Text>,
             },
             {
-              key: 'requested',
-              label: 'Requested',
-              render: (item) => <Text style={cell}>{item.createdAt ? formatLongDate(item.createdAt) : '—'}</Text>,
+              key: 'emergency',
+              label: 'Emergency info',
+              flex: 1.4,
+              render: (item) => (
+                <Text style={cell}>
+                  {[item.familyContact1Name, item.preferredHospital].filter(Boolean).join(' · ') ||
+                    item.notes ||
+                    '—'}
+                </Text>
+              ),
             },
             {
               key: 'actions',
@@ -134,8 +141,23 @@ export function AdminMembershipsScreen() {
                       }}
                     />
                   </View>
+                ) : item.status === 'APPROVED' ? (
+                  <View style={styles.actions}>
+                    <SecondaryButton
+                      label="Reject"
+                      fullWidth={false}
+                      disabled={review.isPending}
+                      onPress={() => {
+                        setFormError(null);
+                        review.mutate(
+                          { id: item.id, status: 'REJECTED' },
+                          { onError: (error) => setFormError(getAdminErrorMessage(error)) },
+                        );
+                      }}
+                    />
+                  </View>
                 ) : (
-                  <Text style={cell}>Reviewed</Text>
+                  <Text style={cell}>Rejected</Text>
                 ),
             },
           ]}

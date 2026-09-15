@@ -4,11 +4,19 @@ from typing import Any, Optional
 from uuid import UUID
 
 from fastapi import HTTPException, status
+from sqlalchemy import select
 
 from app.api.schemas import ListPage
 from app.modules.audit.repository import AuditRepository
 from app.modules.seniors.repository import SeniorRepository
-from app.modules.seniors.schemas import SeniorCreate, SeniorDirectoryItem, SeniorUpdate, normalize_profile_photo
+from app.modules.seniors.service_area import resolve_in_service_area
+from app.modules.seniors.schemas import (
+    SeniorCreate,
+    SeniorDirectoryItem,
+    SeniorResponse,
+    SeniorUpdate,
+    normalize_profile_photo,
+)
 from app.modules.users.models import AccountStatus
 from app.modules.users.repository import UserRepository
 
@@ -19,7 +27,39 @@ def _account_status_value(value) -> Optional[str]:
     return value.value if hasattr(value, "value") else str(value)
 
 
-def to_senior_directory_item(senior, email=None, phone=None, account_status=None) -> SeniorDirectoryItem:
+def to_senior_response(senior) -> SeniorResponse:
+    return SeniorResponse(
+        id=senior.id,
+        user_id=senior.user_id,
+        first_name=senior.first_name,
+        last_name=senior.last_name,
+        date_of_birth=senior.date_of_birth,
+        address=senior.address,
+        emergency_contact=senior.emergency_contact,
+        preferred_language=senior.preferred_language,
+        family_contact_1_name=getattr(senior, "family_contact_1_name", None),
+        family_contact_1_phone=getattr(senior, "family_contact_1_phone", None),
+        family_contact_2_name=getattr(senior, "family_contact_2_name", None),
+        family_contact_2_phone=getattr(senior, "family_contact_2_phone", None),
+        preferred_hospital=getattr(senior, "preferred_hospital", None),
+        photo=senior.photo,
+        in_service_area=resolve_in_service_area(senior),
+        care_manager_id=getattr(senior, "care_manager_id", None),
+        location_lat=getattr(senior, "location_lat", None),
+        location_lng=getattr(senior, "location_lng", None),
+        location_query=getattr(senior, "location_query", None),
+        location_source=getattr(senior, "location_source", None),
+    )
+
+
+def to_senior_directory_item(
+    senior,
+    email=None,
+    phone=None,
+    account_status=None,
+    *,
+    has_membership: bool = False,
+) -> SeniorDirectoryItem:
     return SeniorDirectoryItem(
         id=senior.id,
         user_id=senior.user_id,
@@ -29,10 +69,22 @@ def to_senior_directory_item(senior, email=None, phone=None, account_status=None
         address=senior.address,
         emergency_contact=senior.emergency_contact,
         preferred_language=senior.preferred_language,
+        family_contact_1_name=getattr(senior, "family_contact_1_name", None),
+        family_contact_1_phone=getattr(senior, "family_contact_1_phone", None),
+        family_contact_2_name=getattr(senior, "family_contact_2_name", None),
+        family_contact_2_phone=getattr(senior, "family_contact_2_phone", None),
+        preferred_hospital=getattr(senior, "preferred_hospital", None),
         email=email,
         phone=phone,
         account_status=_account_status_value(account_status) or AccountStatus.ACTIVE.value,
         photo=None,
+        in_service_area=resolve_in_service_area(senior),
+        care_manager_id=getattr(senior, "care_manager_id", None),
+        location_lat=getattr(senior, "location_lat", None),
+        location_lng=getattr(senior, "location_lng", None),
+        location_query=getattr(senior, "location_query", None),
+        location_source=getattr(senior, "location_source", None),
+        has_membership=bool(has_membership),
     )
 
 
@@ -96,11 +148,13 @@ class SeniorService:
         if not row:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Senior not found")
         senior, user = row
+        has_membership = await self.repo.senior_has_membership(senior.id)
         return to_senior_directory_item(
             senior,
             email=user.email if user else None,
             phone=user.phone if user else None,
             account_status=user.account_status if user else None,
+            has_membership=has_membership,
         )
 
     async def get_by_user_id(self, user_id):
@@ -120,6 +174,22 @@ class SeniorService:
         data = payload.model_dump(exclude_unset=True)
         email = data.pop("email", None)
         phone = data.pop("phone", None)
+        if "care_manager_id" in data:
+            assigned_id = data["care_manager_id"]
+            if assigned_id is not None:
+                from app.modules.care.models import CARE_STAFF_KIND_CARE_MANAGER, CareManager
+
+                care = (
+                    await self.repo.session.execute(select(CareManager).where(CareManager.id == assigned_id))
+                ).scalars().first()
+                if not care:
+                    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Care manager not found")
+                kind = (care.staff_kind or CARE_STAFF_KIND_CARE_MANAGER).upper()
+                if kind != CARE_STAFF_KIND_CARE_MANAGER:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Assigned staff must be a Care Manager",
+                    )
         if "photo" in data:
             data["photo"] = _validated_photo(data["photo"])
         profile_changes = {}
@@ -161,18 +231,65 @@ class SeniorService:
 
         return await self.get_senior_detail(senior.id)
 
-    async def update_photo(self, senior, photo: Optional[str]):
-        normalized = _validated_photo(photo)
-        senior = await self.repo.update(senior, {"photo": normalized})
+    async def update_me(
+        self,
+        senior,
+        *,
+        set_photo: bool = False,
+        photo: Optional[str] = None,
+        set_in_service_area: bool = False,
+        in_service_area: Optional[bool] = None,
+        set_location: bool = False,
+        location_lat: Optional[float] = None,
+        location_lng: Optional[float] = None,
+        location_query: Optional[str] = None,
+        location_source: Optional[str] = None,
+    ) -> SeniorResponse:
+        data: dict = {}
+        if set_photo:
+            data["photo"] = _validated_photo(photo)
+        if set_in_service_area:
+            data["in_service_area"] = None if in_service_area is None else bool(in_service_area)
+        if set_location:
+            source = (location_source or "").strip().lower() or None
+            if source and source not in ("gps", "manual"):
+                source = None
+            data["location_source"] = source
+            if source == "gps":
+                data["location_lat"] = location_lat
+                data["location_lng"] = location_lng
+                data["location_query"] = None
+            elif source == "manual":
+                data["location_lat"] = None
+                data["location_lng"] = None
+                data["location_query"] = (location_query or "").strip() or None
+            else:
+                data["location_lat"] = location_lat
+                data["location_lng"] = location_lng
+                data["location_query"] = (location_query or "").strip() or None
+        if not data:
+            return to_senior_response(senior)
+        senior = await self.repo.update(senior, data)
         if self.audit_repo:
+            audited: dict = {}
+            if "photo" in data:
+                audited["photo"] = "cleared" if not data["photo"] else "updated"
+            if "in_service_area" in data:
+                audited["in_service_area"] = data["in_service_area"]
+            for key in ("location_lat", "location_lng", "location_query", "location_source"):
+                if key in data:
+                    audited[key] = data[key]
             await self.audit_repo.record(
                 entity_name="seniors",
                 entity_id=str(senior.id),
                 action="UPDATE",
-                changes=json.dumps({"photo": "cleared" if not normalized else "updated"}),
+                changes=json.dumps(audited),
             )
             await self.repo.session.commit()
-        return senior
+        return to_senior_response(senior)
+
+    async def update_photo(self, senior, photo: Optional[str]) -> SeniorResponse:
+        return await self.update_me(senior, set_photo=True, photo=photo)
 
     async def delete_senior(self, senior_id) -> SeniorDirectoryItem:
         from app.modules.people.deletion import commit_people_delete, delete_senior_record
@@ -189,10 +306,18 @@ class SeniorService:
         await commit_people_delete(self.repo.session)
         return detail
 
-    async def list_seniors(self, *, limit: int = 50, offset: int = 0) -> ListPage[SeniorDirectoryItem]:
-        rows, total = await self.repo.list_seniors(limit=limit, offset=offset)
+    async def list_seniors(
+        self, *, limit: int = 50, offset: int = 0, segment: str | None = None
+    ) -> ListPage[SeniorDirectoryItem]:
+        rows, total = await self.repo.list_seniors(limit=limit, offset=offset, segment=segment)
         items = [
-            to_senior_directory_item(senior, email=email, phone=phone, account_status=account_status)
-            for senior, email, phone, account_status in rows
+            to_senior_directory_item(
+                senior,
+                email=email,
+                phone=phone,
+                account_status=account_status,
+                has_membership=bool(has_membership),
+            )
+            for senior, email, phone, account_status, has_membership in rows
         ]
         return ListPage(items=items, total=total, limit=limit, offset=offset)

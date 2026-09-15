@@ -1,30 +1,30 @@
 import { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Ellipse, Path, Rect } from 'react-native-svg';
 import { Icon } from '@/components/ui';
 import { spacing, typography } from '@/constants/theme';
-import {
-  canAvailServices,
-  SERVICE_AREA_LOCKED_MESSAGE,
-  SERVICE_AREA_LOCKED_TITLE,
-} from '@/features/auth/serviceAreaPreference';
 import { AgeWellHeader } from '@/features/home/components/AgeWellHeader';
 import { familyHome } from '@/features/home/components/familyHomeTheme';
+import { MembershipServiceGate } from '@/features/membership/MembershipServiceGate';
 import { useMembershipSubmit } from '@/features/membership/useMembershipSubmit';
 import type { AddonBookNow } from './addonBookCatalog';
 
 export function AddonBookNowScreen({ addon }: { addon: AddonBookNow }) {
+  return (
+    <MembershipServiceGate slug={addon.slug} title={addon.title} requireMembership={false}>
+      <AddonBookNowLive addon={addon} />
+    </MembershipServiceGate>
+  );
+}
+
+function AddonBookNowLive({ addon }: { addon: AddonBookNow }) {
   const insets = useSafeAreaInsets();
   const { submitting, submit } = useMembershipSubmit(addon.slug);
   const [optionId, setOptionId] = useState(addon.options?.[0]?.id ?? '');
   const selected = addon.options?.find((item) => item.id === optionId);
 
   const onBook = () => {
-    if (!canAvailServices()) {
-      Alert.alert(SERVICE_AREA_LOCKED_TITLE, SERVICE_AREA_LOCKED_MESSAGE);
-      return;
-    }
     const optionNote = selected ? `${selected.label}: ${selected.price}` : addon.lines.join(' · ');
     void submit(`${addon.title} — ${optionNote}`, 'Booking request submitted');
   };

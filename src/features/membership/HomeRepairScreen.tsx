@@ -1,15 +1,23 @@
 import { useEffect, useState } from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { KeyboardAwareScrollView } from '@/components/KeyboardAwareScrollView';
 import { Icon } from '@/components/ui';
 import { spacing, typography } from '@/constants/theme';
 import { AgeWellHeader } from '@/features/home/components/AgeWellHeader';
 import { familyHome } from '@/features/home/components/familyHomeTheme';
 import { MembershipServiceHero } from './MembershipServiceHero';
+import { gatedMembershipScreen } from './MembershipServiceGate';
 import { useMembershipSubmit } from './useMembershipSubmit';
 import { useServiceOfferings } from './useCatalog';
 
-export function HomeRepairScreen() {
+export const HomeRepairScreen = gatedMembershipScreen(
+  'home-repair',
+  'House Repair',
+  HomeRepairLive,
+);
+
+function HomeRepairLive() {
   const insets = useSafeAreaInsets();
   const catalog = useServiceOfferings('home-repair');
   const categories = catalog.data ?? [];
@@ -32,7 +40,7 @@ export function HomeRepairScreen() {
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
       <AgeWellHeader title="House Repair" showBack showProfile={false} showBell={false} />
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <KeyboardAwareScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <MembershipServiceHero slug="home-repair" />
         {catalog.isPending ? <Text style={styles.hint}>Loading categories…</Text> : null}
         {catalog.isError ? (
@@ -89,7 +97,7 @@ export function HomeRepairScreen() {
         >
           <Text style={styles.primaryCtaText}>{submitting ? 'Sending…' : 'Raise a Request'}</Text>
         </Pressable>
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </View>
   );
 }

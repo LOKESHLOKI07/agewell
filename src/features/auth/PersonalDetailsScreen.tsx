@@ -1,4 +1,4 @@
-import { createElement, type ReactNode, useEffect, useRef, useState } from 'react';
+import { createElement, type ReactNode, useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
@@ -7,7 +7,6 @@ import {
   Modal,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -16,6 +15,7 @@ import {
 import { router, useLocalSearchParams, useNavigation, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { brandGreen } from '@/components/AgeWellLogo';
+import { KeyboardAwareScrollView } from '@/components/KeyboardAwareScrollView';
 import { Icon } from '@/components/ui';
 import { minTouchSize, spacing, typography } from '@/constants/theme';
 import { useI18nStore } from '@/i18n';
@@ -42,9 +42,6 @@ export function PersonalDetailsScreen() {
   const params = useLocalSearchParams<{ method?: string | string[] }>();
   const setLocale = useI18nStore((state) => state.setLocale);
   const [languageOpen, setLanguageOpen] = useState(false);
-  const scrollRef = useRef<ScrollView>(null);
-  const addressFocused = useRef(false);
-  const [keyboardInset, setKeyboardInset] = useState(0);
   const verifiedEmail = getVerifiedEmail();
   const googleName = splitFullName(getGoogleFullName());
   const {
@@ -74,34 +71,6 @@ export function PersonalDetailsScreen() {
     }
   }, [method]);
 
-  useEffect(() => {
-    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-    const show = Keyboard.addListener(showEvent, (event) => {
-      setKeyboardInset(event.endCoordinates.height);
-    });
-    const hide = Keyboard.addListener(hideEvent, () => setKeyboardInset(0));
-    return () => {
-      show.remove();
-      hide.remove();
-    };
-  }, []);
-
-  const revealAddressField = () => {
-    requestAnimationFrame(() => {
-      setTimeout(() => {
-        scrollRef.current?.scrollToEnd({ animated: true });
-      }, Platform.OS === 'ios' ? 250 : 80);
-    });
-  };
-
-  useEffect(() => {
-    if (keyboardInset <= 0 || !addressFocused.current) {
-      return;
-    }
-    revealAddressField();
-  }, [keyboardInset]);
-
   const language = watch('language');
   const languageLabel = ONBOARDING_LANGUAGES.find((item) => item.id === language)?.label;
 
@@ -116,7 +85,7 @@ export function PersonalDetailsScreen() {
   const onSubmit = (values: PersonalDetailsValues) => {
     setOnboardingProfile(values);
     setLocale(values.language);
-    router.push('/(auth)/service-for' as Href);
+    router.push('/(auth)/location' as Href);
   };
 
   return (
@@ -125,15 +94,12 @@ export function PersonalDetailsScreen() {
         <Icon name="arrow-back" size={22} color="#1A1A1A" />
       </Pressable>
 
-      <ScrollView
-        ref={scrollRef}
+      <KeyboardAwareScrollView
         style={styles.flex}
-        keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
-        automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
-          paddingBottom: insets.bottom + 24 + (Platform.OS === 'ios' ? 0 : keyboardInset),
+          paddingBottom: insets.bottom + 24,
         }}
       >
         <Text style={styles.title}>Let’s get to know you</Text>
@@ -250,15 +216,8 @@ export function PersonalDetailsScreen() {
               <FormRow label="Residential Address" error={errors.address?.message} last>
                 <TextInput
                   value={value}
-                  onBlur={() => {
-                    addressFocused.current = false;
-                    onBlur();
-                  }}
+                  onBlur={onBlur}
                   onChangeText={onChange}
-                  onFocus={() => {
-                    addressFocused.current = true;
-                    revealAddressField();
-                  }}
                   placeholder="Enter your address"
                   placeholderTextColor="#9A9A9A"
                   style={styles.input}
@@ -282,7 +241,7 @@ export function PersonalDetailsScreen() {
         >
           <Text style={styles.continueLabel}>Continue</Text>
         </Pressable>
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       <Modal visible={languageOpen} transparent animationType="fade" onRequestClose={() => setLanguageOpen(false)}>
         <Pressable style={styles.modalBackdrop} onPress={() => setLanguageOpen(false)}>

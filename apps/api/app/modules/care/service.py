@@ -6,6 +6,8 @@ from fastapi import HTTPException, status
 
 from app.modules.audit.repository import AuditRepository
 from app.modules.care.models import (
+    CARE_STAFF_KIND_CARE_MANAGER,
+    CARE_STAFF_KINDS,
     CARE_STATUS_ACTIVE,
     CARE_STATUS_DISABLED,
     CARE_STATUS_REJECTED,
@@ -18,6 +20,7 @@ from app.modules.care.schemas import (
     CareManagerCreate,
     CareManagerResponse,
     CareManagerUpdate,
+    StaffProvisionRequest,
     care_manager_display_name,
 )
 from app.modules.users.models import RoleEnum
@@ -37,7 +40,20 @@ def to_care_manager_response(row: CareManager) -> CareManagerResponse:
         languages=row.languages,
         availability=row.availability,
         status=row.status,
+        staff_kind=row.staff_kind or CARE_STAFF_KIND_CARE_MANAGER,
     )
+
+
+def normalize_staff_kind(value: Optional[str], *, default: str = CARE_STAFF_KIND_CARE_MANAGER) -> str:
+    if value is None or not str(value).strip():
+        return default
+    kind = str(value).strip().upper()
+    if kind not in CARE_STAFF_KINDS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid staff kind. Use one of: {', '.join(sorted(CARE_STAFF_KINDS))}",
+        )
+    return kind
 
 
 def normalize_care_status(value: Optional[str], *, default: str = CARE_STATUS_ACTIVE) -> str:
@@ -99,6 +115,7 @@ class CareManagerService:
         if await self.repo.get_by_employee_id(payload.employee_id):
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="employee_id already exists")
         status_value = normalize_care_status(payload.status, default=CARE_STATUS_ACTIVE)
+        staff_kind = normalize_staff_kind(payload.staff_kind)
         create_payload = CareManagerCreate(
             user_id=payload.user_id,
             employee_id=payload.employee_id,
@@ -109,6 +126,7 @@ class CareManagerService:
             languages=payload.languages,
             availability=payload.availability,
             status=status_value,
+            staff_kind=staff_kind,
         )
         row = await self.repo.create(create_payload)
         if self.audit_repo:
@@ -132,6 +150,8 @@ class CareManagerService:
                 raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="employee_id already exists")
         if "status" in data:
             data["status"] = normalize_care_status(data["status"])
+        if "staff_kind" in data:
+            data["staff_kind"] = normalize_staff_kind(data["staff_kind"])
         row = await self.repo.update(row, data)
         if self.audit_repo:
             await self.audit_repo.record(
@@ -160,6 +180,42 @@ class CareManagerService:
             )
         await commit_people_delete(self.repo.session)
         return response
+
+    async def provision_staff(self, payload: StaffProvisionRequest) -> CareManagerResponse:
+        if not self.user_repo:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="User repository missing")
+        from app.modules.users.models import AccountStatus
+        from app.modules.users.schemas import UserCreate
+        from app.modules.users.service import UserService
+
+        if await self.repo.get_by_employee_id(payload.employee_id):
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="employee_id already exists")
+
+        user_service = UserService(self.user_repo, self.audit_repo)
+        user = await user_service.create_user(
+            UserCreate(
+                email=payload.email,
+                phone=payload.phone,
+                password=payload.password,
+                role=RoleEnum.CARE_MANAGER,
+                account_status=AccountStatus.ACTIVE,
+            )
+        )
+        status_value = normalize_care_status(payload.status, default=CARE_STATUS_ACTIVE)
+        staff_kind = normalize_staff_kind(payload.staff_kind)
+        create_payload = CareManagerCreate(
+            user_id=user.id,
+            employee_id=payload.employee_id,
+            first_name=payload.first_name,
+            last_name=payload.last_name,
+            skills=payload.skills,
+            experience=payload.experience,
+            languages=payload.languages,
+            availability=payload.availability,
+            status=status_value,
+            staff_kind=staff_kind,
+        )
+        return await self.create_care_manager(create_payload)
 
     async def approve_care_manager(
         self, care_manager_id: UUID, payload: CareManagerApproval

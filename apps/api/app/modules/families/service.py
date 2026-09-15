@@ -9,6 +9,7 @@ from app.modules.audit.repository import AuditRepository
 from app.modules.families.repository import FamilyRepository
 from app.modules.families.schemas import FamilyMemberCreate, FamilyMemberResponse, FamilyMemberUpdate
 from app.modules.seniors.schemas import SeniorResponse
+from app.modules.seniors.service import to_senior_response
 from app.modules.users.models import RoleEnum, User
 from app.modules.users.repository import UserRepository
 
@@ -33,7 +34,7 @@ class FamilyService:
     async def list_authorized_seniors(self, user: User) -> list[SeniorResponse]:
         family = await self._require_family_member(user)
         seniors = await self.repo.list_authorized_seniors(family.id)
-        return [SeniorResponse.model_validate(senior) for senior in seniors]
+        return [to_senior_response(senior) for senior in seniors]
 
     async def list_families(self, *, limit: int = 50, offset: int = 0) -> ListPage[FamilyMemberResponse]:
         rows, total = await self.repo.list_families(limit=limit, offset=offset)

@@ -33,10 +33,20 @@ class SeniorBase(BaseModel):
     address: str
     emergency_contact: str
     preferred_language: Optional[str] = None
+    family_contact_1_name: Optional[str] = None
+    family_contact_1_phone: Optional[str] = None
+    family_contact_2_name: Optional[str] = None
+    family_contact_2_phone: Optional[str] = None
+    preferred_hospital: Optional[str] = None
 
 
 class SeniorCreate(SeniorBase):
     user_id: UUID4
+    in_service_area: Optional[bool] = None
+    location_lat: Optional[float] = None
+    location_lng: Optional[float] = None
+    location_query: Optional[str] = None
+    location_source: Optional[str] = None
 
 
 class SeniorUpdate(BaseModel):
@@ -46,13 +56,29 @@ class SeniorUpdate(BaseModel):
     address: Optional[str] = None
     emergency_contact: Optional[str] = None
     preferred_language: Optional[str] = None
+    family_contact_1_name: Optional[str] = None
+    family_contact_1_phone: Optional[str] = None
+    family_contact_2_name: Optional[str] = None
+    family_contact_2_phone: Optional[str] = None
+    preferred_hospital: Optional[str] = None
     email: Optional[str] = None
     phone: Optional[str] = None
     photo: Optional[str] = None
+    in_service_area: Optional[bool] = None
+    care_manager_id: Optional[UUID4] = None
+    location_lat: Optional[float] = None
+    location_lng: Optional[float] = None
+    location_query: Optional[str] = None
+    location_source: Optional[str] = None
 
 
 class SeniorPhotoUpdate(BaseModel):
     photo: Optional[str] = None
+    in_service_area: Optional[bool] = None
+    location_lat: Optional[float] = None
+    location_lng: Optional[float] = None
+    location_query: Optional[str] = None
+    location_source: Optional[str] = None
 
 
 class SeniorResponse(SeniorBase):
@@ -61,6 +87,12 @@ class SeniorResponse(SeniorBase):
     id: UUID4
     user_id: UUID4
     photo: Optional[str] = None
+    in_service_area: bool = False
+    care_manager_id: Optional[UUID4] = None
+    location_lat: Optional[float] = None
+    location_lng: Optional[float] = None
+    location_query: Optional[str] = None
+    location_source: Optional[str] = None
 
 
 class SeniorDirectoryItem(SeniorResponse):
@@ -68,3 +100,4 @@ class SeniorDirectoryItem(SeniorResponse):
     phone: Optional[str] = None
     account_status: Optional[str] = None
     photo: Optional[str] = Field(default=None, exclude=True)
+    has_membership: bool = False

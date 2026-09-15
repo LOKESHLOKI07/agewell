@@ -6,16 +6,18 @@ from httpx import ASGITransport, AsyncClient
 
 from app.main import app
 from app.modules.notifications.emergency_copy import (
-    care_manager_emergency_copy,
     family_emergency_copy,
     senior_emergency_copy,
 )
+from tests.emergency_helpers import close_active_emergencies, ensure_senior_in_service_area
 
 SENIOR_EMAIL = "senior@example.com"
 SENIOR2_EMAIL = "senior2@example.com"
 FAMILY_EMAIL = "family@example.com"
 FAMILY2_EMAIL = "family2@example.com"
 CARE_EMAIL = "care@example.com"
+ADMIN_EMAIL = "admin@example.com"
+COMPANION_EMAIL = "companion@example.com"
 PASSWORD = "password123"
 MISSING_ID = "00000000-0000-0000-0000-000000000001"
 FORBIDDEN_COPY = (
@@ -160,6 +162,9 @@ async def test_emergency_create_fans_out_in_app_notifications(client):
     care = await login(client, CARE_EMAIL)
     other = await login(client, SENIOR2_EMAIL)
     john = (await client.get("/api/v1/seniors/me", headers=auth_header(senior))).json()
+    admin = await login(client, ADMIN_EMAIL)
+    await ensure_senior_in_service_area(client, john["id"], admin, True)
+    await close_active_emergencies(client, senior, admin)
 
     before = {
         "senior": ids(await list_notifications(client, senior)),
@@ -185,14 +190,20 @@ async def test_emergency_create_fans_out_in_app_notifications(client):
     care_new = [item for item in after["care"]["items"] if item["id"] not in before["care"]]
     assert len(senior_new) == 1
     assert len(family_new) == 1
-    assert len(care_new) == 1
+    # Care Manager is staged for +30s escalation — not notified at create.
+    assert len(care_new) == 0
     assert ids(after["family2"]).issubset(before["family2"])
     assert ids(after["other"]).issubset(before["other"])
+
+    by_role = {item["role"]: item for item in created.json()["recipients"]}
+    assert by_role["FAMILY"]["notified_at"] is not None
+    assert by_role["COMPANION"]["notified_at"] is not None
+    assert by_role["CARE_MANAGER"]["notified_at"] is None
+    assert by_role["AGEWELL_SUPPORT"]["notified_at"] is None
 
     type_label = "Hospital Assistance"
     senior_title, senior_message = senior_emergency_copy(type_label)
     family_title, family_message = family_emergency_copy(john["first_name"], type_label)
-    care_title, care_message = care_manager_emergency_copy(type_label)
 
     assert senior_new[0]["priority"] == "EMERGENCY"
     assert senior_new[0]["is_read"] is False
@@ -200,9 +211,8 @@ async def test_emergency_create_fans_out_in_app_notifications(client):
     assert senior_new[0]["message"] == senior_message
     assert family_new[0]["title"] == family_title
     assert family_new[0]["message"] == family_message
-    assert care_new[0]["title"] == care_title
-    assert care_new[0]["message"] == care_message
-    for item in (*senior_new, *family_new, *care_new):
+    assert "ambulance" not in family_new[0]["message"].lower()
+    for item in (*senior_new, *family_new):
         assert_in_app_copy(item)
 
 
@@ -211,6 +221,10 @@ async def test_unauthorized_family_does_not_receive_emergency_notification(clien
     family2 = await login(client, FAMILY2_EMAIL)
     before = ids(await list_notifications(client, family2))
     senior = await login(client, SENIOR_EMAIL)
+    admin = await login(client, ADMIN_EMAIL)
+    john = (await client.get("/api/v1/seniors/me", headers=auth_header(senior))).json()
+    await ensure_senior_in_service_area(client, john["id"], admin, True)
+    await close_active_emergencies(client, senior, admin)
     created = await client.post("/api/v1/emergency/", headers=auth_header(senior), json={"type": "MEDICAL"})
     assert created.status_code == 200
     after = await list_notifications(client, family2)
@@ -223,9 +237,13 @@ async def test_notifications_openapi(client):
     paths = spec["paths"]
     assert "get" in paths["/api/v1/notifications/"]
     assert "post" in paths["/api/v1/notifications/read-all"]
+    assert "post" in paths["/api/v1/notifications/device-tokens"]
+    assert "delete" in paths["/api/v1/notifications/device-tokens"]
     assert "get" in paths["/api/v1/notifications/{notification_id}"]
     assert "post" in paths["/api/v1/notifications/{notification_id}/read"]
     schema = spec["components"]["schemas"]["NotificationResponse"]["properties"]
     assert set(schema.keys()) == {"id", "title", "message", "priority", "is_read", "created_at"}
     assert "user_id" not in schema
     assert "emergency_case_id" not in schema
+    token_schema = spec["components"]["schemas"]["DevicePushTokenRegister"]["properties"]
+    assert {"token", "platform", "app_variant"}.issubset(token_schema.keys())

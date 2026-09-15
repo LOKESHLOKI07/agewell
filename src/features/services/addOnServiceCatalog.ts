@@ -6,7 +6,7 @@ function addonHref(id: string): Href {
   return { pathname: '/addons/[id]', params: { id } } as Href;
 }
 
-/** Home-screen add-on shortcuts — each tile opens its own Book Now screen. */
+/** Home-screen add-on shortcuts — Food uses the full meal catalog screen. */
 export const ADD_ON_SERVICES: HomeServiceTile[] = [
   {
     id: 'emergency-companion',
@@ -42,6 +42,15 @@ export const ADD_ON_SERVICES: HomeServiceTile[] = [
     color: familyHome.orange,
     background: familyHome.yellowSoft,
     href: addonHref('ayurvedic-massage'),
+    bookable: true,
+  },
+  {
+    id: 'food',
+    title: 'Food Delivery',
+    icon: 'restaurant-outline',
+    color: familyHome.orange,
+    background: familyHome.orangeSoft,
+    href: '/membership/food' as Href,
     bookable: true,
   },
 ];

@@ -7,10 +7,17 @@ import { AgeWellHeader } from '@/features/home/components/AgeWellHeader';
 import { familyHome } from '@/features/home/components/familyHomeTheme';
 import { LAB_SLOTS } from './mockHealth';
 import { MembershipServiceHero } from './MembershipServiceHero';
+import { gatedMembershipScreen } from './MembershipServiceGate';
 import { useMembershipSubmit } from './useMembershipSubmit';
 import { useServiceOfferings } from './useCatalog';
 
-export function LabTestingScreen() {
+export const LabTestingScreen = gatedMembershipScreen(
+  'lab-testing',
+  'Lab Testing',
+  LabTestingLive,
+);
+
+function LabTestingLive() {
   const insets = useSafeAreaInsets();
   const catalog = useServiceOfferings('lab-testing');
   const tests = catalog.data ?? [];

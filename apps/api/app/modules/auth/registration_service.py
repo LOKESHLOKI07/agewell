@@ -12,7 +12,7 @@ from app.modules.auth.schemas import (
     RegisterSeniorRequest,
     RegistrationResponse,
 )
-from app.modules.care.models import CARE_STATUS_PENDING, CareManager
+from app.modules.care.models import CARE_STAFF_KIND_CARE_MANAGER, CARE_STATUS_PENDING, CareManager
 from app.modules.families.models import FamilyMember
 from app.modules.seniors.models import Senior
 from app.modules.users.models import AccountStatus, RoleEnum, User
@@ -105,6 +105,15 @@ class RegistrationService:
             emergency_contact=payload.emergency_contact.strip(),
             preferred_language=(payload.preferred_language or "").strip() or None,
             membership_kind=(payload.membership_kind or "").strip() or None,
+            in_service_area=payload.in_service_area,
+            location_lat=payload.location_lat if (payload.location_source or "").strip().lower() == "gps" else None,
+            location_lng=payload.location_lng if (payload.location_source or "").strip().lower() == "gps" else None,
+            location_query=(
+                (payload.location_query or "").strip() or None
+                if (payload.location_source or "").strip().lower() == "manual"
+                else None
+            ),
+            location_source=(payload.location_source or "").strip() or None,
         )
         self.session.add(senior)
         await self.session.commit()
@@ -175,6 +184,7 @@ class RegistrationService:
             languages=(payload.languages or "").strip() or None,
             availability=(payload.availability or "").strip() or None,
             status=CARE_STATUS_PENDING,
+            staff_kind=payload.staff_kind or CARE_STAFF_KIND_CARE_MANAGER,
         )
         self.session.add(care)
         await self.session.commit()

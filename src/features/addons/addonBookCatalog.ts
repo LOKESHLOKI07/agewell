@@ -24,10 +24,14 @@ export const ADDON_BOOK_NOW: AddonBookNow[] = [
     icon: 'heart-outline',
     color: familyHome.purple,
     background: familyHome.purpleSoft,
-    lines: ['At Hospital Companion'],
+    lines: [
+      'Hospital companion during hospitalization',
+      'Handles procedures, family updates and discharge',
+      '8–10 hours · extra cost based on availability',
+    ],
     options: [
-      { id: '12h', label: '12 Hours', price: '₹1,800' },
-      { id: '24h', label: '24 Hours', price: '₹3,500' },
+      { id: '8h', label: '8 Hours', price: 'Based on availability' },
+      { id: '10h', label: '10 Hours', price: 'Based on availability' },
     ],
   },
   {
@@ -44,7 +48,7 @@ export const ADDON_BOOK_NOW: AddonBookNow[] = [
     icon: 'home',
     color: familyHome.green,
     background: familyHome.greenSoft,
-    lines: ['House & Utensils Cleaning, Cloth Drying', '₹3,000 / Month'],
+    lines: ['House & utensil cleaning, stock drying', '₹6,500 / month'],
   },
   {
     slug: 'ayurvedic-massage',
@@ -52,7 +56,11 @@ export const ADDON_BOOK_NOW: AddonBookNow[] = [
     icon: 'sparkles',
     color: familyHome.orange,
     background: familyHome.yellowSoft,
-    lines: ['Relax & Rejuvenate', 'Starting at ₹800'],
+    lines: ['Ayurvedic massage at home by a certified therapist'],
+    options: [
+      { id: '45min', label: '45 mins', price: '₹1,500' },
+      { id: '60min', label: '60 mins', price: '₹2,000' },
+    ],
   },
 ];
 

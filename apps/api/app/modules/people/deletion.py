@@ -3,25 +3,28 @@
 from uuid import UUID
 
 from fastapi import HTTPException, status
-from sqlalchemy import delete, select, update
+from sqlalchemy import delete, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.access.models import FamilySeniorAccess
 from app.modules.appointments.models import Appointment
-from app.modules.care.models import CareManager
+from app.modules.attendance.models import StaffAttendance
+from app.modules.care.models import CareManager, CareManagerActivity
 from app.modules.community.models import EventRegistration
+from app.modules.deliveries.models import StaffDelivery
 from app.modules.documents.models import DocumentMetadata
-from app.modules.emergency.models import EmergencyCase, EmergencyEvent
+from app.modules.emergency.models import EmergencyCase, EmergencyEvent, EmergencyRecipient
 from app.modules.families.models import FamilyMember
 from app.modules.healthcare.models import HealthDocument, LabResult, MedicalRecord, Medication, MedicationSchedule
 from app.modules.memberships.models import Membership, MembershipRequest, MembershipUsageLedger
-from app.modules.notifications.models import Notification, NotificationPreference
+from app.modules.notifications.models import DevicePushToken, Notification, NotificationPreference
 from app.modules.orders.models import Order, OrderItem
 from app.modules.payments.models import Payment, PaymentTransaction
 from app.modules.seniors.models import Senior
 from app.modules.services.models import ServiceRequest
 from app.modules.tracking.models import LocationPoint, LocationSession
+from app.modules.training.models import StaffDocument, StaffTrainingProgress
 from app.modules.users.models import User
 from app.modules.visits.models import Visit, VisitReport, VisitTask
 
@@ -40,6 +43,14 @@ async def commit_people_delete(session: AsyncSession) -> None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=STILL_LINKED) from None
 
 
+async def _flush_people_delete(session: AsyncSession) -> None:
+    try:
+        await session.flush()
+    except IntegrityError:
+        await session.rollback()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=STILL_LINKED) from None
+
+
 async def delete_senior_record(session: AsyncSession, senior_id, *, also_user: bool = True) -> None:
     senior_id = _uid(senior_id)
     senior = (await session.execute(select(Senior).where(Senior.id == senior_id))).scalars().first()
@@ -49,11 +60,13 @@ async def delete_senior_record(session: AsyncSession, senior_id, *, also_user: b
     session.expunge_all()
 
     visit_ids = select(Visit.id).where(Visit.senior_id == senior_id)
+    await session.execute(delete(CareManagerActivity).where(CareManagerActivity.senior_id == senior_id))
     await session.execute(delete(VisitTask).where(VisitTask.visit_id.in_(visit_ids)))
     await session.execute(delete(VisitReport).where(VisitReport.visit_id.in_(visit_ids)))
     await session.execute(delete(Visit).where(Visit.senior_id == senior_id))
 
     case_ids = select(EmergencyCase.id).where(EmergencyCase.senior_id == senior_id)
+    await session.execute(delete(EmergencyRecipient).where(EmergencyRecipient.case_id.in_(case_ids)))
     await session.execute(delete(EmergencyEvent).where(EmergencyEvent.case_id.in_(case_ids)))
     await session.execute(delete(EmergencyCase).where(EmergencyCase.senior_id == senior_id))
 
@@ -71,9 +84,18 @@ async def delete_senior_record(session: AsyncSession, senior_id, *, also_user: b
 
     await session.execute(delete(FamilySeniorAccess).where(FamilySeniorAccess.senior_id == senior_id))
     await session.execute(delete(Appointment).where(Appointment.senior_id == senior_id))
+    request_ids = select(ServiceRequest.id).where(ServiceRequest.senior_id == senior_id)
+    await session.execute(
+        delete(StaffDelivery).where(
+            or_(
+                StaffDelivery.senior_id == senior_id,
+                StaffDelivery.service_request_id.in_(request_ids),
+            )
+        )
+    )
     await session.execute(delete(ServiceRequest).where(ServiceRequest.senior_id == senior_id))
     await session.execute(delete(Senior).where(Senior.id == senior_id))
-    await session.flush()
+    await _flush_people_delete(session)
 
     if also_user and user_id is not None:
         await delete_user_record(session, user_id, also_profile=False)
@@ -88,7 +110,7 @@ async def delete_family_record(session: AsyncSession, family_id, *, also_user: b
     session.expunge_all()
     await session.execute(delete(FamilySeniorAccess).where(FamilySeniorAccess.family_id == family_id))
     await session.execute(delete(FamilyMember).where(FamilyMember.id == family_id))
-    await session.flush()
+    await _flush_people_delete(session)
     if also_user and user_id is not None:
         await delete_user_record(session, user_id, also_profile=False)
 
@@ -101,10 +123,18 @@ async def delete_care_record(session: AsyncSession, care_manager_id, *, also_use
     user_id = care.user_id
     session.expunge_all()
     await session.execute(
+        update(Senior).where(Senior.care_manager_id == care_manager_id).values(care_manager_id=None)
+    )
+    await session.execute(delete(CareManagerActivity).where(CareManagerActivity.care_manager_id == care_manager_id))
+    await session.execute(delete(StaffDelivery).where(StaffDelivery.care_manager_id == care_manager_id))
+    await session.execute(delete(StaffAttendance).where(StaffAttendance.care_manager_id == care_manager_id))
+    await session.execute(delete(StaffTrainingProgress).where(StaffTrainingProgress.care_manager_id == care_manager_id))
+    await session.execute(delete(StaffDocument).where(StaffDocument.care_manager_id == care_manager_id))
+    await session.execute(
         update(Visit).where(Visit.care_manager_id == care_manager_id).values(care_manager_id=None)
     )
     await session.execute(delete(CareManager).where(CareManager.id == care_manager_id))
-    await session.flush()
+    await _flush_people_delete(session)
     if also_user and user_id is not None:
         await delete_user_record(session, user_id, also_profile=False)
 
@@ -150,6 +180,7 @@ async def delete_user_record(
     await session.execute(delete(EventRegistration).where(EventRegistration.user_id == user_id))
     await session.execute(delete(DocumentMetadata).where(DocumentMetadata.owner_id == user_id))
     await session.execute(delete(NotificationPreference).where(NotificationPreference.user_id == user_id))
+    await session.execute(delete(DevicePushToken).where(DevicePushToken.user_id == user_id))
     await session.execute(delete(Notification).where(Notification.user_id == user_id))
     await session.execute(delete(User).where(User.id == user_id))
-    await session.flush()
+    await _flush_people_delete(session)

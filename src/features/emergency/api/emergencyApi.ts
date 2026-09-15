@@ -3,7 +3,13 @@ import { toApiError } from '@/api/errors';
 import { toListPage } from '@/features/home/api/mappers';
 import type { ListPage } from '@/features/home/types/home';
 import { toEmergencyCase, toEmergencyCreateBody, toEmergencyEvent } from '../mappers';
-import type { EmergencyCase, EmergencyEvent, EmergencyType } from '../types/emergency';
+import type {
+  EmergencyCase,
+  EmergencyEvent,
+  EmergencyReportUpdate,
+  EmergencyTriggerSource,
+  EmergencyType,
+} from '../types/emergency';
 
 export async function fetchEmergencyCases(): Promise<ListPage<EmergencyCase>> {
   try {
@@ -32,9 +38,30 @@ export async function fetchEmergencyEvents(id: string): Promise<ListPage<Emergen
   }
 }
 
-export async function createEmergency(type: EmergencyType): Promise<EmergencyCase> {
+export async function createEmergency(
+  type: EmergencyType,
+  triggerSource: EmergencyTriggerSource = 'APP_SOS',
+): Promise<EmergencyCase> {
   try {
-    const response = await apiClient.post('/emergency/', toEmergencyCreateBody(type));
+    const response = await apiClient.post('/emergency/', toEmergencyCreateBody(type, triggerSource));
+    return toEmergencyCase(response.data);
+  } catch (error) {
+    throw toApiError(error);
+  }
+}
+
+export async function acknowledgeEmergency(id: string): Promise<EmergencyCase> {
+  try {
+    const response = await apiClient.post(`/emergency/${id}/acknowledge`);
+    return toEmergencyCase(response.data);
+  } catch (error) {
+    throw toApiError(error);
+  }
+}
+
+export async function updateEmergencyReport(id: string, payload: EmergencyReportUpdate): Promise<EmergencyCase> {
+  try {
+    const response = await apiClient.patch(`/emergency/${id}/report`, payload);
     return toEmergencyCase(response.data);
   } catch (error) {
     throw toApiError(error);

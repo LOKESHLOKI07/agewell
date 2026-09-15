@@ -5,9 +5,16 @@ import { spacing, typography } from '@/constants/theme';
 import { AgeWellHeader } from '@/features/home/components/AgeWellHeader';
 import { familyHome } from '@/features/home/components/familyHomeTheme';
 import { MembershipServiceHero } from './MembershipServiceHero';
+import { gatedMembershipScreen } from './MembershipServiceGate';
 import { CCTV_ACTIVITY } from './mockLifestyle';
 
-export function CctvDashboardScreen() {
+export const CctvDashboardScreen = gatedMembershipScreen(
+  'cctv',
+  'CCTV Dashboard',
+  CctvDashboardLive,
+);
+
+function CctvDashboardLive() {
   const insets = useSafeAreaInsets();
 
   const onControl = (action: string) => {

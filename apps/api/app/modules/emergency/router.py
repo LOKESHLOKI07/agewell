@@ -4,18 +4,25 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user, get_db, require_staff
+from app.api.deps import get_current_user, get_db, require_care_or_staff
 from app.api.schemas import ListPage
 from app.modules.access.repository import AccessRepository
 from app.modules.access.service import AccessService
+from app.modules.audit.repository import AuditRepository
 from app.modules.emergency.models import EmergencyStatus, EmergencyType
 from app.modules.emergency.repository import EmergencyRepository
-from app.modules.emergency.schemas import EmergencyCaseResponse, EmergencyCreate, EmergencyEventResponse, EmergencyStatusUpdate
-from app.modules.emergency.service import EmergencyService, to_case_response
+from app.modules.emergency.schemas import (
+    EmergencyCaseResponse,
+    EmergencyCreate,
+    EmergencyEventResponse,
+    EmergencyReportUpdate,
+    EmergencyStatusUpdate,
+)
+from app.modules.emergency.service import EmergencyService
+from app.modules.memberships.repository import MembershipRepository
 from app.modules.notifications.repository import NotificationRepository
 from app.modules.seniors.repository import SeniorRepository
 from app.modules.users.models import User
-from app.modules.audit.repository import AuditRepository
 
 router = APIRouter()
 
@@ -27,6 +34,7 @@ def get_emergency_service(db: AsyncSession = Depends(get_db)):
         AccessRepository(db),
         SeniorRepository(db),
         AuditRepository(db),
+        MembershipRepository(db),
     )
 
 
@@ -64,7 +72,7 @@ async def create_emergency_case(
     service: EmergencyService = Depends(get_emergency_service),
 ):
     senior_id = await access.resolve_emergency_senior_id(current_user, payload.senior_id)
-    return await service.create_case(payload, senior_id)
+    return await service.create_case(payload, senior_id, current_user)
 
 
 @router.get("/{emergency_id}/events", response_model=ListPage[EmergencyEventResponse])
@@ -90,14 +98,42 @@ async def get_emergency_case(
 ):
     case = await service.get_case(emergency_id)
     await access.ensure_emergency_access(current_user, case.senior_id)
-    return to_case_response(case)
+    return await service.to_case_response(case)
+
+
+@router.post("/{emergency_id}/acknowledge", response_model=EmergencyCaseResponse)
+async def acknowledge_emergency(
+    emergency_id: UUID,
+    current_user: User = Depends(get_current_user),
+    access: AccessService = Depends(get_access_service),
+    service: EmergencyService = Depends(get_emergency_service),
+):
+    case = await service.get_case(emergency_id)
+    await access.ensure_emergency_access(current_user, case.senior_id)
+    return await service.acknowledge(emergency_id, current_user)
+
+
+@router.patch("/{emergency_id}/report", response_model=EmergencyCaseResponse)
+async def update_emergency_report(
+    emergency_id: UUID,
+    payload: EmergencyReportUpdate,
+    current_user: User = Depends(require_care_or_staff),
+    access: AccessService = Depends(get_access_service),
+    service: EmergencyService = Depends(get_emergency_service),
+):
+    case = await service.get_case(emergency_id)
+    await access.ensure_emergency_access(current_user, case.senior_id)
+    return await service.update_report(emergency_id, payload, current_user)
 
 
 @router.patch("/{emergency_id}", response_model=EmergencyCaseResponse)
 async def update_emergency_status(
     emergency_id: UUID,
     payload: EmergencyStatusUpdate,
-    _staff: User = Depends(require_staff),
+    current_user: User = Depends(require_care_or_staff),
+    access: AccessService = Depends(get_access_service),
     service: EmergencyService = Depends(get_emergency_service),
 ):
-    return await service.update_status(emergency_id, payload.status)
+    case = await service.get_case(emergency_id)
+    await access.ensure_emergency_access(current_user, case.senior_id)
+    return await service.update_status(emergency_id, payload.status, current_user)

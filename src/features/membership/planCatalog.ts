@@ -1,16 +1,19 @@
 import { getMembershipKind } from '@/features/auth/membershipPlanPreference';
-import { getOnboardingServiceFor } from '@/features/auth/onboardingProfile';
 import type { Href } from 'expo-router';
 
-export type MembershipPlanKey = 'basic' | 'couple';
+export type MembershipPlanKey = 'single' | 'couple';
+
+export const MEMBERSHIP_ONBOARDING_NOTE =
+  'Onboarding takes time. Services cannot start instantly after a medical emergency — take membership beforehand.';
 
 export const MEMBERSHIP_PLAN_CATALOG = [
   {
-    key: 'basic' as const,
-    name: 'Basic Membership',
-    blurb: 'Full AgeWell Basic care for one senior.',
+    key: 'single' as const,
+    name: 'Single Membership',
+    blurb: 'Full AgeWell care for one senior.',
     features: [
-      '19 membership services included',
+      '21 membership services included',
+      '20 companion visits / month (up to 30 mins)',
       'Entrance CCTV add-on available',
       '2 panic buttons with CCTV pack',
     ],
@@ -22,7 +25,8 @@ export const MEMBERSHIP_PLAN_CATALOG = [
     name: 'Couple Membership',
     blurb: 'Shared care cover for two seniors in one home.',
     features: [
-      '19 membership services for the couple',
+      '21 membership services for the couple',
+      '20 companion visits / month (up to 30 mins)',
       'Entrance CCTV add-on available',
       '3 panic buttons with CCTV pack',
     ],
@@ -32,15 +36,18 @@ export const MEMBERSHIP_PLAN_CATALOG = [
 ] as const;
 
 export function getMembershipPlanByKey(key: string | undefined): (typeof MEMBERSHIP_PLAN_CATALOG)[number] | undefined {
-  return MEMBERSHIP_PLAN_CATALOG.find((plan) => plan.key === key);
+  const normalized = key === 'basic' ? 'single' : key;
+  return MEMBERSHIP_PLAN_CATALOG.find((plan) => plan.key === normalized);
 }
 
-/** Prefer the onboarding Single/Couple choice; default to Basic when unknown. */
+/** Default to Single when no plan is specified. */
 export function preferredMembershipPlanKey(): MembershipPlanKey {
-  const kind = getMembershipKind() ?? getOnboardingServiceFor();
-  return kind === 'couple' ? 'couple' : 'basic';
+  return getMembershipKind() === 'couple' ? 'couple' : 'single';
 }
 
-export function membershipPurchaseHref(planKey: MembershipPlanKey): Href {
+export function membershipPurchaseHref(planKey?: MembershipPlanKey): Href {
+  if (!planKey) {
+    return '/account/purchase';
+  }
   return { pathname: '/account/purchase', params: { plan: planKey } };
 }

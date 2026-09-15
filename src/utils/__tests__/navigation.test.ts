@@ -27,6 +27,6 @@ describe('safeGoBack', () => {
     expect(back).not.toHaveBeenCalled();
     expect(replace).toHaveBeenCalledWith('/(tabs)');
     expect(fallbackHomeHref('FAMILY')).toBe('/(tabs)');
-    expect(fallbackHomeHref('CARE_MANAGER')).toBe('/(care)');
+    expect(fallbackHomeHref('CARE_MANAGER')).toBe('/role-unavailable?role=CARE_MANAGER');
   });
 });

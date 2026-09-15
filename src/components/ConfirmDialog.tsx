@@ -11,6 +11,8 @@ interface ConfirmDialogProps {
   cancelLabel?: string;
   onConfirm: () => void;
   onCancel: () => void;
+  busy?: boolean;
+  error?: string | null;
 }
 
 export function ConfirmDialog({
@@ -21,18 +23,28 @@ export function ConfirmDialog({
   cancelLabel = 'Cancel',
   onConfirm,
   onCancel,
+  busy = false,
+  error = null,
 }: ConfirmDialogProps) {
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={busy ? undefined : onCancel}>
       <View style={styles.overlay}>
-        <Pressable style={styles.backdrop} onPress={onCancel} accessibilityLabel="Close dialog" />
-        <View style={styles.card} accessibilityRole="alert">
-          <Text style={styles.title}>{title}</Text>
-          <Text style={styles.message}>{message}</Text>
-          <View style={styles.actions}>
-            <SecondaryButton label={cancelLabel} onPress={onCancel} />
-            <View style={styles.gap} />
-            <PrimaryButton label={confirmLabel} onPress={onConfirm} />
+        <Pressable
+          style={styles.backdrop}
+          onPress={busy ? undefined : onCancel}
+          accessibilityRole="button"
+          accessibilityLabel="Close dialog"
+          disabled={busy}
+        />
+        <View style={styles.cardWrap}>
+          <View style={styles.card} accessibilityRole="alert">
+            <Text style={styles.title}>{title}</Text>
+            <Text style={styles.message}>{message}</Text>
+            {error ? <Text style={styles.error}>{error}</Text> : null}
+            <View style={styles.actions}>
+              <SecondaryButton label={cancelLabel} onPress={onCancel} disabled={busy} />
+              <PrimaryButton label={confirmLabel} onPress={onConfirm} loading={busy} disabled={busy} />
+            </View>
           </View>
         </View>
       </View>
@@ -43,19 +55,19 @@ export function ConfirmDialog({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: colors.overlay,
-    justifyContent: 'center',
-    padding: spacing.xxl,
   },
   backdrop: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    bottom: 0,
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: colors.overlay,
+  },
+  cardWrap: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    padding: spacing.xxl,
+    zIndex: 2,
+    pointerEvents: 'box-none',
   },
   card: {
-    zIndex: 1,
     backgroundColor: colors.surfaceElevated,
     borderRadius: radius.xl,
     padding: spacing.xxl,
@@ -68,12 +80,14 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.textSecondary,
     marginTop: spacing.md,
-    marginBottom: spacing.xxl,
+    marginBottom: spacing.lg,
+  },
+  error: {
+    ...typography.caption,
+    color: colors.emergency,
+    marginBottom: spacing.lg,
   },
   actions: {
     gap: spacing.md,
-  },
-  gap: {
-    height: 0,
   },
 });

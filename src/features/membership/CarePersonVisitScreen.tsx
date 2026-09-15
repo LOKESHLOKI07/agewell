@@ -4,6 +4,7 @@ import { Avatar, Icon } from '@/components/ui';
 import { spacing, typography } from '@/constants/theme';
 import { AgeWellHeader } from '@/features/home/components/AgeWellHeader';
 import { familyHome } from '@/features/home/components/familyHomeTheme';
+import { MembershipServiceGate } from './MembershipServiceGate';
 import type { MembershipCarePerson } from './mockStaff';
 import { MembershipServiceHero } from './MembershipServiceHero';
 
@@ -14,7 +15,18 @@ type Props = {
   slug?: string;
 };
 
-export function CarePersonVisitScreen({ title, person, videoHint, slug }: Props) {
+export function CarePersonVisitScreen(props: Props) {
+  if (!props.slug) {
+    return <CarePersonVisitBody {...props} />;
+  }
+  return (
+    <MembershipServiceGate slug={props.slug} title={props.title}>
+      <CarePersonVisitBody {...props} />
+    </MembershipServiceGate>
+  );
+}
+
+function CarePersonVisitBody({ title, person, videoHint, slug }: Props) {
   const insets = useSafeAreaInsets();
 
   const onCall = () => {

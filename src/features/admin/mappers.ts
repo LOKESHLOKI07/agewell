@@ -3,6 +3,7 @@ import { isAuthRole } from '@/features/auth/authTypes';
 import { toListPage } from '@/features/home/api/mappers';
 import type { NotificationPriority } from '@/features/home/types/home';
 import { toIsoDate } from '@/utils/date';
+import { parseStaffKind } from '@/features/care/staffKind';
 import type {
   AdminAuditLog,
   AdminCareManager,
@@ -82,9 +83,24 @@ export function toAdminSenior(payload: unknown): AdminSenior {
     address: asString(data.address, 'senior.address'),
     emergencyContact: asString(data.emergency_contact, 'senior.emergency_contact'),
     preferredLanguage: asOptionalString(data.preferred_language),
+    familyContact1Name: asOptionalString(data.family_contact_1_name),
+    familyContact1Phone: asOptionalString(data.family_contact_1_phone),
+    familyContact2Name: asOptionalString(data.family_contact_2_name),
+    familyContact2Phone: asOptionalString(data.family_contact_2_phone),
+    preferredHospital: asOptionalString(data.preferred_hospital),
     email: asOptionalString(data.email),
     phone: asOptionalString(data.phone),
     accountStatus: asOptionalString(data.account_status),
+    inServiceArea: Boolean(data.in_service_area),
+    locationLat: asOptionalNumber(data.location_lat),
+    locationLng: asOptionalNumber(data.location_lng),
+    locationQuery: asOptionalString(data.location_query),
+    locationSource:
+      data.location_source === 'gps' || data.location_source === 'manual'
+        ? data.location_source
+        : null,
+    hasMembership: Boolean(data.has_membership),
+    careManagerId: asOptionalString(data.care_manager_id),
   };
 }
 
@@ -110,6 +126,7 @@ export function toAdminCareManager(payload: unknown): AdminCareManager {
     languages: asOptionalString(data.languages),
     availability: asOptionalString(data.availability),
     status: asOptionalString(data.status),
+    staffKind: parseStaffKind(data.staff_kind),
   };
 }
 

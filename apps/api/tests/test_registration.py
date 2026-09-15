@@ -116,6 +116,7 @@ async def test_care_associate_application_is_pending(client):
             "experience": "3 years",
             "languages": "English, Hindi",
             "availability": "Weekdays",
+            "staff_kind": "COMPANION",
         },
     )
     assert response.status_code == 200, response.text
@@ -130,6 +131,42 @@ async def test_care_associate_application_is_pending(client):
     assert len(rows) == 1
     assert rows[0]["status"] == "PENDING"
     assert rows[0]["skills"] == "Companionship"
+    assert rows[0]["staff_kind"] == "COMPANION"
+
+
+@pytest.mark.asyncio
+async def test_care_associate_application_defaults_staff_kind(client):
+    email = unique_email("care-default")
+    response = await client.post(
+        "/api/v1/auth/register/care-associate",
+        json={
+            "first_name": "Asha",
+            "last_name": "Patel",
+            "email": email,
+            "phone": unique_phone(),
+            "password": PASSWORD,
+        },
+    )
+    assert response.status_code == 200, response.text
+    token = response.json()["access_token"]
+    profile = await client.get("/api/v1/care/", headers=auth_header(token))
+    assert profile.json()[0]["staff_kind"] == "CARE_MANAGER"
+
+
+@pytest.mark.asyncio
+async def test_care_associate_rejects_invalid_staff_kind(client):
+    response = await client.post(
+        "/api/v1/auth/register/care-associate",
+        json={
+            "first_name": "Priya",
+            "last_name": "Nair",
+            "email": unique_email("care-bad"),
+            "phone": unique_phone(),
+            "password": PASSWORD,
+            "staff_kind": "DRIVER",
+        },
+    )
+    assert response.status_code == 422
 
 
 @pytest.mark.asyncio
@@ -262,6 +299,40 @@ async def test_admin_approves_care_associate_before_visit_assignment(client):
         },
     )
     assert allowed.status_code == 200, allowed.text
+
+
+@pytest.mark.asyncio
+async def test_admin_provisions_staff_with_login_and_role(client):
+    admin = await login(client, "admin@example.com")
+    email = unique_email("provisioned")
+    phone = unique_phone()
+    employee_id = f"CM-{uuid.uuid4().hex[:6].upper()}"
+    response = await client.post(
+        "/api/v1/care/provision",
+        headers=auth_header(admin),
+        json={
+            "email": email,
+            "phone": phone,
+            "password": PASSWORD,
+            "first_name": "Meera",
+            "last_name": "Nair",
+            "employee_id": employee_id,
+            "staff_kind": "COMPANION",
+            "skills": "Companionship",
+            "status": "ACTIVE",
+        },
+    )
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["employee_id"] == employee_id
+    assert body["staff_kind"] == "COMPANION"
+    assert body["status"] == "ACTIVE"
+    assert body["first_name"] == "Meera"
+
+    staff_token = await login(client, email)
+    profile = await client.get("/api/v1/care/", headers=auth_header(staff_token))
+    assert profile.status_code == 200, profile.text
+    assert profile.json()[0]["staff_kind"] == "COMPANION"
 
 
 @pytest.mark.asyncio

@@ -2,7 +2,7 @@ from datetime import datetime
 from enum import Enum
 from typing import List, Literal, Optional
 
-from pydantic import UUID4, BaseModel, ConfigDict, Field
+from pydantic import UUID4, BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class MembershipBenefitItem(BaseModel):
@@ -65,9 +65,40 @@ class MembershipRequestStatus(str, Enum):
 
 
 class MembershipRequestCreate(BaseModel):
-    plan_key: Literal["basic", "couple"]
+    plan_key: Literal["single", "couple", "basic"]
     senior_id: Optional[UUID4] = None
     notes: Optional[str] = Field(default=None, max_length=2000)
+    family_contact_1_name: str = Field(min_length=1, max_length=80)
+    family_contact_1_phone: str = Field(min_length=8, max_length=20)
+    family_contact_2_name: Optional[str] = Field(default=None, max_length=80)
+    family_contact_2_phone: Optional[str] = Field(default=None, max_length=20)
+    preferred_hospital: str = Field(min_length=1, max_length=200)
+
+    @field_validator(
+        "family_contact_1_name",
+        "family_contact_1_phone",
+        "preferred_hospital",
+        "family_contact_2_name",
+        "family_contact_2_phone",
+        "notes",
+        mode="before",
+    )
+    @classmethod
+    def strip_text(cls, value):
+        if isinstance(value, str):
+            stripped = value.strip()
+            return stripped or None
+        return value
+
+    @model_validator(mode="after")
+    def family_two_needs_name_and_phone(self):
+        name = self.family_contact_2_name
+        phone = self.family_contact_2_phone
+        if bool(name) != bool(phone):
+            raise ValueError("Family member 2 needs both a name and a phone number.")
+        if phone and len(phone) < 8:
+            raise ValueError("Family member 2 needs a valid phone number.")
+        return self
 
 
 class MembershipRequestReview(BaseModel):
@@ -83,6 +114,11 @@ class MembershipRequestResponse(BaseModel):
     plan_price: Optional[float] = None
     status: str
     notes: Optional[str] = None
+    family_contact_1_name: Optional[str] = None
+    family_contact_1_phone: Optional[str] = None
+    family_contact_2_name: Optional[str] = None
+    family_contact_2_phone: Optional[str] = None
+    preferred_hospital: Optional[str] = None
     created_at: Optional[datetime] = None
     reviewed_at: Optional[datetime] = None
 

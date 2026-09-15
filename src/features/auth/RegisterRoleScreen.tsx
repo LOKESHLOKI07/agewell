@@ -2,36 +2,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { router, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AgeWellHeader } from '@/features/home/components/AgeWellHeader';
-import { Icon, IconWell, type IconName } from '@/components/ui';
+import { Icon, IconWell } from '@/components/ui';
 import { cardSurface, colors, minTouchSize, spacing, typography } from '@/constants/theme';
-
-type RoleOption = {
-  key: 'senior' | 'care';
-  title: string;
-  subtitle: string;
-  icon: IconName;
-  href: Href;
-  tone: 'primary' | 'safe';
-};
-
-const OPTIONS: RoleOption[] = [
-  {
-    key: 'senior',
-    title: 'Member signup',
-    subtitle: 'Single or Couple membership — same senior home',
-    icon: 'person-outline',
-    href: '/(auth)/welcome' as Href,
-    tone: 'primary',
-  },
-  {
-    key: 'care',
-    title: "I'm a Care Associate",
-    subtitle: 'I want to provide care through AgeWell',
-    icon: 'medkit-outline',
-    href: '/(auth)/register/care' as Href,
-    tone: 'safe',
-  },
-];
 
 export function RegisterRoleScreen() {
   const insets = useSafeAreaInsets();
@@ -41,25 +13,24 @@ export function RegisterRoleScreen() {
       <AgeWellHeader title="Create Account" showBack showProfile={false} />
       <View style={styles.content}>
         <Text style={styles.heading}>How will you use AgeWell?</Text>
-        <Text style={styles.sub}>Members choose Single or Couple membership. Care associates have a separate application.</Text>
-        {OPTIONS.map((option) => (
-          <Pressable
-            key={option.key}
-            style={({ pressed }) => [styles.card, pressed ? styles.pressed : null]}
-            onPress={() => router.push(option.href)}
-            accessibilityRole="button"
-            accessibilityLabel={`${option.title}. ${option.subtitle}`}
-          >
-            <IconWell tone={option.tone} size={56} rounded="full">
-              <Icon name={option.icon} size={24} color={colors[option.tone === 'safe' ? 'safe' : 'primary']} />
-            </IconWell>
-            <View style={styles.textCol}>
-              <Text style={styles.title}>{option.title}</Text>
-              <Text style={styles.subtitle}>{option.subtitle}</Text>
-            </View>
-            <Icon name="chevron-forward" size={20} color={colors.textMuted} />
-          </Pressable>
-        ))}
+        <Text style={styles.sub}>
+          This app is for members. Care managers, companions, and delivery executives use the AgeWell Care app.
+        </Text>
+        <Pressable
+          style={({ pressed }) => [styles.card, pressed ? styles.pressed : null]}
+          onPress={() => router.push('/(auth)/welcome' as Href)}
+          accessibilityRole="button"
+          accessibilityLabel="Member signup"
+        >
+          <IconWell tone="primary" size={56} rounded="full">
+            <Icon name="person-outline" size={24} color={colors.primary} />
+          </IconWell>
+          <View style={styles.textCol}>
+            <Text style={styles.title}>Member signup</Text>
+            <Text style={styles.subtitle}>Create an account, then choose Single or Couple membership</Text>
+          </View>
+          <Icon name="chevron-forward" size={20} color={colors.textMuted} />
+        </Pressable>
       </View>
     </View>
   );

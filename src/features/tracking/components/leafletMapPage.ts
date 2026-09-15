@@ -1,6 +1,6 @@
 import { colors } from '@/constants/theme';
 
-/** Offline-first CDN + Carto streets. No Google Maps key required. */
+/** Leaflet + OpenStreetMap tiles. No Carto/Google Maps API key required. */
 export const LEAFLET_MAP_HTML = `<!DOCTYPE html>
 <html>
 <head>
@@ -105,9 +105,10 @@ export const LEAFLET_MAP_HTML = `<!DOCTYPE html>
     function start() {
       if (!window.L) { post('error'); return; }
       map = L.map('map', { zoomControl: false, attributionControl: true, zoom: 15, center: [20.5937, 78.9629] });
-      L.tileLayer('https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap &copy; CARTO',
-        maxZoom: 20
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors',
+        maxZoom: 19,
+        subdomains: 'abc'
       }).addTo(map);
       map.on('dragstart', function () { post('gesture'); });
       map.whenReady(function () { post('ready'); });

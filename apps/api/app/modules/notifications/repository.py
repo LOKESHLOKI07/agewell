@@ -1,10 +1,11 @@
-from typing import Optional
+from typing import Optional, Sequence
 from uuid import UUID
+from datetime import datetime, timezone
 
-from sqlalchemy import func, select, update
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.notifications.models import Notification, NotificationPriority
+from app.modules.notifications.models import DevicePushToken, Notification, NotificationPriority
 
 
 class NotificationRepository:
@@ -91,5 +92,73 @@ class NotificationRepository:
             .where(Notification.user_id == user_id, Notification.is_read.is_(False))
             .values(is_read=True)
         )
+        await self.session.commit()
+        return int(result.rowcount or 0)
+
+
+class DevicePushTokenRepository:
+    def __init__(self, session: AsyncSession):
+        self.session = session
+
+    async def upsert(
+        self,
+        *,
+        user_id: UUID,
+        token: str,
+        platform: str,
+        app_variant: Optional[str] = None,
+    ) -> DevicePushToken:
+        now = datetime.now(timezone.utc)
+        existing = (
+            await self.session.execute(select(DevicePushToken).where(DevicePushToken.token == token))
+        ).scalar_one_or_none()
+        if existing:
+            existing.user_id = user_id
+            existing.platform = platform
+            existing.app_variant = app_variant
+            existing.updated_at = now
+            await self.session.commit()
+            await self.session.refresh(existing)
+            return existing
+        row = DevicePushToken(
+            user_id=user_id,
+            token=token,
+            platform=platform,
+            app_variant=app_variant,
+            created_at=now,
+            updated_at=now,
+        )
+        self.session.add(row)
+        await self.session.commit()
+        await self.session.refresh(row)
+        return row
+
+    async def delete_for_user(self, *, user_id: UUID, token: str) -> int:
+        result = await self.session.execute(
+            delete(DevicePushToken).where(
+                DevicePushToken.user_id == user_id,
+                DevicePushToken.token == token,
+            )
+        )
+        await self.session.commit()
+        return int(result.rowcount or 0)
+
+    async def delete_all_for_user(self, user_id: UUID) -> int:
+        result = await self.session.execute(
+            delete(DevicePushToken).where(DevicePushToken.user_id == user_id)
+        )
+        await self.session.commit()
+        return int(result.rowcount or 0)
+
+    async def list_tokens_for_users(self, user_ids: Sequence[UUID]) -> list[DevicePushToken]:
+        if not user_ids:
+            return []
+        result = await self.session.execute(
+            select(DevicePushToken).where(DevicePushToken.user_id.in_(list(user_ids)))
+        )
+        return list(result.scalars().all())
+
+    async def delete_by_token(self, token: str) -> int:
+        result = await self.session.execute(delete(DevicePushToken).where(DevicePushToken.token == token))
         await self.session.commit()
         return int(result.rowcount or 0)

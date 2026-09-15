@@ -13,8 +13,18 @@ export const ASSOCIATE_ON_THE_WAY_MESSAGE = 'Care Associate is on the way';
 export const ASSOCIATE_SHARE_CONFIRM_TITLE = 'Share Live Location';
 export const ASSOCIATE_SHARE_CONFIRM_MESSAGE =
   'Share your live location with the senior and family for this visit? AgeWell will read your current location while this screen is open. Sharing is not saved as a Start/Stop status on the server.';
-export const LOCATION_PERMISSION_MESSAGE = 'Location permission is required to share your location.';
-export const LOCATION_SERVICES_MESSAGE = 'Your location is unavailable right now.';
+export const LOCATION_PERMISSION_MESSAGE =
+  'Location permission is required to share your location. Allow AgeWell to use location, and turn on Precise location.';
+export const LOCATION_PERMISSION_BLOCKED_MESSAGE =
+  'Location is blocked for AgeWell. Open Settings, allow location, and turn on Precise location.';
+export const LOCATION_SERVICES_MESSAGE =
+  'Turn on Location when the phone asks, or open Settings, then try again.';
+export const LOCATION_NO_FIX_MESSAGE =
+  'Permission is allowed, but this phone did not return a GPS point. Turn on Precise location and Google location accuracy, go near a window, then try again.';
+
+export function isLocationPermissionDeniedMessage(message: string | null | undefined): boolean {
+  return message === LOCATION_PERMISSION_MESSAGE || message === LOCATION_PERMISSION_BLOCKED_MESSAGE;
+}
 export const SESSION_CREATE_FAILED_MESSAGE = 'We could not start a live location session. Please try again.';
 export const POINT_CREATE_FAILED_MESSAGE = 'We could not share your current location. Please try again.';
 export const SHARING_ACTIVE_MESSAGE = 'Your live location is being shared.';
@@ -45,6 +55,12 @@ export function seniorAssociateTrackHref(visitId: string) {
 export function careAssociateShareHref(visitId: string) {
   return { pathname: '/care/visits/[id]/share' as const, params: { id: visitId } };
 }
+
+export const DELIVERY_NOT_SHARING_MESSAGE = "Delivery executive location isn't available yet.";
+export const DELIVERY_ON_THE_WAY_MESSAGE = 'Delivery executive is on the way';
+export const DELIVERY_SHARE_CONFIRM_TITLE = 'Share Live Location';
+export const DELIVERY_SHARE_CONFIRM_MESSAGE =
+  'Share your live location with the senior and family for this delivery? AgeWell will read your current location while this screen is open.';
 
 export function newestSession(sessions: TrackingSession[] | undefined): TrackingSession | null {
   return sessions?.[0] ?? null;

@@ -11,8 +11,15 @@ import {
   type HistoryCategory,
 } from './mockHealth';
 import { MembershipServiceHero } from './MembershipServiceHero';
+import { gatedMembershipScreen } from './MembershipServiceGate';
 
-export function MedicalHistoryScreen() {
+export const MedicalHistoryScreen = gatedMembershipScreen(
+  'medical-history',
+  'Medical History',
+  MedicalHistoryLive,
+);
+
+function MedicalHistoryLive() {
   const insets = useSafeAreaInsets();
   const [category, setCategory] = useState<HistoryCategory | 'All'>('All');
 

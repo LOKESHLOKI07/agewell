@@ -16,10 +16,27 @@ jest.mock('expo-secure-store', () => {
   };
 });
 
+jest.mock('expo-notifications', () => ({
+  setNotificationHandler: jest.fn(),
+  setNotificationChannelAsync: jest.fn(async () => undefined),
+  getPermissionsAsync: jest.fn(async () => ({ status: 'granted' })),
+  requestPermissionsAsync: jest.fn(async () => ({ status: 'granted' })),
+  getExpoPushTokenAsync: jest.fn(async () => ({ data: 'ExponentPushToken[test]' })),
+  addNotificationReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
+  addNotificationResponseReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
+  getLastNotificationResponseAsync: jest.fn(async () => null),
+  AndroidImportance: { MAX: 5, DEFAULT: 3 },
+  AndroidNotificationVisibility: { PUBLIC: 1 },
+}));
+
 jest.mock('expo-constants', () => ({
   __esModule: true,
   default: {
-    expoConfig: { hostUri: 'localhost:8081' },
+    expoConfig: {
+      hostUri: 'localhost:8081',
+      extra: { eas: { projectId: '691d24d7-14b9-4f81-9a39-8458fb7f2b6a' }, appVariant: 'family' },
+    },
+    easConfig: { projectId: '691d24d7-14b9-4f81-9a39-8458fb7f2b6a' },
     expoGoConfig: { debuggerHost: 'localhost:8081' },
   },
 }));
@@ -29,6 +46,8 @@ jest.mock('expo-location', () => ({
   hasServicesEnabledAsync: jest.fn(async () => true),
   getForegroundPermissionsAsync: jest.fn(async () => ({ status: 'granted', canAskAgain: true })),
   requestForegroundPermissionsAsync: jest.fn(async () => ({ status: 'granted', canAskAgain: true })),
+  enableNetworkProviderAsync: jest.fn(async () => undefined),
+  getLastKnownPositionAsync: jest.fn(async () => null),
   getCurrentPositionAsync: jest.fn(async () => ({
     coords: { latitude: 12.9716, longitude: 77.5946 },
     timestamp: Date.now(),
@@ -110,6 +129,18 @@ jest.mock('expo-file-system/legacy', () => ({
   documentDirectory: 'file:///mock-docs/',
   copyAsync: jest.fn(async () => undefined),
 }));
+
+jest.mock('react-native-keyboard-controller', () => require('react-native-keyboard-controller/jest'));
+
+jest.mock('react-native-android-widget', () => {
+  const React = require('react');
+  return {
+    FlexWidget: (props: { children?: unknown }) => React.createElement('FlexWidget', props, props.children),
+    TextWidget: (props: { children?: unknown }) => React.createElement('TextWidget', props),
+    ImageWidget: (props: { children?: unknown }) => React.createElement('ImageWidget', props),
+    registerWidgetTaskHandler: jest.fn(),
+  };
+});
 
 jest.mock('@react-native-google-signin/google-signin', () => ({
   GoogleSignin: {

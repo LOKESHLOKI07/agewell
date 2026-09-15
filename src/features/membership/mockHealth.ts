@@ -35,6 +35,9 @@ export const LAB_TESTS: LabTestOption[] = [
   { id: 'lt3', name: 'Thyroid (TSH)', amountLabel: '₹450' },
   { id: 'lt4', name: 'HbA1c', amountLabel: '₹550' },
   { id: 'lt5', name: 'Vitamin D', amountLabel: '₹899' },
+  { id: 'lt6', name: 'Liver Function Test (LFT)', amountLabel: 'Charges apply' },
+  { id: 'lt7', name: 'Kidney Function Test (KFT)', amountLabel: 'Charges apply' },
+  { id: 'lt8', name: 'Urine Routine', amountLabel: 'Charges apply' },
 ];
 
 export const LAB_SLOTS = [

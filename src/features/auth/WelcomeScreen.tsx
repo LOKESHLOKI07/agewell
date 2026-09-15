@@ -1,9 +1,10 @@
 import { useEffect } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
-import { router } from 'expo-router';
+import { router, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AgeWellLogo, brandGreen } from '@/components/AgeWellLogo';
 import { spacing, typography } from '@/constants/theme';
+import { isCareApp } from '@/config/appVariant';
 import { AuthMethodButtons } from './AuthMethodButtons';
 import { createAccountHref, emailOtpHref, signInHref } from './authEntry';
 import { useGoogleSignIn } from './useGoogleSignIn';
@@ -11,6 +12,12 @@ import { useGoogleSignIn } from './useGoogleSignIn';
 export function WelcomeScreen() {
   const insets = useSafeAreaInsets();
   const { continueWithGoogle, ready, busy, error } = useGoogleSignIn();
+
+  useEffect(() => {
+    if (isCareApp()) {
+      router.replace('/(auth)/login' as Href);
+    }
+  }, []);
 
   useEffect(() => {
     if (error) {
@@ -38,15 +45,19 @@ export function WelcomeScreen() {
     >
       <View style={styles.hero}>
         <AgeWellLogo />
-        <Text style={styles.title}>Welcome to AgeWell</Text>
-        <Text style={styles.subtitle}>Trusted support for you and your loved ones.</Text>
+        <Text style={styles.title}>{isCareApp() ? 'Welcome to AgeWell Care' : 'Welcome to AgeWell'}</Text>
+        <Text style={styles.subtitle}>
+          {isCareApp()
+            ? 'For care managers, companions, and delivery executives.'
+            : 'Trusted support for you and your loved ones.'}
+        </Text>
       </View>
 
       <View style={styles.methods}>
         <AuthMethodButtons
-          onGoogle={onGoogle}
-          onMobile={() => router.push(createAccountHref('mobile'))}
-          onEmail={() => router.push(emailOtpHref('signup'))}
+          onGoogle={isCareApp() ? undefined : onGoogle}
+          onMobile={() => router.push(isCareApp() ? ('/(auth)/select-role' as const) : createAccountHref('mobile'))}
+          onEmail={() => router.push(isCareApp() ? ('/(auth)/select-role' as const) : emailOtpHref('signup'))}
           googleDisabled={busy}
         />
         <Pressable

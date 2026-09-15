@@ -16,6 +16,8 @@ class VisitResponse(BaseModel):
     care_manager_name: Optional[str] = None
     status: VisitStatus
     scheduled_at: Optional[datetime] = None
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
     notes: Optional[str] = None
 
 
@@ -31,6 +33,8 @@ class VisitUpdate(BaseModel):
     care_manager_id: Optional[UUID4] = None
     status: Optional[VisitStatus] = None
     scheduled_at: Optional[datetime] = None
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
     notes: Optional[str] = None
 
 
@@ -43,10 +47,19 @@ class VisitTaskResponse(BaseModel):
     is_completed: bool = False
 
 
+class VisitTaskUpdate(BaseModel):
+    is_completed: bool
+
+
 class VisitReportResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID4
     visit_id: UUID4
+    summary: Optional[str] = None
+    issues_noted: Optional[str] = None
+
+
+class VisitReportCreate(BaseModel):
     summary: Optional[str] = None
     issues_noted: Optional[str] = None

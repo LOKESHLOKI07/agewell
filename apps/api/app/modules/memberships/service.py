@@ -21,7 +21,8 @@ from app.modules.seniors.models import Senior
 
 
 PLAN_KEY_TO_NAME = {
-    "basic": "Basic Membership",
+    "single": "Single Membership",
+    "basic": "Single Membership",  # legacy plan key
     "couple": "Couple Membership",
 }
 MEMBERSHIP_DURATION_DAYS = 30
@@ -150,8 +151,17 @@ class MembershipService:
         plan = await self.repo.get_plan_by_name(plan_name)
         if not plan:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Membership plan is not available.")
-        notes = payload.notes.strip() if payload.notes and payload.notes.strip() else None
-        created = await self.repo.create_request(senior_id=senior_id, plan_id=plan.id, notes=notes)
+        notes = _onboarding_notes(payload)
+        created = await self.repo.create_request(
+            senior_id=senior_id,
+            plan_id=plan.id,
+            notes=notes,
+            family_contact_1_name=payload.family_contact_1_name,
+            family_contact_1_phone=payload.family_contact_1_phone,
+            family_contact_2_name=payload.family_contact_2_name,
+            family_contact_2_phone=payload.family_contact_2_phone,
+            preferred_hospital=payload.preferred_hospital,
+        )
         row = await self.repo.get_request_row(created.id)
         if not row:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Membership request could not be loaded.")
@@ -183,13 +193,14 @@ class MembershipService:
         if not row:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Membership request not found")
         request, senior, plan = row
-        if request.status != "REQUESTED":
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="This request has already been reviewed.",
-            )
-        membership = None
+        current_status = request.status
+
         if new_status == "APPROVED":
+            if current_status != "REQUESTED":
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Only pending membership requests can be approved.",
+                )
             if await self._active_membership(request.senior_id):
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT,
@@ -202,7 +213,33 @@ class MembershipService:
                 start_date=now,
                 end_date=now + timedelta(days=MEMBERSHIP_DURATION_DAYS),
             )
-        await self.repo.review_request(request, status=new_status, membership=membership)
+            await self.repo.review_request(request, status=new_status, membership=membership)
+        elif new_status == "REJECTED":
+            if current_status == "REJECTED":
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="This request is already rejected.",
+                )
+            if current_status not in ("REQUESTED", "APPROVED"):
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="This request cannot be rejected.",
+                )
+            # After approve, end the membership so the senior is no longer an active member.
+            expire_membership = None
+            if current_status == "APPROVED":
+                expire_membership = await self._active_membership(request.senior_id)
+            await self.repo.review_request(
+                request,
+                status=new_status,
+                expire_membership=expire_membership,
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Unsupported membership review status.",
+            )
+
         refreshed = await self.repo.get_request_row(request.id)
         if not refreshed:
             raise HTTPException(
@@ -220,6 +257,19 @@ class MembershipService:
         if compute_membership_status(membership.start_date, membership.end_date) == "ACTIVE":
             return membership
         return None
+
+
+def _onboarding_notes(payload: MembershipRequestCreate) -> Optional[str]:
+    lines = [
+        f"Family 1: {payload.family_contact_1_name} ({payload.family_contact_1_phone})",
+    ]
+    if payload.family_contact_2_name and payload.family_contact_2_phone:
+        lines.append(f"Family 2: {payload.family_contact_2_name} ({payload.family_contact_2_phone})")
+    lines.append(f"Nearby hospital: {payload.preferred_hospital}")
+    extra = payload.notes.strip() if payload.notes and payload.notes.strip() else None
+    if extra:
+        lines.append(extra)
+    return "\n".join(lines)
 
 
 def _senior_name(senior: Senior) -> Optional[str]:
@@ -244,6 +294,11 @@ def _to_request_response(request, senior: Senior, plan) -> MembershipRequestResp
         plan_price=_plan_price(plan),
         status=request.status,
         notes=request.notes,
+        family_contact_1_name=getattr(request, "family_contact_1_name", None),
+        family_contact_1_phone=getattr(request, "family_contact_1_phone", None),
+        family_contact_2_name=getattr(request, "family_contact_2_name", None),
+        family_contact_2_phone=getattr(request, "family_contact_2_phone", None),
+        preferred_hospital=getattr(request, "preferred_hospital", None),
         created_at=request.created_at,
         reviewed_at=request.reviewed_at,
     )

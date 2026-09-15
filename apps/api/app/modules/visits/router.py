@@ -5,7 +5,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user, get_db, require_staff
+from app.api.deps import get_current_user, get_db, require_care_or_staff, require_staff
 from app.api.schemas import ListPage
 from app.core.timezone import today_in_app_timezone
 from app.modules.access.repository import AccessRepository
@@ -16,7 +16,15 @@ from app.modules.seniors.repository import SeniorRepository
 from app.modules.users.models import RoleEnum, User
 from app.modules.visits.models import VisitStatus
 from app.modules.visits.repository import VisitRepository
-from app.modules.visits.schemas import VisitCreate, VisitReportResponse, VisitResponse, VisitTaskResponse, VisitUpdate
+from app.modules.visits.schemas import (
+    VisitCreate,
+    VisitReportCreate,
+    VisitReportResponse,
+    VisitResponse,
+    VisitTaskResponse,
+    VisitTaskUpdate,
+    VisitUpdate,
+)
 from app.modules.visits.service import VisitService
 
 router = APIRouter()
@@ -53,7 +61,6 @@ async def list_visits(
         current_user, senior_id, allow_unscoped_staff=True
     )
     resolved_date = today_in_app_timezone() if today else on_date
-    # Staff may additionally filter by care associate; non-staff keep scope.care_manager_id.
     effective_care_manager_id = scope.care_manager_id
     if current_user.role in (RoleEnum.ADMIN, RoleEnum.OPERATIONS) and care_manager_id is not None:
         effective_care_manager_id = care_manager_id
@@ -89,6 +96,20 @@ async def list_visit_tasks(
     return await service.list_tasks(visit_id)
 
 
+@router.patch("/{visit_id}/tasks/{task_id}", response_model=VisitTaskResponse)
+async def update_visit_task(
+    visit_id: UUID,
+    task_id: UUID,
+    payload: VisitTaskUpdate,
+    current_user: User = Depends(require_care_or_staff),
+    access: AccessService = Depends(get_access_service),
+    service: VisitService = Depends(get_visit_service),
+):
+    visit, _payload = await service.get_visit(visit_id)
+    await access.ensure_visit_access(current_user, visit)
+    return await service.update_task(visit_id, task_id, payload)
+
+
 @router.get("/{visit_id}/reports", response_model=list[VisitReportResponse])
 async def list_visit_reports(
     visit_id: UUID,
@@ -99,6 +120,19 @@ async def list_visit_reports(
     visit, _payload = await service.get_visit(visit_id)
     await access.ensure_visit_access(current_user, visit)
     return await service.list_reports(visit_id)
+
+
+@router.post("/{visit_id}/reports", response_model=VisitReportResponse)
+async def create_visit_report(
+    visit_id: UUID,
+    payload: VisitReportCreate,
+    current_user: User = Depends(require_care_or_staff),
+    access: AccessService = Depends(get_access_service),
+    service: VisitService = Depends(get_visit_service),
+):
+    visit, _payload = await service.get_visit(visit_id)
+    await access.ensure_visit_access(current_user, visit)
+    return await service.create_report(visit_id, payload)
 
 
 @router.get("/{visit_id}", response_model=VisitResponse)
@@ -117,7 +151,18 @@ async def get_visit(
 async def update_visit(
     visit_id: UUID,
     payload: VisitUpdate,
-    _staff: User = Depends(require_staff),
+    current_user: User = Depends(require_care_or_staff),
+    access: AccessService = Depends(get_access_service),
     service: VisitService = Depends(get_visit_service),
 ):
+    visit, _existing = await service.get_visit(visit_id)
+    await access.ensure_visit_access(current_user, visit)
+    # Care associates may only change status/notes/timestamps — not reassignment.
+    if current_user.role == RoleEnum.CARE_MANAGER:
+        payload = VisitUpdate(
+            status=payload.status,
+            notes=payload.notes,
+            started_at=payload.started_at,
+            completed_at=payload.completed_at,
+        )
     return await service.update_visit(visit_id, payload)

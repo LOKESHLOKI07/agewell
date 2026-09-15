@@ -3,25 +3,32 @@ import { ComingSoonServiceScreen } from '@/features/membership/ComingSoonService
 import { findMembershipService } from '@/features/services/serviceCatalog';
 
 const READY_REDIRECTS: Record<string, Href> = {
+  'emergency-sos': '/(tabs)/sos' as Href,
   'care-manager': '/membership/care-manager' as Href,
   companion: '/membership/companion' as Href,
-  'emergency-sos': '/(tabs)/sos' as Href,
-  grocery: '/membership/grocery' as Href,
-  food: '/membership/food' as Href,
   medicine: '/membership/medicine' as Href,
-  pooja: '/membership/pooja' as Href,
-  'lab-testing': '/membership/lab-testing' as Href,
+  'health-check': '/membership/health-check' as Href,
   'monthly-blood-test': '/membership/monthly-blood-test' as Href,
   doctor: '/membership/doctor' as Href,
-  'medical-history': '/membership/medical-history' as Href,
-  'tech-assistance': '/membership/tech-assistance' as Href,
-  legal: '/membership/legal' as Href,
+  grocery: '/membership/grocery' as Href,
+  'small-errands': '/membership/small-errands' as Href,
+  'errand-coordination': '/membership/errand-coordination' as Href,
+  'cyber-security': '/membership/cyber-security' as Href,
+  'banking-companion': '/membership/banking-companion' as Href,
   ca: '/membership/ca' as Href,
-  transport: '/membership/transport' as Href,
-  'home-repair': '/membership/home-repair' as Href,
   'events-trips': '/membership/events-trips' as Href,
+  'home-repair': '/membership/home-repair' as Href,
+  pooja: '/membership/pooja' as Href,
+  legal: '/membership/legal' as Href,
+  'local-transport': '/membership/local-transport' as Href,
+  transport: '/membership/transport' as Href,
   'home-inspection': '/membership/home-inspection' as Href,
   cctv: '/membership/cctv' as Href,
+  // Add-on / legacy extras still reachable by deep link
+  food: '/membership/food' as Href,
+  'lab-testing': '/membership/lab-testing' as Href,
+  'medical-history': '/membership/medical-history' as Href,
+  'tech-assistance': '/membership/cyber-security' as Href,
 };
 
 export default function MembershipServiceByIdScreen() {

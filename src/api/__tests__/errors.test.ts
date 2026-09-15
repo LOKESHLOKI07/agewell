@@ -41,6 +41,12 @@ describe('getApiErrorMessage', () => {
     expect(getApiErrorMessage(axiosError(409))).toBe('This record already exists.');
   });
 
+  it('maps emergency duplicate 409 to senior-friendly copy', () => {
+    expect(
+      getApiErrorMessage(axiosError(409, { data: { detail: 'An emergency case is already active.' } })),
+    ).toBe('An emergency request is already active. Open it from Emergency Support.');
+  });
+
   it('maps registration 409 email/phone conflicts to clear copy', () => {
     expect(
       getApiErrorMessage(axiosError(409, { data: { detail: 'Email already exists' } })),

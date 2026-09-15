@@ -14,7 +14,7 @@ from app.modules.seniors.schemas import (
     SeniorResponse,
     SeniorUpdate,
 )
-from app.modules.seniors.service import SeniorService
+from app.modules.seniors.service import SeniorService, to_senior_response
 from app.modules.users.models import User
 from app.modules.users.repository import UserRepository
 
@@ -34,28 +34,47 @@ async def get_my_senior_profile(
     current_user: User = Depends(get_current_user),
     access: AccessService = Depends(get_access_service),
 ):
-    return await access.get_senior_for_user(current_user)
+    senior = await access.get_senior_for_user(current_user)
+    return to_senior_response(senior)
 
 
 @router.patch("/me", response_model=SeniorResponse)
-async def update_my_senior_photo(
+async def update_my_senior_profile(
     payload: SeniorPhotoUpdate,
     current_user: User = Depends(get_current_user),
     access: AccessService = Depends(get_access_service),
     service: SeniorService = Depends(get_senior_service),
 ):
     senior = await access.get_senior_for_user(current_user)
-    return await service.update_photo(senior, payload.photo)
+    fields = payload.model_dump(exclude_unset=True)
+    location_keys = ("location_lat", "location_lng", "location_query", "location_source")
+    set_location = any(key in fields for key in location_keys)
+    return await service.update_me(
+        senior,
+        set_photo="photo" in fields,
+        photo=fields.get("photo"),
+        set_in_service_area="in_service_area" in fields,
+        in_service_area=fields.get("in_service_area"),
+        set_location=set_location,
+        location_lat=fields.get("location_lat"),
+        location_lng=fields.get("location_lng"),
+        location_query=fields.get("location_query"),
+        location_source=fields.get("location_source"),
+    )
 
 
 @router.get("/", response_model=ListPage[SeniorDirectoryItem])
 async def list_seniors(
     limit: int = Query(50, ge=1, le=100),
     offset: int = Query(0, ge=0),
+    segment: str | None = Query(
+        None,
+        description="membership | outside_area | in_area_no_membership",
+    ),
     _staff: User = Depends(require_staff),
     service: SeniorService = Depends(get_senior_service),
 ):
-    return await service.list_seniors(limit=limit, offset=offset)
+    return await service.list_seniors(limit=limit, offset=offset, segment=segment)
 
 
 @router.get("/by-user/{user_id}", response_model=SeniorDirectoryItem)

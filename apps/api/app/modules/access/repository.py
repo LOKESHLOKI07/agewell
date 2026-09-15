@@ -32,6 +32,13 @@ class AccessRepository:
         return result.scalars().first()
 
     async def care_manager_has_assigned_visit_for_senior(self, care_manager_id, senior_id) -> bool:
+        from app.modules.seniors.models import Senior
+
+        standing = await self.session.execute(
+            select(Senior.id).where(Senior.id == senior_id, Senior.care_manager_id == care_manager_id).limit(1)
+        )
+        if standing.scalar_one_or_none() is not None:
+            return True
         result = await self.session.execute(
             select(Visit.id)
             .where(
@@ -63,16 +70,61 @@ class AccessRepository:
         return [user_id for user_id in result.scalars().all() if user_id is not None]
 
     async def list_assigned_care_manager_user_ids_for_senior(self, senior_id) -> list:
-        result = await self.session.execute(
+        return await self.list_assigned_staff_user_ids_for_senior(senior_id)
+
+    async def list_assigned_staff_user_ids_for_senior(self, senior_id, staff_kind: str | None = None) -> list:
+        stmt = (
             select(CareManager.user_id)
             .join(Visit, Visit.care_manager_id == CareManager.id)
             .where(
                 Visit.senior_id == senior_id,
                 CareManager.user_id.is_not(None),
             )
-            .distinct()
         )
-        return [user_id for user_id in result.scalars().all() if user_id is not None]
+        if staff_kind is not None:
+            stmt = stmt.where(CareManager.staff_kind == staff_kind)
+        result = await self.session.execute(stmt.distinct())
+        user_ids = [user_id for user_id in result.scalars().all() if user_id is not None]
+        from app.modules.seniors.models import Senior
+
+        standing = (
+            await self.session.execute(
+                select(CareManager.user_id)
+                .join(Senior, Senior.care_manager_id == CareManager.id)
+                .where(Senior.id == senior_id, CareManager.user_id.is_not(None))
+            )
+        ).scalars().first()
+        if standing and standing not in user_ids:
+            if staff_kind is None:
+                user_ids.append(standing)
+            else:
+                kind_row = (
+                    await self.session.execute(
+                        select(CareManager.staff_kind)
+                        .join(Senior, Senior.care_manager_id == CareManager.id)
+                        .where(Senior.id == senior_id)
+                    )
+                ).scalars().first()
+                if (kind_row or "CARE_MANAGER") == staff_kind:
+                    user_ids.append(standing)
+        return user_ids
+
+    async def list_family_senior_ids(self, family_id) -> list:
+        result = await self.session.execute(
+            select(FamilySeniorAccess.senior_id).where(
+                FamilySeniorAccess.family_id == family_id,
+                FamilySeniorAccess.senior_id.is_not(None),
+            )
+        )
+        return [senior_id for senior_id in result.scalars().all() if senior_id is not None]
+
+    async def list_ops_user_ids(self) -> list:
+        from app.modules.users.models import RoleEnum, User
+
+        result = await self.session.execute(
+            select(User.id).where(User.role.in_([RoleEnum.ADMIN, RoleEnum.OPERATIONS]))
+        )
+        return list(result.scalars().all())
 
     async def get_access_by_id(self, access_id) -> FamilySeniorAccess | None:
         result = await self.session.execute(select(FamilySeniorAccess).where(FamilySeniorAccess.id == access_id))

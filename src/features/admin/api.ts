@@ -53,6 +53,7 @@ import type {
   AdminAuditLog,
   AdminCareManager,
   AdminCareManagerCreate,
+  AdminStaffProvision,
   AdminCareManagerUpdate,
   AdminMembershipBenefit,
   AdminMembershipPlan,
@@ -124,7 +125,11 @@ export function deleteAdminUser(id: string): Promise<AdminUser> {
   return sendMapped('delete', `/users/${id}`, toAdminUser);
 }
 
-export function fetchAdminSeniors(params: { limit: number; offset: number }): Promise<ListPage<AdminSenior>> {
+export function fetchAdminSeniors(params: {
+  limit: number;
+  offset: number;
+  segment?: string;
+}): Promise<ListPage<AdminSenior>> {
   return getMapped('/seniors/', toAdminSeniorPage, params);
 }
 
@@ -154,8 +159,14 @@ export function updateAdminSenior(
     address?: string;
     emergencyContact?: string;
     preferredLanguage?: string;
+    familyContact1Name?: string | null;
+    familyContact1Phone?: string | null;
+    familyContact2Name?: string | null;
+    familyContact2Phone?: string | null;
+    preferredHospital?: string | null;
     email?: string;
     phone?: string;
+    careManagerId?: string | null;
   },
 ): Promise<AdminSenior> {
   const body: Record<string, unknown> = {};
@@ -165,8 +176,14 @@ export function updateAdminSenior(
   if (input.address !== undefined) body.address = input.address;
   if (input.emergencyContact !== undefined) body.emergency_contact = input.emergencyContact;
   if (input.preferredLanguage !== undefined) body.preferred_language = input.preferredLanguage;
+  if (input.familyContact1Name !== undefined) body.family_contact_1_name = input.familyContact1Name;
+  if (input.familyContact1Phone !== undefined) body.family_contact_1_phone = input.familyContact1Phone;
+  if (input.familyContact2Name !== undefined) body.family_contact_2_name = input.familyContact2Name;
+  if (input.familyContact2Phone !== undefined) body.family_contact_2_phone = input.familyContact2Phone;
+  if (input.preferredHospital !== undefined) body.preferred_hospital = input.preferredHospital;
   if (input.email !== undefined) body.email = input.email;
   if (input.phone !== undefined) body.phone = input.phone;
+  if (input.careManagerId !== undefined) body.care_manager_id = input.careManagerId;
   return sendMapped('patch', `/seniors/${id}`, toAdminSenior, body);
 }
 
@@ -202,6 +219,24 @@ export function createAdminCareManager(input: AdminCareManagerCreate): Promise<A
     languages: input.languages,
     availability: input.availability,
     status: input.status,
+    staff_kind: input.staffKind,
+  });
+}
+
+export function provisionAdminStaff(input: AdminStaffProvision): Promise<AdminCareManager> {
+  return sendMapped('post', '/care/provision', toAdminCareManager, {
+    email: input.email.trim().toLowerCase(),
+    phone: input.phone.trim(),
+    password: input.password,
+    first_name: input.firstName.trim(),
+    last_name: input.lastName.trim(),
+    employee_id: input.employeeId.trim(),
+    staff_kind: input.staffKind,
+    skills: input.skills ?? null,
+    experience: input.experience ?? null,
+    languages: input.languages ?? null,
+    availability: input.availability ?? null,
+    status: input.status ?? 'ACTIVE',
   });
 }
 
@@ -215,6 +250,7 @@ export function updateAdminCareManager(id: string, input: AdminCareManagerUpdate
   if (input.experience !== undefined) body.experience = input.experience;
   if (input.languages !== undefined) body.languages = input.languages;
   if (input.availability !== undefined) body.availability = input.availability;
+  if (input.staffKind !== undefined) body.staff_kind = input.staffKind;
   return sendMapped('patch', `/care/${id}`, toAdminCareManager, body);
 }
 

@@ -1,1 +1,1 @@
-export { CareDashboardScreen as default } from '@/features/care/CareDashboardScreen';
+export { CareRoleHomeScreen as default } from '@/features/care/CareRoleHomeScreen';

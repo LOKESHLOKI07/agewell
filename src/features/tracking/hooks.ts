@@ -9,6 +9,7 @@ import {
   createTrackingSession,
   fetchCareAssociateLatest,
   fetchCareAssociateSession,
+  fetchDeliveryExecutiveLatest,
   fetchLatestPoint,
   fetchTrackingSessions,
 } from './api';
@@ -20,16 +21,16 @@ import {
   watchForegroundCoordinates,
 } from './location';
 import { invalidateTrackingQueries, trackingQueryKeys } from './queryKeys';
-import { newestSession, viewerLocationState } from './selectors';
+import { newestSession, viewerLocationState, LOCATION_NO_FIX_MESSAGE } from './selectors';
 import { useTrackingShareStore } from './shareStore';
 import { startLiveLocationShare } from './sharing';
-import { CARE_ASSOCIATE_POLL_MS, hasGpsCoordinate, locationAgeMs, STALE_LOCATION_AGE_MS } from './live';
 import {
-  DEMO_TICK_MS,
-  getDemoTripSnapshot,
-  isDemoSeniorEmail,
-  withDemoCareAssociatePoint,
-} from './demoLocation';
+  CARE_ASSOCIATE_POLL_MS,
+  hasGpsCoordinate,
+  locationAgeMs,
+  STALE_LOCATION_AGE_MS,
+  type MapCoordinate,
+} from './live';
 import type { TrackingPointCreate, TrackingSession } from './types';
 
 function useAuthedQuery<T>(
@@ -173,35 +174,82 @@ export function useCareAssociateLatestLocation(
 ) {
   const focused = options?.focused ?? true;
   const isAuthenticated = useAuthStore((state) => state.status === 'AUTHENTICATED');
-  const email = useAuthStore((state) => state.user?.email);
-  const isDemo = isDemoSeniorEmail(email);
-  const [nowMs, setNowMs] = useState(() => Date.now());
 
-  useEffect(() => {
-    if (!isDemo || !focused) {
-      return undefined;
-    }
-    setNowMs(Date.now());
-    const id = setInterval(() => setNowMs(Date.now()), DEMO_TICK_MS);
-    return () => clearInterval(id);
-  }, [isDemo, focused]);
-
-  const query = useQuery({
+  return useQuery({
     queryKey: trackingQueryKeys.careAssociateLatest(visitId ?? ''),
     queryFn: () => fetchCareAssociateLatest(visitId as string),
-    enabled: isAuthenticated && Boolean(visitId) && focused && !isDemo,
-    refetchInterval: !isDemo && focused ? CARE_ASSOCIATE_POLL_MS : false,
+    enabled: isAuthenticated && Boolean(visitId) && focused,
+    refetchInterval: focused ? CARE_ASSOCIATE_POLL_MS : false,
   });
-  const now = new Date(nowMs);
-  const demoTrip = getDemoTripSnapshot({ email, now });
-  return {
-    ...query,
-    data: withDemoCareAssociatePoint({ email, point: query.data, now }),
-    error: isDemo ? null : query.error,
-    isFetching: isDemo ? false : query.isFetching,
-    isPending: isDemo ? false : query.isPending,
-    demoTrip,
-  };
+}
+
+export function useDeliveryExecutiveLatestLocation(
+  deliveryId: string | null | undefined,
+  options?: { focused?: boolean },
+) {
+  const focused = options?.focused ?? true;
+  const isAuthenticated = useAuthStore((state) => state.status === 'AUTHENTICATED');
+
+  return useQuery({
+    queryKey: trackingQueryKeys.deliveryExecutiveLatest(deliveryId ?? ''),
+    queryFn: () => fetchDeliveryExecutiveLatest(deliveryId as string),
+    enabled: isAuthenticated && Boolean(deliveryId) && focused,
+    refetchInterval: focused ? CARE_ASSOCIATE_POLL_MS : false,
+  });
+}
+
+/** Watches the device GPS for map pins. Real coordinates only — no demo fallback. */
+export function useDeviceMapCoordinate(enabled: boolean) {
+  const [coordinate, setCoordinate] = useState<MapCoordinate | null>(null);
+  const [permissionError, setPermissionError] = useState<string | null>(null);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    if (!enabled) {
+      return undefined;
+    }
+
+    let cancelled = false;
+    let stop: (() => void) | undefined;
+
+    void (async () => {
+      const permission = await requestForegroundPermission();
+      if (cancelled) {
+        return;
+      }
+      if (permission.state !== 'granted') {
+        setPermissionError(permission.message);
+        setReady(true);
+        return;
+      }
+      setPermissionError(null);
+      try {
+        const first = await readForegroundCoordinates();
+        if (!cancelled) {
+          setCoordinate({ latitude: first.latitude, longitude: first.longitude });
+          setReady(true);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setPermissionError(error instanceof Error ? error.message : LOCATION_NO_FIX_MESSAGE);
+          setReady(true);
+        }
+      }
+      stop = await watchForegroundCoordinates((coords) => {
+        if (cancelled) {
+          return;
+        }
+        setCoordinate({ latitude: coords.latitude, longitude: coords.longitude });
+      });
+    })();
+
+    return () => {
+      cancelled = true;
+      stop?.();
+    };
+  }, [enabled]);
+
+  return { coordinate, permissionError, ready };
 }
 
 export function useResumeSeniorLiveLocation() {

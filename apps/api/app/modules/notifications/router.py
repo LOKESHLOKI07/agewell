@@ -7,8 +7,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_user, get_db, require_staff
 from app.api.schemas import ListPage
 from app.modules.notifications.models import NotificationPriority
-from app.modules.notifications.repository import NotificationRepository
-from app.modules.notifications.schemas import AdminNotificationResponse, MarkAllReadResponse, NotificationResponse
+from app.modules.notifications.repository import DevicePushTokenRepository, NotificationRepository
+from app.modules.notifications.schemas import (
+    AdminNotificationResponse,
+    DevicePushTokenRegister,
+    DevicePushTokenResponse,
+    DevicePushTokenUnregister,
+    MarkAllReadResponse,
+    NotificationResponse,
+)
 from app.modules.notifications.service import NotificationService
 from app.modules.users.models import User
 
@@ -16,7 +23,7 @@ router = APIRouter()
 
 
 def get_notification_service(db: AsyncSession = Depends(get_db)):
-    return NotificationService(NotificationRepository(db))
+    return NotificationService(NotificationRepository(db), DevicePushTokenRepository(db))
 
 
 @router.get("/", response_model=ListPage[NotificationResponse])
@@ -45,6 +52,24 @@ async def list_admin_notifications(
     return await service.list_admin(
         user_id=user_id, priority=priority, is_read=is_read, limit=limit, offset=offset
     )
+
+
+@router.post("/device-tokens", response_model=DevicePushTokenResponse)
+async def register_device_token(
+    payload: DevicePushTokenRegister,
+    current_user: User = Depends(get_current_user),
+    service: NotificationService = Depends(get_notification_service),
+):
+    return await service.register_device_token(current_user.id, payload)
+
+
+@router.delete("/device-tokens", response_model=MarkAllReadResponse)
+async def unregister_device_token(
+    payload: DevicePushTokenUnregister,
+    current_user: User = Depends(get_current_user),
+    service: NotificationService = Depends(get_notification_service),
+):
+    return await service.unregister_device_token(current_user.id, payload.token)
 
 
 @router.post("/read-all", response_model=MarkAllReadResponse)

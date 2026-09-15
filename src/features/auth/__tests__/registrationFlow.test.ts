@@ -18,6 +18,7 @@ describe('registration schemas', () => {
       emergencyContact: '911',
     });
     expect(parsed.firstName).toBe('Lakshmi');
+    expect(parsed.membershipKind).toBeUndefined();
   });
 
   it('accepts care associate application values', () => {
@@ -120,9 +121,13 @@ describe('role routing after registration', () => {
     expect(authenticatedHomeHref('FAMILY')).toBe('/(tabs)');
   });
 
-  it('sends pending care associates to pending approval', () => {
-    expect(authenticatedHomeHref('CARE_MANAGER', { careStatus: 'PENDING' })).toBe('/pending-approval');
-    expect(authenticatedHomeHref('CARE_MANAGER', { careStatus: 'ACTIVE' })).toBe('/(care)');
+  it('sends pending care associates to pending approval in the Care app', () => {
+    expect(authenticatedHomeHref('CARE_MANAGER', { variant: 'care', careStatus: 'PENDING' })).toBe('/pending-approval');
+    expect(authenticatedHomeHref('CARE_MANAGER', { variant: 'care', careStatus: 'ACTIVE' })).toBe('/(care)');
+  });
+
+  it('keeps care staff out of the member app', () => {
+    expect(authenticatedHomeHref('CARE_MANAGER', { variant: 'family' })).toBe('/role-unavailable?role=CARE_MANAGER');
   });
 });
 

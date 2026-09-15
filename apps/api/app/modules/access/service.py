@@ -162,6 +162,33 @@ class AccessService:
 
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=FORBIDDEN)
 
+    async def ensure_delivery_access(self, user: User, delivery) -> None:
+        if user.role == RoleEnum.SENIOR:
+            senior = await self.senior_repo.get_by_user_id(user.id)
+            if not senior or delivery.senior_id != senior.id:
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=FORBIDDEN)
+            return
+
+        if user.role == RoleEnum.FAMILY:
+            family = await self.access_repo.get_family_member_by_user_id(user.id)
+            if not family or delivery.senior_id is None:
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=FORBIDDEN)
+            allowed = await self.access_repo.has_family_senior_access(family.id, delivery.senior_id)
+            if not allowed:
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=FORBIDDEN)
+            return
+
+        if user.role == RoleEnum.CARE_MANAGER:
+            care_manager = await self.access_repo.get_care_manager_by_user_id(user.id)
+            if not care_manager or delivery.care_manager_id != care_manager.id:
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=FORBIDDEN)
+            return
+
+        if user.role in (RoleEnum.ADMIN, RoleEnum.OPERATIONS):
+            return
+
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=FORBIDDEN)
+
     async def resolve_emergency_list_scope(
         self,
         user: User,
@@ -181,6 +208,19 @@ class AccessService:
                     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=FORBIDDEN)
                 return EmergencyListScope(senior_id=requested)
             senior_ids = await self.access_repo.list_assigned_senior_ids(care_manager.id)
+            return EmergencyListScope(assigned_senior_ids=tuple(senior_ids))
+
+        if user.role == RoleEnum.FAMILY:
+            family = await self.access_repo.get_family_member_by_user_id(user.id)
+            if not family:
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=FORBIDDEN)
+            requested = as_uuid(requested_senior_id)
+            if requested:
+                allowed = await self.access_repo.has_family_senior_access(family.id, requested)
+                if not allowed:
+                    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=FORBIDDEN)
+                return EmergencyListScope(senior_id=requested)
+            senior_ids = await self.access_repo.list_family_senior_ids(family.id)
             return EmergencyListScope(assigned_senior_ids=tuple(senior_ids))
 
         senior_id = await self.resolve_senior_id(

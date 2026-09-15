@@ -1,11 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Keyboard,
-  Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -14,15 +11,17 @@ import { router, useLocalSearchParams, useNavigation, type Href } from 'expo-rou
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Ellipse, Path, Rect } from 'react-native-svg';
 import { brandGreen } from '@/components/AgeWellLogo';
-import { TextField } from '@/components';
+import { KeyboardAwareScrollView, TextField } from '@/components';
 import { Icon } from '@/components/ui';
 import { minTouchSize, spacing, typography } from '@/constants/theme';
 import {
+  LOCATION_ISSUE_COPY,
   openDeviceLocationSettings,
   requestOnboardingLocation,
   setOnboardingAuthMethod,
   setOnboardingGps,
   setOnboardingManualLocation,
+  type LocationFailureReason,
   type OnboardingAuthMethod,
 } from './onboardingLocation';
 import { resolveServiceAreaFromGps, resolveServiceAreaFromQuery, serviceAreaHref } from './serviceArea';
@@ -41,9 +40,6 @@ export function LocationPermissionScreen({
   const [mode, setMode] = useState<'ask' | 'manual'>('ask');
   const [place, setPlace] = useState('');
   const [placeError, setPlaceError] = useState<string | undefined>();
-  const scrollRef = useRef<ScrollView>(null);
-  const placeFocused = useRef(false);
-  const [keyboardInset, setKeyboardInset] = useState(0);
 
   const method = normalizeMethod(params.method);
 
@@ -52,34 +48,6 @@ export function LocationPermissionScreen({
       setOnboardingAuthMethod(method);
     }
   }, [method]);
-
-  useEffect(() => {
-    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-    const show = Keyboard.addListener(showEvent, (event) => {
-      setKeyboardInset(event.endCoordinates.height);
-    });
-    const hide = Keyboard.addListener(hideEvent, () => setKeyboardInset(0));
-    return () => {
-      show.remove();
-      hide.remove();
-    };
-  }, []);
-
-  const revealPlaceField = () => {
-    requestAnimationFrame(() => {
-      setTimeout(() => {
-        scrollRef.current?.scrollToEnd({ animated: true });
-      }, Platform.OS === 'ios' ? 250 : 80);
-    });
-  };
-
-  useEffect(() => {
-    if (keyboardInset <= 0 || !placeFocused.current) {
-      return;
-    }
-    revealPlaceField();
-  }, [keyboardInset]);
 
   const goBack = () => {
     if (mode === 'manual') {
@@ -95,7 +63,7 @@ export function LocationPermissionScreen({
       router.replace('/(tabs)' as Href);
       return;
     }
-    router.replace('/(auth)/service-for' as Href);
+    router.replace('/(auth)/personal-details' as Href);
   };
 
   const goToServiceArea = (available: boolean) => {
@@ -114,27 +82,12 @@ export function LocationPermissionScreen({
     try {
       const result = await requestOnboardingLocation();
       if (result.ok) {
-        const hasCoords = result.latitude !== 0 || result.longitude !== 0;
-        if (hasCoords) {
-          setOnboardingGps(result.latitude, result.longitude);
-          const available = await resolveServiceAreaFromGps(result.latitude, result.longitude);
-          goToServiceArea(available);
-          return;
-        }
-        goToServiceArea(false);
+        setOnboardingGps(result.latitude, result.longitude);
+        const available = await resolveServiceAreaFromGps(result.latitude, result.longitude);
+        goToServiceArea(available);
         return;
       }
-      if (result.reason === 'blocked' || result.reason === 'unavailable') {
-        Alert.alert(
-          'Location is off',
-          'Turn on location for AgeWell in Settings so we can check whether services are available in your area.',
-          [
-            { text: 'Not now', style: 'cancel' },
-            { text: 'Open Settings', onPress: openDeviceLocationSettings },
-          ],
-        );
-        return;
-      }
+      showLocationIssue(result.reason, () => setMode('manual'));
     } finally {
       setBusy(false);
     }
@@ -152,7 +105,7 @@ export function LocationPermissionScreen({
     setBusy(true);
     setPlaceError(undefined);
     try {
-      setOnboardingManualLocation();
+      setOnboardingManualLocation(query);
       const available = await resolveServiceAreaFromQuery(query);
       goToServiceArea(available);
     } finally {
@@ -171,16 +124,13 @@ export function LocationPermissionScreen({
         <Icon name="arrow-back" size={22} color="#1A1A1A" />
       </Pressable>
 
-      <ScrollView
-        ref={scrollRef}
+      <KeyboardAwareScrollView
         style={styles.flex}
-        keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
-        automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
           flexGrow: 1,
-          paddingBottom: insets.bottom + spacing.xl + (Platform.OS === 'ios' ? 0 : keyboardInset),
+          paddingBottom: insets.bottom + spacing.xl,
         }}
       >
         <View style={styles.body}>
@@ -212,13 +162,6 @@ export function LocationPermissionScreen({
                   if (placeError) {
                     setPlaceError(undefined);
                   }
-                }}
-                onFocus={() => {
-                  placeFocused.current = true;
-                  revealPlaceField();
-                }}
-                onBlur={() => {
-                  placeFocused.current = false;
                 }}
                 autoCapitalize="words"
                 error={placeError}
@@ -274,9 +217,19 @@ export function LocationPermissionScreen({
             </>
           )}
         </View>
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </View>
   );
+}
+
+function showLocationIssue(reason: LocationFailureReason, onManual: () => void) {
+  const copy = LOCATION_ISSUE_COPY[reason];
+  Alert.alert(copy.title, copy.message, [
+    { text: 'Enter manually', onPress: onManual },
+    copy.openSettings
+      ? { text: 'Open Settings', onPress: openDeviceLocationSettings }
+      : { text: 'OK' },
+  ]);
 }
 
 function normalizeMethod(value: string | string[] | undefined): OnboardingAuthMethod | null {

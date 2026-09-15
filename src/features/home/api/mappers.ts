@@ -98,6 +98,9 @@ export function toListPage<T>(payload: unknown, mapItem: (item: unknown) => T, l
 
 export function toSeniorProfile(payload: unknown): SeniorProfile {
   const data = asRecord(payload, 'senior profile') as unknown as SeniorResponse;
+  const sourceRaw = asOptionalString(data.location_source);
+  const locationSource =
+    sourceRaw === 'gps' || sourceRaw === 'manual' ? sourceRaw : null;
   return {
     id: asId(data.id, 'senior.id'),
     userId: asId(data.user_id, 'senior.user_id'),
@@ -106,7 +109,17 @@ export function toSeniorProfile(payload: unknown): SeniorProfile {
     dateOfBirth: asString(data.date_of_birth, 'senior.date_of_birth'),
     address: asString(data.address, 'senior.address'),
     emergencyContact: asString(data.emergency_contact, 'senior.emergency_contact'),
+    familyContact1Name: asOptionalString(data.family_contact_1_name),
+    familyContact1Phone: asOptionalString(data.family_contact_1_phone),
+    familyContact2Name: asOptionalString(data.family_contact_2_name),
+    familyContact2Phone: asOptionalString(data.family_contact_2_phone),
+    preferredHospital: asOptionalString(data.preferred_hospital),
     photo: asOptionalString(data.photo),
+    inServiceArea: Boolean(data.in_service_area),
+    locationLat: asOptionalNumber(data.location_lat),
+    locationLng: asOptionalNumber(data.location_lng),
+    locationQuery: asOptionalString(data.location_query),
+    locationSource,
   };
 }
 
@@ -124,6 +137,8 @@ export function toVisit(payload: unknown): Visit {
     careManagerName: asOptionalString(data.care_manager_name),
     status: asString(data.status, 'visit.status') as Visit['status'],
     scheduledAt: asOptionalString(data.scheduled_at),
+    startedAt: asOptionalString(data.started_at),
+    completedAt: asOptionalString(data.completed_at),
     notes: asOptionalString(data.notes),
   };
 }

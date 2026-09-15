@@ -15,6 +15,11 @@ class RegisterSeniorRequest(BaseModel):
     emergency_contact: str = Field(min_length=1, max_length=100)
     preferred_language: Optional[str] = Field(default=None, max_length=20)
     membership_kind: Optional[str] = Field(default=None, max_length=20)
+    in_service_area: Optional[bool] = None
+    location_lat: Optional[float] = None
+    location_lng: Optional[float] = None
+    location_query: Optional[str] = Field(default=None, max_length=500)
+    location_source: Optional[str] = Field(default=None, max_length=20)
     identity_token: Optional[str] = Field(default=None, max_length=4096)
 
     @field_validator("email")
@@ -41,6 +46,26 @@ class RegisterSeniorRequest(BaseModel):
         if kind not in ("single", "couple"):
             raise ValueError("membership_kind must be single or couple")
         return kind
+
+    @field_validator("location_source")
+    @classmethod
+    def normalize_location_source(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        source = value.strip().lower()
+        if not source:
+            return None
+        if source not in ("gps", "manual"):
+            raise ValueError("location_source must be gps or manual")
+        return source
+
+    @field_validator("location_query")
+    @classmethod
+    def normalize_location_query(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        query = value.strip()
+        return query or None
 
     @model_validator(mode="after")
     def drop_copied_last_name(self):
@@ -81,6 +106,7 @@ class RegisterCareAssociateRequest(BaseModel):
     experience: Optional[str] = Field(default=None, max_length=500)
     languages: Optional[str] = Field(default=None, max_length=200)
     availability: Optional[str] = Field(default=None, max_length=200)
+    staff_kind: Optional[str] = Field(default=None, max_length=40)
 
     @field_validator("email")
     @classmethod
@@ -89,6 +115,18 @@ class RegisterCareAssociateRequest(BaseModel):
         if "@" not in email or "." not in email.split("@")[-1]:
             raise ValueError("Invalid email address")
         return email
+
+    @field_validator("staff_kind")
+    @classmethod
+    def normalize_staff_kind(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        kind = value.strip().upper()
+        if not kind:
+            return None
+        if kind not in ("CARE_MANAGER", "COMPANION", "DELIVERY_EXECUTIVE"):
+            raise ValueError("staff_kind must be CARE_MANAGER, COMPANION, or DELIVERY_EXECUTIVE")
+        return kind
 
 
 class RegistrationResponse(BaseModel):

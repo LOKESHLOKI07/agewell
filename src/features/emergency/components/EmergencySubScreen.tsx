@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { KeyboardAwareScrollView } from '@/components/KeyboardAwareScrollView';
 import { colors, spacing } from '@/constants/theme';
 import { AgeWellHeader } from '@/features/home/components/AgeWellHeader';
 import { useUnreadNotifications } from '@/features/notifications/hooks';
@@ -19,9 +20,13 @@ export function EmergencySubScreen({ title, children }: EmergencySubScreenProps)
         showProfile={false}
         unreadCount={unread.data?.total ?? 0}
       />
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <KeyboardAwareScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
         {children}
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </View>
   );
 }

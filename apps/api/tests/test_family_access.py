@@ -325,7 +325,9 @@ async def test_family_emergency_authorized_and_unauthorized(client, ids):
     assert detail.status_code == 200
     assert events.status_code == 200
     assert denied.status_code == 403
-    assert missing.status_code == 403
+    assert missing.status_code == 200
+    assert missing.json()["total"] >= 1
+    assert all(item["senior_id"] == ids["john"] for item in missing.json()["items"])
 
 
 @pytest.mark.asyncio

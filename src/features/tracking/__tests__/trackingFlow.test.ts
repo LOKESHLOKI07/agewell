@@ -7,6 +7,7 @@ import { invalidateTrackingQueries, trackingQueryKeys } from '../queryKeys';
 import {
   LOCATION_FORBIDDEN_MESSAGE,
   LOCATION_NOT_SHARED_MESSAGE,
+  LOCATION_NO_FIX_MESSAGE,
   LOCATION_PERMISSION_MESSAGE,
   LOCATION_UNAVAILABLE_MESSAGE,
   canPostTrackingPoints,
@@ -295,6 +296,19 @@ describe('senior start live location', () => {
     });
     expect(result).toEqual({ ok: false, reason: 'denied', message: LOCATION_PERMISSION_MESSAGE });
     expect(postPoint).not.toHaveBeenCalled();
+  });
+
+  it('returns a GPS miss with an actionable location message', async () => {
+    const result = await startLiveLocationShare({
+      requestPermission: async () => ({ state: 'granted', message: null }),
+      readCoordinates: async () => {
+        throw new Error(LOCATION_NO_FIX_MESSAGE);
+      },
+      createSession: async () => toTrackingSession(sessionPayload),
+      postPoint: async () => toTrackingPoint(pointPayload),
+      toPoint: toTrackingPointCreate,
+    });
+    expect(result).toEqual({ ok: false, reason: 'location', message: LOCATION_NO_FIX_MESSAGE });
   });
 
   it('returns a session creation failure', async () => {

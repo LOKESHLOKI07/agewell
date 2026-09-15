@@ -1,6 +1,6 @@
+/** Must stay aligned with apps/api membership_catalog.py slugs (21 Single). */
 import type { Href } from 'expo-router';
 
-/** Must stay aligned with apps/api membership_catalog.py slugs. */
 export type AdminInboxKey =
   | 'emergencies'
   | 'visits'
@@ -42,20 +42,6 @@ export const MEMBERSHIP_OPS_MAP: MembershipOpsEntry[] = [
     note: 'Companion cards under Service items; assignments in Visits.',
   },
   {
-    slug: 'grocery',
-    adminInbox: 'orders',
-    adminLabel: 'Grocery catalog',
-    adminHref: '/(admin)/catalog/grocery' as Href,
-    note: 'Cart / photo list orders. Product menu is edited in Grocery catalog.',
-  },
-  {
-    slug: 'food',
-    adminInbox: 'orders',
-    adminLabel: 'Food catalog',
-    adminHref: '/(admin)/catalog/food' as Href,
-    note: 'Cuisine menu orders. Menu is edited in Food catalog.',
-  },
-  {
     slug: 'medicine',
     adminInbox: 'orders',
     adminLabel: 'Service items',
@@ -63,11 +49,11 @@ export const MEMBERSHIP_OPS_MAP: MembershipOpsEntry[] = [
     note: 'Prescription upload + catalogue packages under Service items.',
   },
   {
-    slug: 'lab-testing',
+    slug: 'health-check',
     adminInbox: 'appointments',
     adminLabel: 'Service items',
-    adminHref: '/(admin)/catalog/offerings/lab-testing' as Href,
-    note: 'Lab test menu with images — bookings stay in Appointments.',
+    adminHref: '/(admin)/catalog/offerings/health-check' as Href,
+    note: 'Monthly vitals packages under Service items.',
   },
   {
     slug: 'monthly-blood-test',
@@ -84,32 +70,39 @@ export const MEMBERSHIP_OPS_MAP: MembershipOpsEntry[] = [
     note: 'Doctor profiles and photos under Service items.',
   },
   {
-    slug: 'medical-history',
-    adminInbox: 'records',
-    adminLabel: 'Service items',
-    adminHref: '/(admin)/catalog/offerings/medical-history' as Href,
-    note: 'Info cards under Service items; documents stay in health records.',
+    slug: 'grocery',
+    adminInbox: 'orders',
+    adminLabel: 'Grocery catalog',
+    adminHref: '/(admin)/catalog/grocery' as Href,
+    note: 'Cart / photo list orders. Product menu is edited in Grocery catalog.',
   },
   {
-    slug: 'tech-assistance',
+    slug: 'small-errands',
+    adminInbox: 'visits',
+    adminLabel: 'Service items',
+    adminHref: '/(admin)/catalog/offerings/small-errands' as Href,
+    note: 'Errand topics under Service items; fulfilled with companion visits.',
+  },
+  {
+    slug: 'errand-coordination',
     adminInbox: 'requests',
     adminLabel: 'Service items',
-    adminHref: '/(admin)/catalog/offerings/tech-assistance' as Href,
-    note: 'Help topics with optional images under Service items.',
+    adminHref: '/(admin)/catalog/offerings/errand-coordination' as Href,
+    note: 'Coordination request cards under Service items.',
   },
   {
-    slug: 'events-trips',
-    adminInbox: 'community',
-    adminLabel: 'Service items',
-    adminHref: '/(admin)/catalog/offerings/events-trips' as Href,
-    note: 'Events and trips catalogue with images.',
-  },
-  {
-    slug: 'legal',
+    slug: 'cyber-security',
     adminInbox: 'requests',
     adminLabel: 'Service items',
-    adminHref: '/(admin)/catalog/offerings/legal' as Href,
-    note: 'Legal offer cards under Service items.',
+    adminHref: '/(admin)/catalog/offerings/cyber-security' as Href,
+    note: 'Scam / OTP guidance topics under Service items.',
+  },
+  {
+    slug: 'banking-companion',
+    adminInbox: 'visits',
+    adminLabel: 'Service items',
+    adminHref: '/(admin)/catalog/offerings/banking-companion' as Href,
+    note: 'Bank visit packages under Service items.',
   },
   {
     slug: 'ca',
@@ -119,11 +112,11 @@ export const MEMBERSHIP_OPS_MAP: MembershipOpsEntry[] = [
     note: 'CA offer cards under Service items.',
   },
   {
-    slug: 'transport',
-    adminInbox: 'requests',
+    slug: 'events-trips',
+    adminInbox: 'community',
     adminLabel: 'Service items',
-    adminHref: '/(admin)/catalog/offerings/transport' as Href,
-    note: 'Transport packages under Service items.',
+    adminHref: '/(admin)/catalog/offerings/events-trips' as Href,
+    note: 'Events and trips catalogue with images.',
   },
   {
     slug: 'home-repair',
@@ -138,6 +131,27 @@ export const MEMBERSHIP_OPS_MAP: MembershipOpsEntry[] = [
     adminLabel: 'Service items',
     adminHref: '/(admin)/catalog/offerings/pooja' as Href,
     note: 'Pooja packages with images.',
+  },
+  {
+    slug: 'legal',
+    adminInbox: 'requests',
+    adminLabel: 'Service items',
+    adminHref: '/(admin)/catalog/offerings/legal' as Href,
+    note: 'Legal offer cards under Service items.',
+  },
+  {
+    slug: 'local-transport',
+    adminInbox: 'requests',
+    adminLabel: 'Service items',
+    adminHref: '/(admin)/catalog/offerings/local-transport' as Href,
+    note: 'Local cab / rickshaw coordination packages.',
+  },
+  {
+    slug: 'transport',
+    adminInbox: 'requests',
+    adminLabel: 'Service items',
+    adminHref: '/(admin)/catalog/offerings/transport' as Href,
+    note: 'Outstation transport packages under Service items.',
   },
   {
     slug: 'home-inspection',

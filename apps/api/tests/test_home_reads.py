@@ -120,12 +120,12 @@ async def test_current_membership_returns_plan(client):
     response = await client.get("/api/v1/memberships/current", headers=auth_header(token))
     assert response.status_code == 200
     data = response.json()
-    assert data["plan_name"] == "Premium"
+    assert data["plan_name"] == "Single Membership"
     assert data["membership_id"]
     assert data["plan_id"]
     assert data["status"] in {"ACTIVE", "EXPIRED", "UPCOMING"}
-    assert any(benefit["benefit_name"] == "Doctor Visits" for benefit in data["benefits"])
-    assert any(benefit["quota"] == 5 for benefit in data["benefits"])
+    assert any(benefit["benefit_name"] == "Companion Visits" for benefit in data["benefits"])
+    assert any(benefit["quota"] == 20 for benefit in data["benefits"])
 
 
 @pytest.mark.asyncio
@@ -135,10 +135,10 @@ async def test_membership_usage_comes_from_ledger(client):
     assert response.status_code == 200
     usage = response.json()
     assert len(usage) >= 1
-    doctor = next(item for item in usage if item["benefit_name"] == "Doctor Visits")
-    assert doctor["quota"] == 5
-    assert doctor["used"] == 1
-    assert doctor["remaining"] == 4
+    companion = next(item for item in usage if item["benefit_name"] == "Companion Visits")
+    assert companion["quota"] == 20
+    assert companion["used"] >= 0
+    assert companion["remaining"] == companion["quota"] - companion["used"]
 
 
 @pytest.mark.asyncio

@@ -15,6 +15,11 @@ export const registerSeniorSchema = registerAccountSchema.extend({
   emergencyContact: z.string().trim().min(1, 'Emergency contact is required'),
   preferredLanguage: z.enum(['en', 'hi', 'mr']).optional(),
   membershipKind: z.enum(['single', 'couple']).optional(),
+  inServiceArea: z.boolean().optional(),
+  locationLat: z.number().nullable().optional(),
+  locationLng: z.number().nullable().optional(),
+  locationQuery: z.string().trim().max(500).nullable().optional(),
+  locationSource: z.enum(['gps', 'manual']).nullable().optional(),
 });
 
 export const registerCareSchema = registerAccountSchema.extend({
@@ -22,6 +27,7 @@ export const registerCareSchema = registerAccountSchema.extend({
   experience: z.string().trim().max(500).optional().or(z.literal('')),
   languages: z.string().trim().max(200).optional().or(z.literal('')),
   availability: z.string().trim().max(200).optional().or(z.literal('')),
+  staffKind: z.enum(['CARE_MANAGER', 'COMPANION', 'DELIVERY_EXECUTIVE']).optional(),
 });
 
 export type RegisterSeniorValues = z.infer<typeof registerSeniorSchema>;

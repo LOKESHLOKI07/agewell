@@ -10,6 +10,7 @@ export { LoadingState } from './LoadingState';
 export { NotificationCard } from './NotificationCard';
 export { ParentCard } from './ParentCard';
 export { PrimaryButton } from './PrimaryButton';
+export { KeyboardAwareScrollView } from './KeyboardAwareScrollView';
 export { Screen } from './Screen';
 export { SecondaryButton } from './SecondaryButton';
 export { SectionHeader } from './SectionHeader';

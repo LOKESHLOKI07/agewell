@@ -48,6 +48,18 @@ const STATUS_LABELS: Record<EmergencyStatus, string> = {
   CANCELLED: 'Cancelled',
 };
 
+const TRIGGER_LABELS: Record<string, string> = {
+  APP_SOS: 'App SOS Button',
+  HOME_PANIC_BUTTON: 'Home Panic Button',
+};
+
+export const RECIPIENT_CHIP_META: { role: string; label: string; icon: IconName }[] = [
+  { role: 'FAMILY', label: 'Family Members', icon: 'people-outline' },
+  { role: 'CARE_MANAGER', label: 'Care Manager', icon: 'account-circle' },
+  { role: 'COMPANION', label: 'Companion', icon: 'people' },
+  { role: 'AGEWELL_SUPPORT', label: 'AgeWell Support', icon: 'call-outline' },
+];
+
 const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 export function emergencyTypeLabel(type: EmergencyType): string {
@@ -58,6 +70,38 @@ export function emergencyStatusLabel(status: EmergencyStatus): string {
   return STATUS_LABELS[status];
 }
 
+export function triggerSourceLabel(source: string | null | undefined): string {
+  if (!source) {
+    return 'App SOS Button';
+  }
+  return TRIGGER_LABELS[source] ?? source.replace(/_/g, ' ');
+}
+
+export function recipientStatusLabel(
+  status: string,
+  respondedAt?: string | null,
+  notifiedAt?: string | null,
+): string {
+  if (status === 'RESPONDED') {
+    return respondedAt ? `Responded at ${formatTime(respondedAt)}` : 'Responded';
+  }
+  if (!notifiedAt) {
+    return 'Standing by';
+  }
+  return 'Alert sent';
+}
+
+export function formatEmergencyClock(value: string | null | undefined): string | null {
+  if (!value) {
+    return null;
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+  return formatTime(value);
+}
+
 export function formatEmergencyWhen(value: string | null): string | null {
   if (!value) {
     return null;
@@ -66,7 +110,7 @@ export function formatEmergencyWhen(value: string | null): string | null {
   if (Number.isNaN(date.getTime())) {
     return null;
   }
-  return `${date.getDate()} ${MONTHS_SHORT[date.getMonth()]} ${date.getFullYear()}, ${formatTime(value)}`;
+  return `${date.getDate()} ${MONTHS_SHORT[date.getMonth()]} ${date.getFullYear()} • ${formatTime(value)}`;
 }
 
 export function emergencyDetailHref(id: string) {

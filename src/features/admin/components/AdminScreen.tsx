@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { router, type Href } from 'expo-router';
+import { KeyboardAwareScrollView } from '@/components/KeyboardAwareScrollView';
 import { Icon } from '@/components/ui';
 import { colors, minTouchSize, spacing, typography } from '@/constants/theme';
 import { useAdminLayout } from '../useAdminLayout';
@@ -74,20 +75,19 @@ export function AdminScreen({
   }
 
   return (
-    <ScrollView
+    <KeyboardAwareScrollView
       style={styles.container}
       contentContainerStyle={[styles.content, isDesktop ? styles.contentDesktop : null, contentStyle]}
-      keyboardShouldPersistTaps="handled"
     >
       {body}
-    </ScrollView>
+    </KeyboardAwareScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.adminCanvas,
   },
   content: {
     paddingHorizontal: spacing.md,

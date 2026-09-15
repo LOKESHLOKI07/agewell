@@ -1,37 +1,40 @@
-import { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { router, useLocalSearchParams, type Href } from 'expo-router';
-import { ConfirmDialog, PrimaryButton, PremiumCard, StatusPill, TextField, statusToneFromLabel } from '@/components';
-import { colors, radius, spacing, typography } from '@/constants/theme';
-import { formatRelativeDay, formatTime } from '@/utils/date';
-import { AdminCollection } from './components/AdminCollection';
-import { AdminRowIconActions, AdminSelectCheckbox, AdminSelectionToolbar } from './components/AdminListActions';
+import { useMemo, useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { router, type Href } from 'expo-router';
+import { ConfirmDialog, PrimaryButton, StatusPill, TextField, statusToneFromLabel } from '@/components';
+import { Avatar, Icon } from '@/components/ui';
+import { colors, radius, shadows, spacing, typography } from '@/constants/theme';
+import { STAFF_KIND_LABELS, STAFF_KINDS, type StaffKind } from '@/features/care/staffKind';
+import { AdminFilterChips } from './components/AdminFilterChips';
+import { AdminSelectCheckbox, AdminSelectionToolbar } from './components/AdminListActions';
 import { AdminQueryView } from './components/AdminQueryView';
 import { AdminScreen } from './components/AdminScreen';
-import { AdminSearchPicker } from './components/AdminSearchPicker';
-import { deleteAdminCareManager, updateAdminUser } from './api';
+import { deleteAdminCareManager } from './api';
 import { useDeletePeopleRecords } from './hooks/useDeletePeopleRecords';
-import {
-  useAdminCareManager,
-  useAdminCareManagers,
-  useAdminUser,
-  useAdminUsers,
-  useAdminVisits,
-  useApproveAdminCareManager,
-  useCreateAdminCareManager,
-  useUpdateAdminCareManager,
-} from './hooks';
-import { adminCareManagerDisplay, getAdminErrorMessage, getSectionState, humanizeStatus } from './selectors';
+import { useAdminCareManagers, useApproveAdminCareManager, useProvisionAdminStaff } from './hooks';
+import { ADMIN_STAFF_DEFAULT_PASSWORD } from './staffDefaults';
+import { adminCareManagerDisplay, adminStaffKindLabel, getAdminErrorMessage, getSectionState, humanizeStatus } from './selectors';
 import type { AdminCareManager } from './types';
+import { useAdminLayout } from './useAdminLayout';
 
 export function AdminCareManagersScreen() {
+  const { isDesktop } = useAdminLayout();
   const query = useAdminCareManagers();
   const approve = useApproveAdminCareManager();
-  const items = query.data ?? [];
+  const [search, setSearch] = useState('');
+  const items = useMemo(() => {
+    const needle = search.trim().toLowerCase();
+    const rows = query.data ?? [];
+    if (!needle) {
+      return rows;
+    }
+    return rows.filter((item) =>
+      `${adminCareManagerDisplay(item)} ${item.employeeId ?? ''} ${item.skills ?? ''}`.toLowerCase().includes(needle),
+    );
+  }, [query.data, search]);
   const selection = useDeletePeopleRecords('care', deleteAdminCareManager);
   const pageIds = items.map((item) => item.id);
   const allSelected = pageIds.length > 0 && pageIds.every((id) => selection.selectedIds.includes(id));
-
   const state = getSectionState({
     isPending: query.isPending,
     isError: query.isError,
@@ -39,111 +42,64 @@ export function AdminCareManagersScreen() {
   });
 
   return (
+    <>
     <AdminScreen
-      title="Care Associates"
-      subtitle="Edit opens registration profile fields. Delete removes the care associate record and login account. Approve PENDING applicants before visits."
+      title="Care Team"
+      subtitle="Staff profiles, roles, and visit assignments."
       actions={
         <PrimaryButton
-          label="Create care associate"
+          label="Register staff"
           fullWidth={false}
           onPress={() => router.push('/(admin)/care-managers/new' as Href)}
         />
       }
     >
+      <View style={styles.toolbarCard}>
+        <TextField label="Search name, employee ID, or skills" value={search} onChangeText={setSearch} />
+      </View>
       {selection.actionError ? <Text style={styles.error}>{selection.actionError}</Text> : null}
       <AdminQueryView
         state={state}
         error={query.error}
         onRetry={() => void query.refetch()}
-        loadingMessage="Loading care associates..."
-        emptyTitle="No care associates"
-        emptyMessage="No care associate records are on file."
+        loadingMessage="Loading care team..."
+        emptyTitle="No care team members"
+        emptyMessage="No staff records are on file."
         errorKind="care"
       >
-        <AdminCollection
-          items={items}
-          keyExtractor={(item) => item.id}
-          accessibilityLabel={(item) => `${adminCareManagerDisplay(item)}, ${item.employeeId ?? 'no employee ID'}`}
-          columns={[
-            {
-              key: 'select',
-              label: 'Select',
-              flex: 0.45,
-              header: (
-                <AdminSelectCheckbox
-                  checked={allSelected}
-                  label="Select all care associates"
-                  onPress={() => selection.toggleAll(pageIds)}
-                />
-              ),
-              render: (item: AdminCareManager) => (
-                <AdminSelectCheckbox
-                  checked={selection.selectedIds.includes(item.id)}
-                  label={`Select ${adminCareManagerDisplay(item)}`}
-                  onPress={() => selection.toggleOne(item.id)}
-                />
-              ),
-            },
-            {
-              key: 'name',
-              label: 'Name',
-              flex: 1.2,
-              render: (item: AdminCareManager) => <Text style={cell}>{adminCareManagerDisplay(item)}</Text>,
-            },
-            { key: 'employee', label: 'Employee ID', render: (item) => <Text style={cell}>{item.employeeId ?? 'Not on file'}</Text> },
-            { key: 'skills', label: 'Skills', render: (item) => <Text style={cell}>{item.skills ?? 'Not on file'}</Text> },
-            {
-              key: 'status',
-              label: 'Status',
-              render: (item) => <Text style={cell}>{item.status ? humanizeStatus(item.status) : 'Not on file'}</Text>,
-            },
-            {
-              key: 'actions',
-              label: 'Actions',
-              flex: 1.4,
-              render: (item) => (
-                <View style={styles.actionsCell}>
-                  <AdminRowIconActions
-                    editLabel={`Edit ${adminCareManagerDisplay(item)}`}
-                    viewLabel={`View ${adminCareManagerDisplay(item)}`}
-                    deleteLabel={`Delete ${adminCareManagerDisplay(item)}`}
-                    onEdit={() => router.push(`/(admin)/care-managers/${item.id}?edit=1` as Href)}
-                    onView={() => router.push(`/(admin)/care-managers/${item.id}` as Href)}
-                    onDelete={() => selection.requestDeleteOne(item.id, adminCareManagerDisplay(item))}
-                  />
-                  {(item.status ?? '').toUpperCase() === 'PENDING' ? (
-                    <PrimaryButton
-                      label="Approve"
-                      fullWidth={false}
-                      loading={approve.isPending}
-                      onPress={() => approve.mutate({ id: item.id, status: 'ACTIVE' })}
-                    />
-                  ) : null}
-                </View>
-              ),
-            },
-          ]}
-          headerLeading={
-            <AdminSelectionToolbar
-              allSelected={allSelected}
-              selectedCount={selection.selectedIds.length}
-              onToggleAll={() => selection.toggleAll(pageIds)}
-              onDeleteSelected={() => selection.setBulkDelete(true)}
-              onClear={selection.clear}
-            />
-          }
+        <AdminSelectionToolbar
+          allSelected={allSelected}
+          selectedCount={selection.selectedIds.length}
+          onToggleAll={() => selection.toggleAll(pageIds)}
+          onDeleteSelected={() => selection.setBulkDelete(true)}
+          onClear={selection.clear}
         />
+        <View style={[styles.grid, isDesktop ? styles.gridDesktop : null]}>
+          {items.map((item) => (
+            <CareListCard
+              key={item.id}
+              staff={item}
+              selected={selection.selectedIds.includes(item.id)}
+              approving={approve.isPending}
+              onSelect={() => selection.toggleOne(item.id)}
+              onDelete={() => selection.requestDeleteOne(item.id, adminCareManagerDisplay(item))}
+              onApprove={() => approve.mutate({ id: item.id, status: 'ACTIVE' })}
+            />
+          ))}
+        </View>
       </AdminQueryView>
-
+    </AdminScreen>
       <ConfirmDialog
         visible={Boolean(selection.deleteId)}
-        title="Delete this care associate?"
+        title="Delete this care team member?"
         message={
           selection.deleteId
             ? `${selection.deleteLabel} and their login account will be permanently removed.`
             : ''
         }
         confirmLabel={selection.busy ? 'Working…' : 'Delete record'}
+        busy={selection.busy}
+        error={selection.actionError}
         onCancel={() => selection.setDeleteId(null)}
         onConfirm={() => {
           if (selection.deleteId) void selection.deleteRecords([selection.deleteId]);
@@ -151,282 +107,165 @@ export function AdminCareManagersScreen() {
       />
       <ConfirmDialog
         visible={selection.bulkDelete}
-        title="Delete selected care associates?"
-        message={`${selection.selectedIds.length} care associate record(s) and their login accounts will be permanently removed.`}
+        title="Delete selected care team members?"
+        message={`${selection.selectedIds.length} staff record(s) and their login accounts will be permanently removed.`}
         confirmLabel={selection.busy ? 'Working…' : 'Delete selected'}
+        busy={selection.busy}
+        error={selection.actionError}
         onCancel={() => selection.setBulkDelete(false)}
         onConfirm={() => {
-          void selection.deleteRecords(selection.selectedIds);
+          void selection.deleteRecords([...selection.selectedIds]);
         }}
       />
-    </AdminScreen>
+    </>
   );
 }
 
-export function AdminCareManagerDetailScreen() {
-  const { id, edit } = useLocalSearchParams<{ id: string; edit?: string }>();
-  const query = useAdminCareManager(id);
-  const user = useAdminUser(query.data?.userId ?? undefined);
-  const visits = useAdminVisits({ careManagerId: id, limit: 50, offset: 0 });
-  const update = useUpdateAdminCareManager(id ?? '');
-  const [employeeId, setEmployeeId] = useState('');
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [accountStatus, setAccountStatus] = useState('ACTIVE');
-  const [skills, setSkills] = useState('');
-  const [experience, setExperience] = useState('');
-  const [languages, setLanguages] = useState('');
-  const [availability, setAvailability] = useState('');
-  const [status, setStatus] = useState('');
-  const [formError, setFormError] = useState<string | null>(null);
-  const [editing, setEditing] = useState(edit === '1');
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    if (edit === '1') setEditing(true);
-  }, [edit]);
-
-  useEffect(() => {
-    if (query.data) {
-      setEmployeeId(query.data.employeeId ?? '');
-      setFirstName(query.data.firstName ?? '');
-      setLastName(query.data.lastName ?? '');
-      setSkills(query.data.skills ?? '');
-      setExperience(query.data.experience ?? '');
-      setLanguages(query.data.languages ?? '');
-      setAvailability(query.data.availability ?? '');
-      setStatus(query.data.status ?? '');
-    }
-  }, [query.data]);
-
-  useEffect(() => {
-    if (user.data) {
-      setEmail(user.data.email ?? '');
-      setPhone(user.data.phone ?? '');
-      setAccountStatus(user.data.accountStatus ?? 'ACTIVE');
-    }
-  }, [user.data]);
-
-  const seniorsViaVisits = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const visit of visits.data?.items ?? []) {
-      map.set(visit.seniorId, visit.seniorId);
-    }
-    return map.size;
-  }, [visits.data?.items]);
-
-  const state = getSectionState({
-    isPending: query.isPending,
-    isError: query.isError,
-    isEmpty: query.isSuccess && !query.data,
-  });
-
+function CareListCard({
+  staff,
+  selected,
+  approving,
+  onSelect,
+  onDelete,
+  onApprove,
+}: {
+  staff: AdminCareManager;
+  selected: boolean;
+  approving: boolean;
+  onSelect: () => void;
+  onDelete: () => void;
+  onApprove: () => void;
+}) {
+  const name = adminCareManagerDisplay(staff);
+  const pending = (staff.status ?? '').toUpperCase() === 'PENDING';
   return (
-    <AdminScreen
-      title="Care Associate Details"
-      subtitle="Registration profile fields can be edited below. Assignments are visit-based."
-      backHref="/(admin)/care-managers"
-    >
-      <AdminQueryView
-        state={state}
-        error={query.error}
-        onRetry={() => void query.refetch()}
-        loadingMessage="Loading care associate..."
-        emptyTitle="Care associate not found"
-        emptyMessage="This care associate is not in AgeWell."
-        errorKind="care"
-      >
-        {query.data ? (
-          <PremiumCard style={styles.card}>
-            <View style={styles.headerRow}>
-              <Text style={styles.name}>{adminCareManagerDisplay(query.data)}</Text>
+    <View style={styles.personCard}>
+      <View style={styles.personTop}>
+        <AdminSelectCheckbox checked={selected} label={`Select ${name}`} onPress={onSelect} />
+        <Pressable
+          onPress={() => router.push(`/(admin)/care-managers/${staff.id}` as Href)}
+          accessibilityRole="button"
+          accessibilityLabel={name}
+          style={({ pressed }) => [styles.personMain, pressed ? styles.pressed : null]}
+        >
+          <Avatar name={name} size={48} />
+          <View style={styles.personCopy}>
+            <View style={styles.personNameRow}>
+              <Text style={styles.personName}>{name}</Text>
               <StatusPill
-                label={query.data.status ? humanizeStatus(query.data.status) : 'Unknown'}
-                tone={statusToneFromLabel(query.data.status ?? '')}
+                label={staff.status ? humanizeStatus(staff.status) : 'Unknown'}
+                tone={statusToneFromLabel(staff.status ?? '')}
               />
             </View>
-            {!editing ? (
-              <>
-                <Text style={styles.line}>Email: {user.data?.email ?? 'Not on file'}</Text>
-                <Text style={styles.line}>Phone: {user.data?.phone ?? 'Not on file'}</Text>
-                <Text style={styles.line}>Employee ID: {query.data.employeeId ?? 'Not on file'}</Text>
-                <Text style={styles.line}>Skills: {query.data.skills ?? 'Not on file'}</Text>
-                <Text style={styles.line}>Experience: {query.data.experience ?? 'Not on file'}</Text>
-                <Text style={styles.line}>Languages: {query.data.languages ?? 'Not on file'}</Text>
-                <Text style={styles.line}>Availability: {query.data.availability ?? 'Not on file'}</Text>
-                <Text style={styles.line}>
-                  Account status: {user.data?.accountStatus ? humanizeStatus(user.data.accountStatus) : '—'}
-                </Text>
-                <PrimaryButton label="Edit Profile" onPress={() => setEditing(true)} />
-              </>
-            ) : (
-              <>
-                <Text style={styles.formHint}>Same fields collected at care-associate registration (password is not shown).</Text>
-                <TextField label="First name" value={firstName} onChangeText={setFirstName} />
-                <TextField label="Last name" value={lastName} onChangeText={setLastName} />
-                <TextField label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
-                <TextField label="Phone" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
-                <TextField label="Employee ID" value={employeeId} onChangeText={setEmployeeId} />
-                <TextField label="Skills" value={skills} onChangeText={setSkills} />
-                <TextField label="Experience" value={experience} onChangeText={setExperience} />
-                <TextField label="Languages" value={languages} onChangeText={setLanguages} />
-                <TextField label="Availability" value={availability} onChangeText={setAvailability} />
-                <TextField label="Care status (PENDING / ACTIVE / …)" value={status} onChangeText={setStatus} />
-                <TextField
-                  label="Account status (ACTIVE / DISABLED)"
-                  value={accountStatus}
-                  onChangeText={setAccountStatus}
-                  autoCapitalize="characters"
-                />
-                {formError ? <Text style={styles.error}>{formError}</Text> : null}
-                <PrimaryButton
-                  label="Save registration details"
-                  loading={saving || update.isPending}
-                  onPress={() => {
-                    if (!query.data) return;
-                    setFormError(null);
-                    setSaving(true);
-                    update.mutate(
-                      { employeeId, firstName, lastName, skills, experience, languages, availability, status },
-                      {
-                        onError: (error) => {
-                          setSaving(false);
-                          setFormError(getAdminErrorMessage(error, 'care'));
-                        },
-                        onSuccess: async () => {
-                          try {
-                            if (query.data.userId) {
-                              await updateAdminUser(query.data.userId, {
-                                email: email.trim(),
-                                phone: phone.trim(),
-                                accountStatus: accountStatus.trim().toUpperCase(),
-                              });
-                            }
-                            setEditing(false);
-                          } catch (error) {
-                            setFormError(getAdminErrorMessage(error, 'user'));
-                          } finally {
-                            setSaving(false);
-                          }
-                        },
-                      },
-                    );
-                  }}
-                />
-                <PrimaryButton
-                  label="Cancel"
-                  onPress={() => {
-                    setEditing(false);
-                    setFormError(null);
-                    if (query.data) {
-                      setEmployeeId(query.data.employeeId ?? '');
-                      setFirstName(query.data.firstName ?? '');
-                      setLastName(query.data.lastName ?? '');
-                      setSkills(query.data.skills ?? '');
-                      setExperience(query.data.experience ?? '');
-                      setLanguages(query.data.languages ?? '');
-                      setAvailability(query.data.availability ?? '');
-                      setStatus(query.data.status ?? '');
-                    }
-                    if (user.data) {
-                      setEmail(user.data.email ?? '');
-                      setPhone(user.data.phone ?? '');
-                      setAccountStatus(user.data.accountStatus ?? 'ACTIVE');
-                    }
-                  }}
-                />
-              </>
-            )}
-          </PremiumCard>
+            <Text style={styles.personMeta}>
+              {adminStaffKindLabel(staff.staffKind)}
+              {staff.employeeId ? ` · ${staff.employeeId}` : ''}
+            </Text>
+          </View>
+        </Pressable>
+      </View>
+      <Text style={styles.personLine}>{staff.skills ?? 'No skills on file'}</Text>
+      <Text style={styles.personLine}>{staff.availability ?? 'Availability not set'}</Text>
+      <View style={styles.personActions}>
+        <Pressable
+          onPress={() => router.push(`/(admin)/care-managers/${staff.id}` as Href)}
+          accessibilityRole="button"
+          accessibilityLabel={`View ${name}`}
+          style={styles.iconBtn}
+        >
+          <Icon name="eye-outline" size={18} color={colors.sidebarActive} />
+        </Pressable>
+        <Pressable
+          onPress={() => router.push(`/(admin)/care-managers/${staff.id}?edit=1` as Href)}
+          accessibilityRole="button"
+          accessibilityLabel={`Edit ${name}`}
+          style={styles.iconBtn}
+        >
+          <Icon name="create-outline" size={18} color={colors.primary} />
+        </Pressable>
+        <Pressable onPress={onDelete} accessibilityRole="button" accessibilityLabel={`Delete ${name}`} style={styles.iconBtn}>
+          <Icon name="trash-outline" size={18} color={colors.emergency} />
+        </Pressable>
+        {pending ? (
+          <PrimaryButton label="Approve" fullWidth={false} loading={approving} onPress={onApprove} />
         ) : null}
-
-        <PremiumCard style={styles.card}>
-          <Text style={styles.section}>Assigned Visits</Text>
-          <Text style={styles.line}>{seniorsViaVisits} seniors served through visits</Text>
-          <AdminQueryView
-            state={getSectionState({
-              isPending: visits.isPending,
-              isError: visits.isError,
-              isEmpty: (visits.data?.items.length ?? 0) === 0,
-            })}
-            error={visits.error}
-            onRetry={() => void visits.refetch()}
-            loadingMessage="Loading visits..."
-            emptyTitle="No assigned visits"
-            emptyMessage="Create a visit to assign this Care Associate to a senior."
-          >
-            {(visits.data?.items ?? []).map((visit) => (
-              <View key={visit.id} style={styles.rowCard}>
-                <Text style={styles.rowTitle}>Senior: {visit.seniorId}</Text>
-                <Text style={styles.line}>
-                  {visit.scheduledAt
-                    ? `${formatRelativeDay(visit.scheduledAt)} · ${formatTime(visit.scheduledAt)}`
-                    : 'Schedule not set'}
-                </Text>
-                <Text style={styles.line}>Visit status: {humanizeStatus(visit.status)}</Text>
-                <PrimaryButton label="View Visit" onPress={() => router.push(`/(admin)/visits/${visit.id}` as Href)} />
-              </View>
-            ))}
-          </AdminQueryView>
-          <PrimaryButton
-            label="Create Visit"
-            onPress={() => router.push(`/(admin)/visits/new?careManagerId=${id}` as Href)}
-          />
-        </PremiumCard>
-      </AdminQueryView>
-    </AdminScreen>
+      </View>
+    </View>
   );
 }
 
 export function AdminCareManagerCreateScreen() {
-  const create = useCreateAdminCareManager();
-  const users = useAdminUsers({ limit: 100, offset: 0, role: 'CARE_MANAGER' });
-  const [userId, setUserId] = useState<string | null>(null);
+  const provision = useProvisionAdminStaff();
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState(ADMIN_STAFF_DEFAULT_PASSWORD);
   const [employeeId, setEmployeeId] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [staffKind, setStaffKind] = useState<StaffKind>('CARE_MANAGER');
   const [skills, setSkills] = useState('');
   const [experience, setExperience] = useState('');
   const [languages, setLanguages] = useState('');
   const [availability, setAvailability] = useState('');
-  const [status, setStatus] = useState('ACTIVE');
   const [formError, setFormError] = useState<string | null>(null);
-  const userOptions = useMemo(
-    () =>
-      (users.data?.items ?? []).map((user) => ({
-        id: user.id,
-        title: user.email,
-        subtitle: user.phone,
-      })),
-    [users.data?.items],
-  );
 
   return (
-    <AdminScreen title="Create care associate" subtitle="employee_id must be unique." backHref="/(admin)/care-managers">
-      <AdminSearchPicker label="CARE_MANAGER user" options={userOptions} value={userId} loading={users.isPending} onChange={setUserId} />
-      <TextField label="Or paste User ID" value={userId ?? ''} onChangeText={setUserId} autoCapitalize="none" />
+    <AdminScreen
+      title="Register care staff"
+      subtitle="Creates login account and profile in one step. Share the default password with the staff member."
+      backHref="/(admin)/care-managers"
+    >
+      <TextField label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
+      <TextField label="Phone" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
+      <TextField label="Password" value={password} onChangeText={setPassword} autoCapitalize="none" secureTextEntry />
       <TextField label="Employee ID" value={employeeId} onChangeText={setEmployeeId} />
       <TextField label="First name" value={firstName} onChangeText={setFirstName} />
       <TextField label="Last name" value={lastName} onChangeText={setLastName} />
-      <TextField label="Skills" value={skills} onChangeText={setSkills} />
-      <TextField label="Experience" value={experience} onChangeText={setExperience} />
-      <TextField label="Languages" value={languages} onChangeText={setLanguages} />
-      <TextField label="Availability" value={availability} onChangeText={setAvailability} />
-      <TextField label="Status" value={status} onChangeText={setStatus} />
+      <AdminFilterChips
+        label="Staff role"
+        value={staffKind}
+        options={STAFF_KINDS.map((kind) => ({ value: kind, label: STAFF_KIND_LABELS[kind] }))}
+        onChange={(next) => next && setStaffKind(next)}
+        allowAll={false}
+      />
+      <TextField label="Skills (optional)" value={skills} onChangeText={setSkills} />
+      <TextField label="Experience (optional)" value={experience} onChangeText={setExperience} />
+      <TextField label="Languages (optional)" value={languages} onChangeText={setLanguages} />
+      <TextField label="Availability (optional)" value={availability} onChangeText={setAvailability} />
       {formError ? <Text style={styles.error}>{formError}</Text> : null}
       <PrimaryButton
-        label="Create care associate"
-        loading={create.isPending}
+        label="Register staff"
+        loading={provision.isPending}
         onPress={() => {
-          if (!userId) {
-            setFormError('Select a user account.');
+          const trimmedEmail = email.trim();
+          const trimmedPhone = phone.trim();
+          const trimmedEmployeeId = employeeId.trim();
+          const trimmedFirst = firstName.trim();
+          const trimmedLast = lastName.trim();
+          if (!trimmedEmail || !trimmedPhone || !trimmedEmployeeId || !trimmedFirst || !trimmedLast) {
+            setFormError('Email, phone, employee ID, and name are required.');
+            return;
+          }
+          if (password.length < 8) {
+            setFormError('Password must be at least 8 characters.');
             return;
           }
           setFormError(null);
-          create.mutate(
-            { userId, employeeId, firstName, lastName, skills, experience, languages, availability, status },
+          provision.mutate(
+            {
+              email: trimmedEmail,
+              phone: trimmedPhone,
+              password,
+              employeeId: trimmedEmployeeId,
+              firstName: trimmedFirst,
+              lastName: trimmedLast,
+              staffKind,
+              skills: skills.trim() || undefined,
+              experience: experience.trim() || undefined,
+              languages: languages.trim() || undefined,
+              availability: availability.trim() || undefined,
+              status: 'ACTIVE',
+            },
             {
               onError: (error) => setFormError(getAdminErrorMessage(error, 'care')),
               onSuccess: (row) => router.replace(`/(admin)/care-managers/${row.id}` as Href),
@@ -438,56 +277,88 @@ export function AdminCareManagerCreateScreen() {
   );
 }
 
-const cell = { ...typography.body, color: colors.text };
-
 const styles = StyleSheet.create({
-  card: {
-    marginBottom: spacing.xl,
+  toolbarCard: {
+    backgroundColor: colors.white,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    marginBottom: spacing.lg,
+    ...shadows.card,
   },
-  headerRow: {
+  grid: {
+    gap: spacing.md,
+    marginTop: spacing.md,
+  },
+  gridDesktop: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+  },
+  personCard: {
+    backgroundColor: colors.white,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    gap: spacing.sm,
+    flexGrow: 1,
+    flexBasis: 340,
+    minWidth: 280,
+    ...shadows.card,
+  },
+  personTop: {
+    flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    marginBottom: spacing.md,
   },
-  name: {
+  personMain: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    minWidth: 0,
+  },
+  personCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+  personNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    flexWrap: 'wrap',
+  },
+  personName: {
     ...typography.subtitle,
     color: colors.text,
   },
-  section: {
-    ...typography.subtitle,
-    color: colors.text,
-    marginBottom: spacing.sm,
-  },
-  line: {
-    ...typography.body,
+  personMeta: {
+    ...typography.caption,
     color: colors.textSecondary,
+    marginTop: 2,
+  },
+  personLine: {
+    ...typography.caption,
+    color: colors.textSecondary,
+  },
+  personActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: spacing.sm,
     marginTop: spacing.xs,
   },
-  formHint: {
-    ...typography.caption,
-    color: colors.textMuted,
-    marginBottom: spacing.md,
-  },
-  actionsCell: {
-    gap: spacing.sm,
-  },
-  rowCard: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    marginTop: spacing.md,
-    gap: spacing.xs,
-  },
-  rowTitle: {
-    ...typography.bodyStrong,
-    color: colors.text,
+  iconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.adminCanvas,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   error: {
     ...typography.caption,
     color: colors.emergency,
     marginBottom: spacing.md,
+  },
+  pressed: {
+    opacity: 0.94,
   },
 });

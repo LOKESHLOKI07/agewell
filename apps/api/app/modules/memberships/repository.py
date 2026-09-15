@@ -85,8 +85,38 @@ class MembershipRepository:
         )
         return result.scalars().first()
 
-    async def create_request(self, *, senior_id: UUID, plan_id: UUID, notes: Optional[str]) -> MembershipRequest:
-        row = MembershipRequest(senior_id=senior_id, plan_id=plan_id, status="REQUESTED", notes=notes)
+    async def create_request(
+        self,
+        *,
+        senior_id: UUID,
+        plan_id: UUID,
+        notes: Optional[str],
+        family_contact_1_name: str,
+        family_contact_1_phone: str,
+        family_contact_2_name: Optional[str],
+        family_contact_2_phone: Optional[str],
+        preferred_hospital: str,
+    ) -> MembershipRequest:
+        senior = await self.session.get(Senior, senior_id)
+        if senior is not None:
+            senior.family_contact_1_name = family_contact_1_name
+            senior.family_contact_1_phone = family_contact_1_phone
+            senior.family_contact_2_name = family_contact_2_name
+            senior.family_contact_2_phone = family_contact_2_phone
+            senior.preferred_hospital = preferred_hospital
+            if not (senior.emergency_contact or "").strip():
+                senior.emergency_contact = family_contact_1_phone
+        row = MembershipRequest(
+            senior_id=senior_id,
+            plan_id=plan_id,
+            status="REQUESTED",
+            notes=notes,
+            family_contact_1_name=family_contact_1_name,
+            family_contact_1_phone=family_contact_1_phone,
+            family_contact_2_name=family_contact_2_name,
+            family_contact_2_phone=family_contact_2_phone,
+            preferred_hospital=preferred_hospital,
+        )
         self.session.add(row)
         await self.session.commit()
         await self.session.refresh(row)
@@ -133,11 +163,15 @@ class MembershipRepository:
         *,
         status: str,
         membership: Optional[Membership] = None,
+        expire_membership: Optional[Membership] = None,
     ) -> MembershipRequest:
         row.status = status
         row.reviewed_at = datetime.now(timezone.utc)
         if membership is not None:
             self.session.add(membership)
+        if expire_membership is not None:
+            # Revert approval: remove the membership created for this request.
+            await self.session.delete(expire_membership)
         await self.session.commit()
         await self.session.refresh(row)
         return row

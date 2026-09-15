@@ -45,16 +45,31 @@ export function useDeletePeopleRecords(resetKey: string | number, deleteOne: (id
       }
       setBusy(true);
       setActionError(null);
+      const remaining: string[] = [];
+      let firstError: unknown = null;
       try {
         for (const id of unique) {
-          await deleteOne(id);
+          try {
+            await deleteOne(id);
+          } catch (error) {
+            remaining.push(id);
+            firstError ??= error;
+          }
+        }
+        await queryClient.invalidateQueries({ queryKey: ['admin'] });
+        if (firstError) {
+          setSelectedIds(remaining);
+          const deleted = unique.length - remaining.length;
+          setActionError(
+            deleted === 0
+              ? getAdminErrorMessage(firstError, 'user')
+              : `Removed ${deleted} of ${unique.length}. ${getAdminErrorMessage(firstError, 'user')}`,
+          );
+          return;
         }
         setSelectedIds([]);
         setDeleteId(null);
         setBulkDelete(false);
-        await queryClient.invalidateQueries({ queryKey: ['admin'] });
-      } catch (error) {
-        setActionError(getAdminErrorMessage(error, 'user'));
       } finally {
         setBusy(false);
       }

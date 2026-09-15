@@ -1,41 +1,47 @@
-import type { ReactNode } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams, type Href } from 'expo-router';
-import { ConfirmDialog, PrimaryButton, PremiumCard, StatusPill, TextField, statusToneFromLabel } from '@/components';
-import { colors, minTouchSize, radius, spacing, typography } from '@/constants/theme';
-import { formatLongDate, formatRelativeDay, formatTime, toDisplayDate } from '@/utils/date';
-import { AdminCollection } from './components/AdminCollection';
-import { AdminRowIconActions, AdminSelectCheckbox, AdminSelectionToolbar } from './components/AdminListActions';
+import { ConfirmDialog, PrimaryButton, StatusPill, TextField, statusToneFromLabel } from '@/components';
+import { Avatar, Icon } from '@/components/ui';
+import { colors, radius, shadows, spacing, typography } from '@/constants/theme';
+import { onboardingLanguageLabel } from '@/features/auth/onboardingProfile';
+import { AdminFilterChips } from './components/AdminFilterChips';
+import { AdminSelectCheckbox, AdminSelectionToolbar } from './components/AdminListActions';
 import { AdminPagination } from './components/AdminPagination';
 import { AdminQueryView } from './components/AdminQueryView';
 import { AdminScreen } from './components/AdminScreen';
 import { AdminSearchPicker } from './components/AdminSearchPicker';
-import { deleteAdminSenior, updateAdminUser } from './api';
+import { deleteAdminSenior } from './api';
 import { useDeletePeopleRecords } from './hooks/useDeletePeopleRecords';
-import {
-  useAdminAppointments,
-  useAdminCurrentMembership,
-  useAdminEmergencies,
-  useAdminMedicalRecords,
-  useAdminMembershipUsage,
-  useAdminSenior,
-  useAdminSeniors,
-  useAdminUser,
-  useAdminUsers,
-  useAdminVisits,
-  useCreateAdminSenior,
-  useUpdateAdminSenior,
-} from './hooks';
-import { adminSeniorDisplay, getAdminErrorMessage, getSectionState, humanizeStatus } from './selectors';
-import { onboardingLanguageLabel } from '@/features/auth/onboardingProfile';
-import type { AdminSenior } from './types';
+import { useAdminSeniors, useAdminUsers, useCreateAdminSenior } from './hooks';
+import { adminSeniorDisplay, getAdminErrorMessage, getSectionState, humanizeStatus, seniorAgeYears } from './selectors';
+import type { AdminSenior, AdminSeniorSegment } from './types';
 import { ADMIN_PAGE_SIZE } from './types';
+import { useAdminLayout } from './useAdminLayout';
+
+const SENIOR_SEGMENTS: { value: AdminSeniorSegment; label: string }[] = [
+  { value: 'membership', label: 'Membership person' },
+  { value: 'outside_area', label: 'Not in service area' },
+  { value: 'in_area_no_membership', label: 'In area · no membership' },
+];
 
 export function AdminSeniorsScreen() {
+  const params = useLocalSearchParams<{ q?: string }>();
+  const { isDesktop } = useAdminLayout();
   const [offset, setOffset] = useState(0);
-  const [search, setSearch] = useState('');
-  const query = useAdminSeniors({ limit: ADMIN_PAGE_SIZE, offset });
+  const [search, setSearch] = useState(typeof params.q === 'string' ? params.q : '');
+  const [segment, setSegment] = useState<AdminSeniorSegment | undefined>(undefined);
+
+  useEffect(() => {
+    if (typeof params.q === 'string') {
+      setSearch(params.q);
+    }
+  }, [params.q]);
+  const query = useAdminSeniors({
+    limit: ADMIN_PAGE_SIZE,
+    offset,
+    ...(segment ? { segment } : {}),
+  });
   const items = useMemo(() => {
     const needle = search.trim().toLowerCase();
     const rows = query.data?.items ?? [];
@@ -47,7 +53,7 @@ export function AdminSeniorsScreen() {
     );
   }, [query.data?.items, search]);
 
-  const selection = useDeletePeopleRecords(`${offset}|${search}`, deleteAdminSenior);
+  const selection = useDeletePeopleRecords(`${offset}|${search}|${segment ?? 'all'}`, deleteAdminSenior);
   const pageIds = items.map((item) => item.id);
   const allSelected = pageIds.length > 0 && pageIds.every((id) => selection.selectedIds.includes(id));
 
@@ -58,14 +64,26 @@ export function AdminSeniorsScreen() {
   });
 
   return (
+    <>
     <AdminScreen
       title="Seniors"
-      subtitle="Edit opens registration profile fields. Delete removes the senior record and login account."
+      subtitle="People in AgeWell care. Open a card to view the full profile."
       actions={
         <PrimaryButton label="Create senior" fullWidth={false} onPress={() => router.push('/(admin)/seniors/new' as Href)} />
       }
     >
-      <TextField label="Search name or email" value={search} onChangeText={setSearch} />
+      <View style={styles.toolbarCard}>
+        <AdminFilterChips
+          label="Segment"
+          value={segment}
+          options={SENIOR_SEGMENTS}
+          onChange={(next) => {
+            setSegment(next);
+            setOffset(0);
+          }}
+        />
+        <TextField label="Search name or email" value={search} onChangeText={setSearch} />
+      </View>
       {selection.actionError ? <Text style={styles.error}>{selection.actionError}</Text> : null}
       <AdminQueryView
         state={state}
@@ -75,64 +93,24 @@ export function AdminSeniorsScreen() {
         emptyTitle="No seniors"
         emptyMessage="No senior records match this view."
       >
-        <AdminCollection
-          items={items}
-          keyExtractor={(item) => item.id}
-          accessibilityLabel={(item) => adminSeniorDisplay(item)}
-          columns={[
-            {
-              key: 'select',
-              label: 'Select',
-              flex: 0.45,
-              header: (
-                <AdminSelectCheckbox
-                  checked={allSelected}
-                  label="Select all seniors on this page"
-                  onPress={() => selection.toggleAll(pageIds)}
-                />
-              ),
-              render: (item: AdminSenior) => (
-                <AdminSelectCheckbox
-                  checked={selection.selectedIds.includes(item.id)}
-                  label={`Select ${adminSeniorDisplay(item)}`}
-                  onPress={() => selection.toggleOne(item.id)}
-                />
-              ),
-            },
-            { key: 'name', label: 'Name', flex: 1.2, render: (item: AdminSenior) => <Text style={cell}>{adminSeniorDisplay(item)}</Text> },
-            { key: 'email', label: 'Email', flex: 1.3, render: (item) => <Text style={cell}>{item.email ?? 'Not on file'}</Text> },
-            {
-              key: 'status',
-              label: 'Account',
-              render: (item) => <Text style={cell}>{item.accountStatus ? humanizeStatus(item.accountStatus) : '—'}</Text>,
-            },
-            { key: 'contact', label: 'Emergency contact', render: (item) => <Text style={cell}>{item.emergencyContact}</Text> },
-            {
-              key: 'actions',
-              label: 'Actions',
-              flex: 1.1,
-              render: (item) => (
-                <AdminRowIconActions
-                  editLabel={`Edit ${adminSeniorDisplay(item)}`}
-                  viewLabel={`View ${adminSeniorDisplay(item)}`}
-                  deleteLabel={`Delete ${adminSeniorDisplay(item)}`}
-                  onEdit={() => router.push(`/(admin)/seniors/${item.id}?edit=1` as Href)}
-                  onView={() => router.push(`/(admin)/seniors/${item.id}` as Href)}
-                  onDelete={() => selection.requestDeleteOne(item.id, adminSeniorDisplay(item))}
-                />
-              ),
-            },
-          ]}
-          headerLeading={
-            <AdminSelectionToolbar
-              allSelected={allSelected}
-              selectedCount={selection.selectedIds.length}
-              onToggleAll={() => selection.toggleAll(pageIds)}
-              onDeleteSelected={() => selection.setBulkDelete(true)}
-              onClear={selection.clear}
-            />
-          }
+        <AdminSelectionToolbar
+          allSelected={allSelected}
+          selectedCount={selection.selectedIds.length}
+          onToggleAll={() => selection.toggleAll(pageIds)}
+          onDeleteSelected={() => selection.setBulkDelete(true)}
+          onClear={selection.clear}
         />
+        <View style={[styles.grid, isDesktop ? styles.gridDesktop : null]}>
+          {items.map((item) => (
+            <SeniorListCard
+              key={item.id}
+              senior={item}
+              selected={selection.selectedIds.includes(item.id)}
+              onSelect={() => selection.toggleOne(item.id)}
+              onDelete={() => selection.requestDeleteOne(item.id, adminSeniorDisplay(item))}
+            />
+          ))}
+        </View>
         <AdminPagination
           total={query.data?.total ?? 0}
           limit={query.data?.limit ?? ADMIN_PAGE_SIZE}
@@ -140,7 +118,7 @@ export function AdminSeniorsScreen() {
           onOffsetChange={setOffset}
         />
       </AdminQueryView>
-
+    </AdminScreen>
       <ConfirmDialog
         visible={Boolean(selection.deleteId)}
         title="Delete this senior?"
@@ -150,6 +128,8 @@ export function AdminSeniorsScreen() {
             : ''
         }
         confirmLabel={selection.busy ? 'Working…' : 'Delete record'}
+        busy={selection.busy}
+        error={selection.actionError}
         onCancel={() => selection.setDeleteId(null)}
         onConfirm={() => {
           if (selection.deleteId) void selection.deleteRecords([selection.deleteId]);
@@ -160,258 +140,85 @@ export function AdminSeniorsScreen() {
         title="Delete selected seniors?"
         message={`${selection.selectedIds.length} senior record(s) and their login accounts will be permanently removed.`}
         confirmLabel={selection.busy ? 'Working…' : 'Delete selected'}
+        busy={selection.busy}
+        error={selection.actionError}
         onCancel={() => selection.setBulkDelete(false)}
         onConfirm={() => {
-          void selection.deleteRecords(selection.selectedIds);
+          void selection.deleteRecords([...selection.selectedIds]);
         }}
       />
-    </AdminScreen>
+    </>
   );
 }
 
-export function AdminSeniorDetailScreen() {
-  const { id, edit } = useLocalSearchParams<{ id: string; edit?: string }>();
-  const query = useAdminSenior(id);
-  const user = useAdminUser(query.data?.userId);
-  const visits = useAdminVisits({ seniorId: id, limit: 20, offset: 0 });
-  const appointments = useAdminAppointments({ seniorId: id, limit: 5, offset: 0 });
-  const health = useAdminMedicalRecords(id);
-  const membership = useAdminCurrentMembership(id);
-  const usage = useAdminMembershipUsage(id);
-  const emergencies = useAdminEmergencies({ seniorId: id, limit: 5, offset: 0 });
-  const update = useUpdateAdminSenior(id ?? '');
-
-  const [editing, setEditing] = useState(edit === '1');
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [dateOfBirth, setDateOfBirth] = useState('');
-  const [address, setAddress] = useState('');
-  const [emergencyContact, setEmergencyContact] = useState('');
-  const [preferredLanguage, setPreferredLanguage] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [accountStatus, setAccountStatus] = useState('ACTIVE');
-  const [saving, setSaving] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (edit === '1') setEditing(true);
-  }, [edit]);
-
-  useEffect(() => {
-    if (query.data) {
-      setFirstName(query.data.firstName);
-      setLastName(query.data.lastName);
-      setDateOfBirth(toDisplayDate(query.data.dateOfBirth));
-      setAddress(query.data.address);
-      setEmergencyContact(query.data.emergencyContact);
-      setPreferredLanguage(query.data.preferredLanguage ?? '');
-      setEmail(query.data.email ?? '');
-      setPhone(query.data.phone ?? '');
-      setAccountStatus(query.data.accountStatus ?? user.data?.accountStatus ?? 'ACTIVE');
-    }
-  }, [query.data, user.data?.accountStatus]);
-
-  const careAssociatesOnVisits = useMemo(() => {
-    const names = new Set<string>();
-    for (const visit of visits.data?.items ?? []) {
-      if (visit.careManagerName) names.add(visit.careManagerName);
-    }
-    return names.size;
-  }, [visits.data?.items]);
-
-  const state = getSectionState({
-    isPending: query.isPending,
-    isError: query.isError,
-    isEmpty: query.isSuccess && !query.data,
-  });
-
+function SeniorListCard({
+  senior,
+  selected,
+  onSelect,
+  onDelete,
+}: {
+  senior: AdminSenior;
+  selected: boolean;
+  onSelect: () => void;
+  onDelete: () => void;
+}) {
+  const name = adminSeniorDisplay(senior);
+  const age = seniorAgeYears(senior.dateOfBirth);
   return (
-    <AdminScreen
-      title="Senior Details"
-      subtitle="Registration profile fields can be edited below. Visits and related care data stay on this page."
-      backHref="/(admin)/seniors"
-    >
-      <AdminQueryView
-        state={state}
-        error={query.error}
-        onRetry={() => void query.refetch()}
-        loadingMessage="Loading senior..."
-        emptyTitle="Senior not found"
-        emptyMessage="This senior is not in AgeWell."
-      >
-        {query.data ? (
-          <PremiumCard style={styles.card}>
-            <View style={styles.headerRow}>
-              <View style={styles.flex}>
-                <Text style={styles.name}>{adminSeniorDisplay(query.data)}</Text>
-                <Text style={styles.line}>Senior</Text>
-              </View>
+    <View style={styles.personCard}>
+      <View style={styles.personTop}>
+        <AdminSelectCheckbox checked={selected} label={`Select ${name}`} onPress={onSelect} />
+        <Pressable
+          onPress={() => router.push(`/(admin)/seniors/${senior.id}` as Href)}
+          accessibilityRole="button"
+          accessibilityLabel={name}
+          style={({ pressed }) => [styles.personMain, pressed ? styles.pressed : null]}
+        >
+          <Avatar name={name} size={48} />
+          <View style={styles.personCopy}>
+            <View style={styles.personNameRow}>
+              <Text style={styles.personName}>{name}</Text>
               <StatusPill
-                label={query.data.accountStatus ? humanizeStatus(query.data.accountStatus) : 'Active'}
-                tone={statusToneFromLabel(query.data.accountStatus ?? 'ACTIVE')}
+                label={senior.accountStatus ? humanizeStatus(senior.accountStatus) : 'Active'}
+                tone={statusToneFromLabel(senior.accountStatus ?? 'ACTIVE')}
               />
             </View>
-            {!editing ? (
-              <>
-                <Text style={styles.line}>Email: {query.data.email ?? 'Not on file'}</Text>
-                <Text style={styles.line}>Phone: {query.data.phone ?? user.data?.phone ?? 'Not on file'}</Text>
-                <Text style={styles.line}>Date of birth: {formatLongDate(query.data.dateOfBirth)}</Text>
-                <Text style={styles.line}>Address: {query.data.address}</Text>
-                <Text style={styles.line}>Preferred language: {onboardingLanguageLabel(query.data.preferredLanguage)}</Text>
-                <Text style={styles.line}>Emergency contact: {query.data.emergencyContact}</Text>
-                <PrimaryButton label="Edit Profile" onPress={() => setEditing(true)} />
-              </>
-            ) : (
-              <>
-                <Text style={styles.formHint}>Same fields collected at senior registration (password is not shown).</Text>
-                <TextField label="First name" value={firstName} onChangeText={setFirstName} />
-                <TextField label="Last name" value={lastName} onChangeText={setLastName} />
-                <TextField label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
-                <TextField label="Phone" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
-                <TextField label="Date of birth (DD-MM-YYYY)" value={dateOfBirth} onChangeText={setDateOfBirth} placeholder="10-03-1952" />
-                <TextField label="Address" value={address} onChangeText={setAddress} />
-                <TextField label="Preferred language (en / hi / mr)" value={preferredLanguage} onChangeText={setPreferredLanguage} autoCapitalize="none" />
-                <TextField label="Emergency contact" value={emergencyContact} onChangeText={setEmergencyContact} />
-                <TextField
-                  label="Account status (ACTIVE / DISABLED)"
-                  value={accountStatus}
-                  onChangeText={setAccountStatus}
-                  autoCapitalize="characters"
-                />
-                {formError ? <Text style={styles.error}>{formError}</Text> : null}
-                <PrimaryButton
-                  label="Save registration details"
-                  loading={saving || update.isPending}
-                  onPress={() => {
-                    if (!query.data) return;
-                    setFormError(null);
-                    setSaving(true);
-                    update.mutate(
-                      { firstName, lastName, dateOfBirth, address, emergencyContact, preferredLanguage, email, phone },
-                      {
-                        onError: (error) => {
-                          setSaving(false);
-                          setFormError(getAdminErrorMessage(error));
-                        },
-                        onSuccess: async () => {
-                          try {
-                            if (query.data.userId && accountStatus.trim()) {
-                              await updateAdminUser(query.data.userId, {
-                                accountStatus: accountStatus.trim().toUpperCase(),
-                              });
-                            }
-                            setEditing(false);
-                          } catch (error) {
-                            setFormError(getAdminErrorMessage(error, 'user'));
-                          } finally {
-                            setSaving(false);
-                          }
-                        },
-                      },
-                    );
-                  }}
-                />
-                <PrimaryButton
-                  label="Cancel"
-                  onPress={() => {
-                    setEditing(false);
-                    setFormError(null);
-                    if (query.data) {
-                      setFirstName(query.data.firstName);
-                      setLastName(query.data.lastName);
-                      setDateOfBirth(toDisplayDate(query.data.dateOfBirth));
-                      setAddress(query.data.address);
-                      setEmergencyContact(query.data.emergencyContact);
-                      setPreferredLanguage(query.data.preferredLanguage ?? '');
-                      setEmail(query.data.email ?? '');
-                      setPhone(query.data.phone ?? '');
-                      setAccountStatus(query.data.accountStatus ?? user.data?.accountStatus ?? 'ACTIVE');
-                    }
-                  }}
-                />
-              </>
-            )}
-          </PremiumCard>
-        ) : null}
-
-        <PremiumCard style={styles.card}>
-          <Text style={styles.section}>Care / Visits</Text>
-          <Text style={styles.line}>
-            {(visits.data?.items.length ?? 0)} visits · {careAssociatesOnVisits} Care Associates (visit-based)
-          </Text>
-          <AdminQueryView
-            state={getSectionState({
-              isPending: visits.isPending,
-              isError: visits.isError,
-              isEmpty: (visits.data?.items.length ?? 0) === 0,
-            })}
-            error={visits.error}
-            onRetry={() => void visits.refetch()}
-            loadingMessage="Loading visits..."
-            emptyTitle="No visits"
-            emptyMessage="Create a visit to assign a Care Associate for a specific date/time."
-          >
-            {(visits.data?.items ?? []).map((visit) => (
-              <View key={visit.id} style={styles.rowCard}>
-                <Text style={styles.rowTitle}>{visit.careManagerName ?? 'Unassigned'}</Text>
-                <Text style={styles.line}>
-                  Employee ID: {visit.employeeId ?? 'Not on file'}
-                </Text>
-                <Text style={styles.line}>
-                  {visit.scheduledAt
-                    ? `${formatRelativeDay(visit.scheduledAt)} · ${formatTime(visit.scheduledAt)}`
-                    : 'Schedule not set'}
-                </Text>
-                <Text style={styles.line}>{humanizeStatus(visit.status)} · Assigned to visit</Text>
-                <PrimaryButton label="View Visit" onPress={() => router.push(`/(admin)/visits/${visit.id}` as Href)} />
-              </View>
-            ))}
-          </AdminQueryView>
-          <PrimaryButton
-            label="Create Visit"
-            onPress={() => router.push(`/(admin)/visits/new?seniorId=${id}` as Href)}
-          />
-        </PremiumCard>
-
-        <Related title="Health" loading={health.isPending} error={health.isError} empty={!health.data?.items.length}>
-          {(health.data?.items ?? []).map((item) => (
-            <Text key={item.id} style={styles.line}>
-              {item.providerName ?? 'Record'} · {item.notes ?? 'No notes'}
+            <Text style={styles.personMeta}>
+              {[age != null ? `${age} years` : null, senior.address || null].filter(Boolean).join(' · ')}
             </Text>
-          ))}
-        </Related>
-        <Related title="Membership" href="/(admin)/memberships" loading={membership.isPending} error={membership.isError} empty={!membership.data}>
-          {membership.data ? (
-            <>
-              <Text style={styles.line}>
-                {membership.data.planName} · {humanizeStatus(membership.data.status)}
-              </Text>
-              {(usage.data ?? []).map((item) => (
-                <Text key={item.benefitId} style={styles.line}>
-                  {item.benefitName}: used {item.used}
-                  {item.quota != null ? ` of ${item.quota}` : ''}
-                </Text>
-              ))}
-            </>
-          ) : null}
-        </Related>
-        <Related title="Appointments" href={`/(admin)/appointments?seniorId=${id}`} loading={appointments.isPending} error={appointments.isError} empty={!appointments.data?.items.length}>
-          {(appointments.data?.items ?? []).map((item) => (
-            <Text key={item.id} style={styles.line}>
-              {item.doctorName ?? 'Doctor'} · {humanizeStatus(item.status)}
-            </Text>
-          ))}
-        </Related>
-        <Related title="Emergencies" href={`/(admin)/emergencies?seniorId=${id}`} loading={emergencies.isPending} error={emergencies.isError} empty={!emergencies.data?.items.length}>
-          {(emergencies.data?.items ?? []).map((item) => (
-            <Text key={item.id} style={styles.line}>
-              {humanizeStatus(item.status)} · {item.createdAt ? formatLongDate(item.createdAt) : 'No date'}
-            </Text>
-          ))}
-        </Related>
-      </AdminQueryView>
-    </AdminScreen>
+          </View>
+        </Pressable>
+      </View>
+      <Text style={styles.personLine}>{senior.email ?? 'No email on file'}</Text>
+      <Text style={styles.personLine}>
+        {senior.inServiceArea ? 'In service area' : 'Outside service area'}
+        {' · '}
+        {senior.hasMembership ? 'Member' : 'No membership'}
+        {' · '}
+        {onboardingLanguageLabel(senior.preferredLanguage)}
+      </Text>
+      <View style={styles.personActions}>
+        <Pressable
+          onPress={() => router.push(`/(admin)/seniors/${senior.id}` as Href)}
+          accessibilityRole="button"
+          accessibilityLabel={`View ${name}`}
+          style={styles.iconBtn}
+        >
+          <Icon name="eye-outline" size={18} color={colors.sidebarActive} />
+        </Pressable>
+        <Pressable
+          onPress={() => router.push(`/(admin)/seniors/${senior.id}?edit=1` as Href)}
+          accessibilityRole="button"
+          accessibilityLabel={`Edit ${name}`}
+          style={styles.iconBtn}
+        >
+          <Icon name="create-outline" size={18} color={colors.primary} />
+        </Pressable>
+        <Pressable onPress={onDelete} accessibilityRole="button" accessibilityLabel={`Delete ${name}`} style={styles.iconBtn}>
+          <Icon name="trash-outline" size={18} color={colors.emergency} />
+        </Pressable>
+      </View>
+    </View>
   );
 }
 
@@ -451,7 +258,12 @@ export function AdminSeniorCreateScreen() {
       <TextField label="Last name" value={lastName} onChangeText={setLastName} />
       <TextField label="Date of birth (DD-MM-YYYY)" value={dateOfBirth} onChangeText={setDateOfBirth} placeholder="10-03-1952" />
       <TextField label="Address" value={address} onChangeText={setAddress} />
-      <TextField label="Preferred language (en / hi / mr)" value={preferredLanguage} onChangeText={setPreferredLanguage} autoCapitalize="none" />
+      <TextField
+        label="Preferred language (en / hi / mr)"
+        value={preferredLanguage}
+        onChangeText={setPreferredLanguage}
+        autoCapitalize="none"
+      />
       <TextField label="Emergency contact" value={emergencyContact} onChangeText={setEmergencyContact} />
       {formError ? <Text style={styles.error}>{formError}</Text> : null}
       <PrimaryButton
@@ -464,7 +276,15 @@ export function AdminSeniorCreateScreen() {
           }
           setFormError(null);
           create.mutate(
-            { userId, firstName, lastName, dateOfBirth, address, emergencyContact, preferredLanguage: preferredLanguage || undefined },
+            {
+              userId,
+              firstName,
+              lastName,
+              dateOfBirth,
+              address,
+              emergencyContact,
+              preferredLanguage: preferredLanguage || undefined,
+            },
             {
               onError: (error) => setFormError(getAdminErrorMessage(error)),
               onSuccess: (senior) => router.replace(`/(admin)/seniors/${senior.id}` as Href),
@@ -476,105 +296,86 @@ export function AdminSeniorCreateScreen() {
   );
 }
 
-function Related({
-  title,
-  href,
-  loading,
-  error,
-  empty,
-  children,
-}: {
-  title: string;
-  href?: string;
-  loading: boolean;
-  error: boolean;
-  empty: boolean;
-  children: ReactNode;
-}) {
-  return (
-    <View style={styles.related}>
-      <View style={styles.relatedHeader}>
-        <Text style={styles.relatedTitle}>{title}</Text>
-        {href ? (
-          <Pressable onPress={() => router.push(href as Href)} accessibilityRole="button" accessibilityLabel={`Open ${title}`}>
-            <Text style={styles.link}>Open</Text>
-          </Pressable>
-        ) : null}
-      </View>
-      {loading ? <Text style={styles.line}>Loading...</Text> : null}
-      {error ? <Text style={styles.line}>Unavailable</Text> : null}
-      {!loading && !error && empty ? <Text style={styles.line}>None on file.</Text> : children}
-    </View>
-  );
-}
-
-const cell = { ...typography.body, color: colors.text };
-
 const styles = StyleSheet.create({
-  card: {
-    marginBottom: spacing.xl,
+  toolbarCard: {
+    backgroundColor: colors.white,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    marginBottom: spacing.lg,
+    ...shadows.card,
   },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+  grid: {
     gap: spacing.md,
-    marginBottom: spacing.md,
+    marginTop: spacing.md,
   },
-  flex: {
+  gridDesktop: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  personCard: {
+    backgroundColor: colors.white,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    gap: spacing.sm,
+    flexGrow: 1,
+    flexBasis: 340,
+    minWidth: 280,
+    ...shadows.card,
+  },
+  personTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  personMain: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    minWidth: 0,
   },
-  name: {
+  personCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+  personNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    flexWrap: 'wrap',
+  },
+  personName: {
     ...typography.subtitle,
     color: colors.text,
   },
-  section: {
-    ...typography.subtitle,
-    color: colors.text,
-    marginBottom: spacing.sm,
-  },
-  line: {
-    ...typography.body,
+  personMeta: {
+    ...typography.caption,
     color: colors.textSecondary,
+    marginTop: 2,
+  },
+  personLine: {
+    ...typography.caption,
+    color: colors.textSecondary,
+  },
+  personActions: {
+    flexDirection: 'row',
+    gap: spacing.sm,
     marginTop: spacing.xs,
   },
-  formHint: {
-    ...typography.caption,
-    color: colors.textMuted,
-    marginBottom: spacing.md,
-  },
-  rowCard: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    marginTop: spacing.md,
-    gap: spacing.xs,
-  },
-  rowTitle: {
-    ...typography.bodyStrong,
-    color: colors.text,
-  },
-  related: {
-    marginBottom: spacing.xl,
-  },
-  relatedHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  iconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.adminCanvas,
     alignItems: 'center',
-    minHeight: minTouchSize,
-  },
-  relatedTitle: {
-    ...typography.subtitle,
-    color: colors.text,
-  },
-  link: {
-    ...typography.bodyStrong,
-    color: colors.primary,
+    justifyContent: 'center',
   },
   error: {
     ...typography.caption,
     color: colors.emergency,
     marginVertical: spacing.md,
+  },
+  pressed: {
+    opacity: 0.94,
   },
 });

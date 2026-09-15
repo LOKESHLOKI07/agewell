@@ -1,3 +1,5 @@
+import type { IconName } from '@/components/ui';
+
 export type MembershipVisit = {
   id: string;
   label: string;
@@ -14,6 +16,27 @@ export type MembershipCarePerson = {
   photoUri: string | null;
   nextVisit: MembershipVisit;
   history: MembershipVisit[];
+};
+
+export type CompanionActivity = {
+  id: string;
+  when: string;
+  title: string;
+  body: string;
+  icon: IconName;
+  tone: 'green' | 'blue' | 'pink';
+};
+
+export type CompanionProfile = {
+  id: string;
+  roleLabel: string;
+  name: string;
+  phone: string;
+  photoUri: string | null;
+  experience: string;
+  serviceAreas: string;
+  traits: string;
+  activities: CompanionActivity[];
 };
 
 /** Phase 1 mock data — replace with /care + /visits later. */
@@ -47,32 +70,40 @@ export const MOCK_CARE_MANAGER: MembershipCarePerson = {
   ],
 };
 
-export const MOCK_COMPANION: MembershipCarePerson = {
-  id: 'comp-anita',
-  roleLabel: 'Companion',
-  name: 'Anita Desai',
+/** Demo companion shown on the member Companion Visit screen. */
+export const MOCK_COMPANION: CompanionProfile = {
+  id: 'comp-anjali',
+  roleLabel: 'Companion Caregiver',
+  name: 'Anjali Patil',
   phone: '+91 99887 76655',
   photoUri: null,
-  nextVisit: {
-    id: 'comp-next',
-    label: 'Daily companion visit',
-    when: 'Today · 5:30 PM',
-    status: 'Upcoming',
-    notes: 'Up to 30 minutes — conversation and light assistance.',
-  },
-  history: [
+  experience: '4+ years in eldercare support',
+  serviceAreas: 'Kandivali & Borivali',
+  traits: 'Friendly • Patient • Trustworthy',
+  activities: [
     {
-      id: 'comp-h1',
-      label: 'Daily companion visit',
-      when: 'Yesterday · 5:15 PM',
-      status: 'Completed',
-      notes: 'Walked in the garden; groceries list noted.',
+      id: 'comp-a1',
+      when: '12 Aug 2026',
+      title: 'Home Visit Completed',
+      body: 'Assisted with daily activities and a short walk.',
+      icon: 'checkmark-circle-outline',
+      tone: 'green',
     },
     {
-      id: 'comp-h2',
-      label: 'Daily companion visit',
-      when: 'Sun, 30 Aug · 5:20 PM',
-      status: 'Completed',
+      id: 'comp-a2',
+      when: '05 Aug 2026',
+      title: 'Accompanied to Doctor Visit',
+      body: 'Visited Dr. Mehta at Apex Hospital.',
+      icon: 'calendar-outline',
+      tone: 'blue',
+    },
+    {
+      id: 'comp-a3',
+      when: '28 Jul 2026',
+      title: 'Companion Support',
+      body: 'Helped with grocery shopping and household work.',
+      icon: 'heart-outline',
+      tone: 'pink',
     },
   ],
 };

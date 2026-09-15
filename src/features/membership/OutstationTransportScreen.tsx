@@ -1,17 +1,25 @@
 import { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { KeyboardAwareScrollView } from '@/components/KeyboardAwareScrollView';
 import { Icon } from '@/components/ui';
 import { spacing, typography } from '@/constants/theme';
 import { AgeWellHeader } from '@/features/home/components/AgeWellHeader';
 import { familyHome } from '@/features/home/components/familyHomeTheme';
 import { MembershipServiceHero } from './MembershipServiceHero';
+import { gatedMembershipScreen } from './MembershipServiceGate';
 import { TRANSPORT_DURATIONS, TRANSPORT_PEOPLE } from './mockCoordination';
 import { useMembershipSubmit } from './useMembershipSubmit';
 
 type TripType = 'one-way' | 'round-trip';
 
-export function OutstationTransportScreen() {
+export const OutstationTransportScreen = gatedMembershipScreen(
+  'transport',
+  'Outstation Transport',
+  OutstationTransportLive,
+);
+
+function OutstationTransportLive() {
   const insets = useSafeAreaInsets();
   const [tripType, setTripType] = useState<TripType>('one-way');
   const [from, setFrom] = useState('');
@@ -41,7 +49,7 @@ export function OutstationTransportScreen() {
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
       <AgeWellHeader title="Outstation Transport" showBack showProfile={false} showBell={false} />
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <KeyboardAwareScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <MembershipServiceHero slug="transport" />
         <Text style={styles.hint}>Trained driver assistance · cost based on trip needs</Text>
 
@@ -139,7 +147,7 @@ export function OutstationTransportScreen() {
         >
           <Text style={styles.secondaryCtaText}>Call Customer Support</Text>
         </Pressable>
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </View>
   );
 }

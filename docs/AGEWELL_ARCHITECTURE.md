@@ -7,7 +7,7 @@
 - **Database:** PostgreSQL
 - **Cache & Realtime State:** Redis
 - **Object Storage:** AWS S3 (or equivalent private object storage) for documents and medical reports
-- **Background Processing:** Celery/RQ for scheduled tasks and asynchronous processing
+- **Background Processing:** FastAPI lifespan poller for SOS escalation (Postgres `escalation_due_at`). Celery/RQ is not in the repo yet; Redis is configured but unused for jobs.
 - **Push Notifications:** Firebase Cloud Messaging (FCM) / APNs (React Native/Expo compatible)
 - **Payments:** Razorpay (initial integration)
 - **Maps / Location:** Google Maps (or equivalent mapping provider)

@@ -26,13 +26,6 @@ export type FoodMenuItem = {
   priceLabel: string;
 };
 
-export type MedicineOrder = {
-  id: string;
-  label: string;
-  placedAt: string;
-  status: 'Pending' | 'Out for delivery' | 'Delivered';
-};
-
 export type PoojaPackage = {
   id: string;
   name: string;
@@ -92,21 +85,6 @@ export const FOOD_MENU: FoodMenuItem[] = [
   { id: 'f7', cuisineId: 'south-indian', meal: 'Breakfast', name: 'Idli Sambar', priceLabel: '₹110' },
   { id: 'f8', cuisineId: 'south-indian', meal: 'Lunch', name: 'Rice Meal', priceLabel: '₹170' },
   { id: 'f9', cuisineId: 'south-indian', meal: 'Dinner', name: 'Dosa Combo', priceLabel: '₹160' },
-];
-
-export const MEDICINE_ORDERS: MedicineOrder[] = [
-  {
-    id: 'm1',
-    label: 'Prescription · Dr. Mehta',
-    placedAt: 'Yesterday · 2:10 PM',
-    status: 'Out for delivery',
-  },
-  {
-    id: 'm2',
-    label: 'Monthly refill pack',
-    placedAt: '25 Aug · 11:00 AM',
-    status: 'Delivered',
-  },
 ];
 
 export const POOJA_PACKAGES: PoojaPackage[] = [

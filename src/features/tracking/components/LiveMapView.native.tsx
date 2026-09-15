@@ -82,7 +82,7 @@ export function LiveMapView({
         ref={webRef}
         style={styles.fill}
         originWhitelist={['*']}
-        source={{ html: LEAFLET_MAP_HTML, baseUrl: 'https://a.basemaps.cartocdn.com' }}
+        source={{ html: LEAFLET_MAP_HTML, baseUrl: 'https://tile.openstreetmap.org' }}
         javaScriptEnabled
         domStorageEnabled
         mixedContentMode="always"

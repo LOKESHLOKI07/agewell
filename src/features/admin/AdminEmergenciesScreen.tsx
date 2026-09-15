@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams, type Href } from 'expo-router';
 import { colors, radius, shadows, spacing, typography } from '@/constants/theme';
-import { emergencyStatusLabel, emergencyTypeLabel } from '@/features/emergency/selectors';
+import { emergencyStatusLabel, emergencyTypeLabel, triggerSourceLabel } from '@/features/emergency/selectors';
 import type { EmergencyCase, EmergencyStatus } from '@/features/emergency/types/emergency';
 import { formatLongDate, formatTime } from '@/utils/date';
 import { AdminCollection } from './components/AdminCollection';
@@ -59,8 +59,8 @@ export function AdminEmergenciesScreen() {
           accessibilityLabel={(item) => `${emergencyTypeLabel(item.type)}, ${emergencyStatusLabel(item.status)}`}
           onPress={(item) => router.push(`/(admin)/emergencies/${item.id}` as Href)}
           columns={[
-            { key: 'type', label: 'Type', render: (item: EmergencyCase) => <Text style={cell}>{emergencyTypeLabel(item.type)}</Text> },
-            { key: 'senior', label: 'Senior', render: (item) => <Text style={cell}>{item.seniorId}</Text> },
+            { key: 'case', label: 'Case', render: (item: EmergencyCase) => <Text style={cell}>{item.caseNumber ?? emergencyTypeLabel(item.type)}</Text> },
+            { key: 'senior', label: 'Senior', render: (item) => <Text style={cell}>{item.seniorName ?? item.seniorId}</Text> },
             { key: 'status', label: 'Status', render: (item) => <Text style={cell}>{emergencyStatusLabel(item.status)}</Text> },
           ]}
         />
@@ -99,8 +99,9 @@ export function AdminEmergencyDetailScreen() {
       >
         {query.data ? (
           <View style={[styles.card, shadows.card]}>
-            <Text style={styles.name}>{emergencyTypeLabel(query.data.type)}</Text>
-            <Text style={styles.line}>Senior: {query.data.seniorId}</Text>
+            <Text style={styles.name}>{query.data.caseNumber ?? emergencyTypeLabel(query.data.type)}</Text>
+            <Text style={styles.line}>Senior: {query.data.seniorName ?? query.data.seniorId}</Text>
+            <Text style={styles.line}>Triggered: {triggerSourceLabel(query.data.triggerSource)}</Text>
             <Text style={styles.line}>Status: {emergencyStatusLabel(query.data.status)}</Text>
             <AdminFilterChips
               label="Update status"
@@ -114,6 +115,16 @@ export function AdminEmergencyDetailScreen() {
               }}
             />
             {formError ? <Text style={styles.error}>{formError}</Text> : null}
+            {query.data.recipients.length > 0 ? (
+              <View style={{ marginTop: 12 }}>
+                {query.data.recipients.map((item) => (
+                  <Text key={item.id} style={styles.line}>
+                    {item.label}: {item.status}
+                    {item.respondedAt ? ` · ${formatTime(item.respondedAt)}` : ''}
+                  </Text>
+                ))}
+              </View>
+            ) : null}
           </View>
         ) : null}
         <Text style={styles.section}>Timeline</Text>

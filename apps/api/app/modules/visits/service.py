@@ -13,7 +13,15 @@ from app.modules.care.schemas import care_manager_display_name
 from app.modules.seniors.repository import SeniorRepository
 from app.modules.visits.models import Visit, VisitStatus
 from app.modules.visits.repository import VisitRepository
-from app.modules.visits.schemas import VisitCreate, VisitReportResponse, VisitResponse, VisitTaskResponse, VisitUpdate
+from app.modules.visits.schemas import (
+    VisitCreate,
+    VisitReportCreate,
+    VisitReportResponse,
+    VisitResponse,
+    VisitTaskResponse,
+    VisitTaskUpdate,
+    VisitUpdate,
+)
 
 
 def to_visit_response(visit: Visit, care_manager: Optional[CareManager]) -> VisitResponse:
@@ -27,6 +35,8 @@ def to_visit_response(visit: Visit, care_manager: Optional[CareManager]) -> Visi
         ),
         status=visit.status,
         scheduled_at=visit.scheduled_at,
+        started_at=getattr(visit, "started_at", None),
+        completed_at=getattr(visit, "completed_at", None),
         notes=visit.notes,
     )
 
@@ -132,6 +142,15 @@ class VisitService:
         data = payload.model_dump(exclude_unset=True)
         if "care_manager_id" in data and data["care_manager_id"] is not None:
             await self._load_care_manager(data["care_manager_id"])
+        new_status = data.get("status")
+        if new_status in (VisitStatus.CHECKED_IN, VisitStatus.IN_PROGRESS) and not data.get("started_at") and not visit.started_at:
+            from datetime import datetime, timezone
+
+            data["started_at"] = datetime.now(timezone.utc)
+        if new_status in (VisitStatus.COMPLETED, VisitStatus.CHECKED_OUT) and not data.get("completed_at"):
+            from datetime import datetime, timezone
+
+            data["completed_at"] = datetime.now(timezone.utc)
         visit = await self.repo.update(visit, data)
         care_manager = None
         if visit.care_manager_id and self.care_repo:
@@ -145,3 +164,29 @@ class VisitService:
             )
             await self.repo.session.commit()
         return to_visit_response(visit, care_manager)
+
+    async def update_task(self, visit_id: UUID, task_id: UUID, payload: VisitTaskUpdate) -> VisitTaskResponse:
+        task = await self.repo.get_task(visit_id, task_id)
+        if not task:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Visit task not found")
+        task = await self.repo.update_task(task, {"is_completed": payload.is_completed})
+        return VisitTaskResponse.model_validate(task)
+
+    async def create_report(self, visit_id: UUID, payload: VisitReportCreate) -> VisitReportResponse:
+        row = await self.repo.get_by_id(visit_id)
+        if not row:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Visit not found")
+        report = await self.repo.create_report(
+            visit_id=visit_id,
+            summary=payload.summary,
+            issues_noted=payload.issues_noted,
+        )
+        if self.audit_repo:
+            await self.audit_repo.record(
+                entity_name="visit_reports",
+                entity_id=str(report.id),
+                action="CREATE",
+                changes=json.dumps({"visit_id": str(visit_id)}),
+            )
+            await self.repo.session.commit()
+        return VisitReportResponse.model_validate(report)

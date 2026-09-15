@@ -5,15 +5,27 @@ from fastapi import HTTPException, status
 
 from app.api.schemas import ListPage
 from app.modules.notifications.models import NotificationPriority
-from app.modules.notifications.repository import NotificationRepository
-from app.modules.notifications.schemas import AdminNotificationResponse, MarkAllReadResponse, NotificationResponse
+from app.modules.notifications.push import is_expo_push_token
+from app.modules.notifications.repository import DevicePushTokenRepository, NotificationRepository
+from app.modules.notifications.schemas import (
+    AdminNotificationResponse,
+    DevicePushTokenRegister,
+    DevicePushTokenResponse,
+    MarkAllReadResponse,
+    NotificationResponse,
+)
 
 FORBIDDEN = "You don't have permission to access this information."
 
 
 class NotificationService:
-    def __init__(self, repo: NotificationRepository):
+    def __init__(
+        self,
+        repo: NotificationRepository,
+        device_repo: Optional[DevicePushTokenRepository] = None,
+    ):
         self.repo = repo
+        self.device_repo = device_repo or DevicePushTokenRepository(repo.session)
 
     async def list_for_user(
         self,
@@ -65,6 +77,27 @@ class NotificationService:
             limit=limit,
             offset=offset,
         )
+
+    async def register_device_token(
+        self, user_id: UUID, payload: DevicePushTokenRegister
+    ) -> DevicePushTokenResponse:
+        token = payload.token.strip()
+        if not is_expo_push_token(token):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Expected an Expo push token (ExponentPushToken[...]).",
+            )
+        row = await self.device_repo.upsert(
+            user_id=user_id,
+            token=token,
+            platform=payload.platform,
+            app_variant=payload.app_variant,
+        )
+        return DevicePushTokenResponse.model_validate(row)
+
+    async def unregister_device_token(self, user_id: UUID, token: str) -> MarkAllReadResponse:
+        updated = await self.device_repo.delete_for_user(user_id=user_id, token=token.strip())
+        return MarkAllReadResponse(updated=updated)
 
     async def _owned_notification(self, user_id: UUID, notification_id: UUID):
         row = await self.repo.get_by_id(notification_id)

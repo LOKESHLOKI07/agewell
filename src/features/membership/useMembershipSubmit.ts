@@ -3,6 +3,7 @@ import { Alert } from 'react-native';
 import { getApiErrorMessage } from '@/api/errors';
 import { queryClient } from '@/api/queryClient';
 import { homeQueryKeys } from '@/features/home/api/homeQueryKeys';
+import { guardServiceSubmitBySlug } from './membershipAccess';
 import { submitMembershipRequest } from './membershipApi';
 
 /** Shared submit helper for membership service screens → real service_requests. */
@@ -11,6 +12,9 @@ export function useMembershipSubmit(slug: string) {
 
   const submit = async (notes: string, successTitle = 'Request submitted') => {
     if (submitting) {
+      return false;
+    }
+    if (!guardServiceSubmitBySlug(slug)) {
       return false;
     }
     setSubmitting(true);

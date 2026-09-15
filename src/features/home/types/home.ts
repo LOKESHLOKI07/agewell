@@ -15,7 +15,17 @@ export interface SeniorResponse {
   date_of_birth: string;
   address: string;
   emergency_contact: string;
+  family_contact_1_name?: string | null;
+  family_contact_1_phone?: string | null;
+  family_contact_2_name?: string | null;
+  family_contact_2_phone?: string | null;
+  preferred_hospital?: string | null;
   photo?: string | null;
+  in_service_area?: boolean;
+  location_lat?: number | null;
+  location_lng?: number | null;
+  location_query?: string | null;
+  location_source?: string | null;
 }
 
 export type VisitStatus =
@@ -36,6 +46,8 @@ export interface VisitResponse {
   care_manager_name: string | null;
   status: VisitStatus;
   scheduled_at: string | null;
+  started_at?: string | null;
+  completed_at?: string | null;
   notes: string | null;
 }
 
@@ -212,7 +224,18 @@ export interface SeniorProfile {
   dateOfBirth: string;
   address: string;
   emergencyContact: string;
+  familyContact1Name?: string | null;
+  familyContact1Phone?: string | null;
+  familyContact2Name?: string | null;
+  familyContact2Phone?: string | null;
+  preferredHospital?: string | null;
   photo: string | null;
+  /** Resolved server flag (stored location check or address keywords). */
+  inServiceArea: boolean;
+  locationLat: number | null;
+  locationLng: number | null;
+  locationQuery: string | null;
+  locationSource: 'gps' | 'manual' | null;
 }
 
 export interface Visit {
@@ -223,6 +246,8 @@ export interface Visit {
   careManagerName: string | null;
   status: VisitStatus;
   scheduledAt: string | null;
+  startedAt?: string | null;
+  completedAt?: string | null;
   notes: string | null;
 }
 

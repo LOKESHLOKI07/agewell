@@ -1,10 +1,7 @@
 import { useState } from 'react';
 import {
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -13,7 +10,7 @@ import { router, useLocalSearchParams, useNavigation, type Href } from 'expo-rou
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getApiErrorMessage } from '@/api/errors';
 import { AgeWellLogo, brandGreen } from '@/components/AgeWellLogo';
-import { TextField } from '@/components';
+import { KeyboardAwareScrollView, TextField } from '@/components';
 import { Icon } from '@/components/ui';
 import { minTouchSize, spacing, typography } from '@/constants/theme';
 import { createPasswordHref, forgotPasswordHref } from './authEntry';
@@ -138,12 +135,9 @@ export function EmailOtpScreen() {
   const onPrimary = sent ? onVerify : method === 'password' && isSignIn ? onPasswordSignIn : onSend;
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.root, { paddingTop: insets.top + spacing.md }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <ScrollView
-        keyboardShouldPersistTaps="handled"
+    <View style={[styles.root, { paddingTop: insets.top + spacing.md }]}>
+      <KeyboardAwareScrollView
+        style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: insets.bottom + spacing.xl }}
       >
@@ -255,8 +249,8 @@ export function EmailOtpScreen() {
             <Text style={styles.link}>Resend code</Text>
           </Pressable>
         ) : null}
-      </ScrollView>
-    </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
+    </View>
   );
 }
 

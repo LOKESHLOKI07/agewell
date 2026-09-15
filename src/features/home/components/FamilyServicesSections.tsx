@@ -1,26 +1,13 @@
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { router, type Href } from 'expo-router';
 import { Icon } from '@/components/ui';
 import { spacing, typography } from '@/constants/theme';
-import {
-  canAvailServices,
-  SERVICE_AREA_LOCKED_MESSAGE,
-  SERVICE_AREA_LOCKED_TITLE,
-} from '@/features/auth/serviceAreaPreference';
 import { homeAddOnServices } from '@/features/services/addOnServiceCatalog';
 import { homeBasicMembershipServices, type HomeServiceTile } from '@/features/services/serviceCatalog';
 import { FamilyHomeSectionHeader } from './FamilyHomePrimitives';
 import { familyHome } from './familyHomeTheme';
 
-function openOrLock(href: Href, bookable: boolean) {
-  if (bookable && !canAvailServices()) {
-    Alert.alert(SERVICE_AREA_LOCKED_TITLE, SERVICE_AREA_LOCKED_MESSAGE);
-    return;
-  }
-  router.push(href);
-}
-
-const GRID_COLUMNS = 4;
+const GRID_COLUMNS = 3;
 
 function chunkItems<T>(items: T[], size: number): T[][] {
   const rows: T[][] = [];
@@ -61,6 +48,11 @@ function FamilyServiceGrid({
               </Text>
             </Pressable>
           ))}
+          {row.length < GRID_COLUMNS
+            ? Array.from({ length: GRID_COLUMNS - row.length }).map((_, index) => (
+                <View key={`pad-${rowIndex}-${index}`} style={styles.gridCardSpacer} />
+              ))
+            : null}
         </View>
       ))}
     </View>
@@ -68,13 +60,17 @@ function FamilyServiceGrid({
 }
 
 export function FamilyOurServicesGrid({
-  title = 'Our Basic Membership Services',
+  title = 'Our Membership Services',
   showViewAll = false,
 }: {
   title?: string;
   showViewAll?: boolean;
 }) {
   const items = homeBasicMembershipServices();
+
+  const onPressItem = (item: HomeServiceTile) => {
+    router.push(item.href);
+  };
 
   return (
     <View style={styles.section}>
@@ -83,13 +79,17 @@ export function FamilyOurServicesGrid({
         actionLabel={showViewAll ? 'View All' : undefined}
         onAction={showViewAll ? () => router.push('/(tabs)/services' as Href) : undefined}
       />
-      <FamilyServiceGrid items={items} onPressItem={(item) => openOrLock(item.href, item.bookable)} />
+      <FamilyServiceGrid items={items} onPressItem={onPressItem} />
     </View>
   );
 }
 
 export function FamilyAddOnServices({ showViewAll = false }: { showViewAll?: boolean }) {
   const items = homeAddOnServices();
+
+  const onPressItem = (item: HomeServiceTile) => {
+    router.push(item.href);
+  };
 
   return (
     <View style={styles.section}>
@@ -98,7 +98,7 @@ export function FamilyAddOnServices({ showViewAll = false }: { showViewAll?: boo
         actionLabel={showViewAll ? 'View All' : undefined}
         onAction={showViewAll ? () => router.push('/addons' as Href) : undefined}
       />
-      <FamilyServiceGrid items={items} onPressItem={(item) => openOrLock(item.href, false)} />
+      <FamilyServiceGrid items={items} onPressItem={onPressItem} />
     </View>
   );
 }
@@ -123,6 +123,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
+  },
+  gridCardSpacer: {
+    flex: 1,
   },
   gridLabel: {
     ...typography.captionStrong,

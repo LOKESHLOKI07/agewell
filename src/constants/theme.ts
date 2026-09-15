@@ -1,37 +1,41 @@
 /**
  * AgeWell visual tokens.
- * Change colors, radius, type, and shadows here to restyle every screen.
+ * Member + Care apps use brand green. Admin sidebar keeps its own purple tokens.
  */
+import { Platform, type ViewStyle } from 'react-native';
+import { brandGreen } from '@/components/AgeWellLogo';
+
 export const colors = {
-  background: '#F7F8FC',
+  background: '#FFFFFF',
   surface: '#FFFFFF',
-  surfaceMuted: '#F1F3F9',
+  surfaceMuted: '#F5F7F5',
   surfaceElevated: '#FFFFFF',
-  primary: '#583FD3',
-  primaryMuted: '#7B68E0',
-  primarySoft: '#EFEAFE',
-  primaryDark: '#2F1E6E',
-  accent: '#4C6FFF',
-  accentSoft: '#EAF0FF',
-  text: '#1C1F33',
-  textSecondary: '#6B728A',
-  textMuted: '#9AA3B8',
+  primary: brandGreen,
+  primaryMuted: '#5BA05E',
+  primarySoft: '#E8F5E9',
+  primaryDark: '#2F6B32',
+  accent: '#2F6B32',
+  accentSoft: '#E8F5E9',
+  text: '#1A1A1A',
+  textSecondary: '#6B6B6B',
+  textMuted: '#8A8A8A',
   textOnPrimary: '#FFFFFF',
-  border: '#ECEEF5',
+  border: '#EDEDED',
   safe: '#22A06B',
   safeSoft: '#E7F7EF',
   warning: '#F59E0B',
   warningSoft: '#FFF6E5',
   emergency: '#E5484D',
   emergencySoft: '#FDECEC',
-  info: '#4C6FFF',
-  infoSoft: '#EAF0FF',
-  sidebar: '#2B1B6B',
+  info: '#2F80ED',
+  infoSoft: '#E8F1FF',
+  sidebar: '#2D1F6B',
   sidebarText: '#F7F4FF',
   sidebarMuted: '#C9BFF2',
   sidebarActive: '#4A35B8',
+  adminCanvas: '#F6F7FB',
   white: '#FFFFFF',
-  overlay: 'rgba(28, 31, 51, 0.46)',
+  overlay: 'rgba(26, 26, 26, 0.46)',
 } as const;
 
 export type ColorTone = 'default' | 'primary' | 'accent' | 'safe' | 'warning' | 'emergency' | 'info';
@@ -128,24 +132,30 @@ export const typography = {
   },
 } as const;
 
+/** Native `shadow*` props warn on web; keep them on iOS/Android only. */
+function platformShadow(boxShadow: string, native: ViewStyle): ViewStyle {
+  return Platform.select<ViewStyle>({
+    web: { boxShadow },
+    default: native,
+  }) as ViewStyle;
+}
+
 export const shadows = {
-  card: {
+  card: platformShadow('0px 10px 24px rgba(28, 31, 51, 0.05)', {
     shadowColor: '#1C1F33',
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.05,
     shadowRadius: 24,
     elevation: 3,
-    boxShadow: '0px 10px 24px rgba(28, 31, 51, 0.05)',
-  },
-  float: {
+  }),
+  float: platformShadow('0px 16px 28px rgba(28, 31, 51, 0.1)', {
     shadowColor: '#1C1F33',
     shadowOffset: { width: 0, height: 16 },
     shadowOpacity: 0.1,
     shadowRadius: 28,
     elevation: 8,
-    boxShadow: '0px 16px 28px rgba(28, 31, 51, 0.1)',
-  },
-} as const;
+  }),
+};
 
 export const minTouchSize = 48;
 export const iconStroke = 1.75;

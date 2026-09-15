@@ -10,19 +10,21 @@ export function AuthMethodButtons({
   onEmail,
   googleDisabled = false,
 }: {
-  onGoogle: () => void;
+  onGoogle?: () => void;
   onMobile: () => void;
   onEmail: () => void;
   googleDisabled?: boolean;
 }) {
   return (
     <View style={styles.methods}>
-      <AuthMethodButton
-        label="Continue with Google"
-        icon={<GoogleGlyph />}
-        onPress={onGoogle}
-        disabled={googleDisabled}
-      />
+      {onGoogle ? (
+        <AuthMethodButton
+          label="Continue with Google"
+          icon={<GoogleGlyph />}
+          onPress={onGoogle}
+          disabled={googleDisabled}
+        />
+      ) : null}
       <AuthMethodButton
         label="Continue with Mobile Number"
         icon={

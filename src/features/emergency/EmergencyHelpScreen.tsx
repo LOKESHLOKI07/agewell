@@ -49,7 +49,7 @@ export function EmergencyHelpScreen() {
       return;
     }
     try {
-      const created = await createMutation.mutateAsync(selectedType);
+      const created = await createMutation.mutateAsync({ type: selectedType });
       router.replace(emergencyDetailHref(created.id) as unknown as Href);
     } catch {
       return;

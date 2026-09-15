@@ -50,7 +50,7 @@ describe('legacy FAMILY routing', () => {
   it('sends FAMILY to the shared senior home', () => {
     expect(authenticatedHomeHref('FAMILY')).toBe('/(tabs)');
     expect(authenticatedHomeHref('SENIOR')).toBe('/(tabs)');
-    expect(authenticatedHomeHref('CARE_MANAGER')).toBe('/(care)');
+    expect(authenticatedHomeHref('CARE_MANAGER', { variant: 'care' })).toBe('/(care)');
     expect(authenticatedHomeHref('ADMIN')).toBe('/(admin)');
   });
 });

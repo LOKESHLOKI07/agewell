@@ -1,1 +1,1 @@
-export { AdminSeniorDetailScreen as default } from '@/features/admin/AdminSeniorsScreen';
+export { AdminSeniorDetailScreen as default } from '@/features/admin/AdminSeniorDetailScreen';

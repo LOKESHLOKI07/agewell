@@ -1,5 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
 import type { Href } from 'expo-router';
+import { isCareApp } from '@/config/appVariant';
 import { signInHref } from './authEntry';
 
 const RETURN_TO_SIGN_IN_KEY = 'agewell.return_to_sign_in';
@@ -69,6 +70,9 @@ export function shouldOpenSignInWhenSignedOut(): boolean {
 }
 
 export function unauthenticatedEntryHref(): Href {
+  if (isCareApp()) {
+    return signInHref();
+  }
   return shouldOpenSignInWhenSignedOut() ? signInHref() : ('/(auth)/welcome' as Href);
 }
 

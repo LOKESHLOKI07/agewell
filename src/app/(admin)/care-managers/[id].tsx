@@ -1,1 +1,1 @@
-export { AdminCareManagerDetailScreen as default } from '@/features/admin/AdminCareManagersScreen';
+export { AdminCareManagerDetailScreen as default } from '@/features/admin/AdminCareManagerDetailScreen';

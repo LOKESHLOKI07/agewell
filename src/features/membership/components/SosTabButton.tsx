@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View, type GestureResponderEvent } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View, type GestureResponderEvent } from 'react-native';
 import { familyHome } from '@/features/home/components/familyHomeTheme';
 
 type SosTabButtonProps = {
@@ -43,11 +43,16 @@ const styles = StyleSheet.create({
     marginTop: -22,
     borderWidth: 4,
     borderColor: familyHome.white,
-    shadowColor: '#000',
-    shadowOpacity: 0.18,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
+    ...Platform.select({
+      web: { boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.18)' },
+      default: {
+        shadowColor: '#000',
+        shadowOpacity: 0.18,
+        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 4 },
+        elevation: 6,
+      },
+    }),
   },
   buttonFocused: {
     transform: [{ scale: 1.04 }],

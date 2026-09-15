@@ -6,9 +6,16 @@ import { spacing, typography } from '@/constants/theme';
 import { AgeWellHeader } from '@/features/home/components/AgeWellHeader';
 import { familyHome } from '@/features/home/components/familyHomeTheme';
 import { MembershipServiceHero } from './MembershipServiceHero';
+import { gatedMembershipScreen } from './MembershipServiceGate';
 import { INSPECTION_REPORTS } from './mockLifestyle';
 
-export function HomeInspectionScreen() {
+export const HomeInspectionScreen = gatedMembershipScreen(
+  'home-inspection',
+  'Home Inspection',
+  HomeInspectionLive,
+);
+
+function HomeInspectionLive() {
   const insets = useSafeAreaInsets();
   const [reportId, setReportId] = useState(INSPECTION_REPORTS[0]?.id ?? '');
   const report = INSPECTION_REPORTS.find((item) => item.id === reportId) ?? INSPECTION_REPORTS[0];

@@ -1,11 +1,12 @@
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { router, type Href } from 'expo-router';
 import { useNavigation } from 'expo-router';
-import { colors, minTouchSize, typography, spacing } from '@/constants/theme';
+import { minTouchSize, typography, spacing } from '@/constants/theme';
 import { Avatar, Icon } from '@/components/ui';
 import { useAuthStore } from '@/features/auth/authStore';
 import { authenticatedProfileHref } from '@/features/auth/roleRouting';
 import { useSeniorProfile } from '@/features/home/hooks/queries';
+import { familyHome } from '@/features/home/components/familyHomeTheme';
 import { NotificationBell } from '@/features/notifications/components/NotificationBell';
 import { useI18n } from '@/i18n';
 import { getGreeting } from '@/utils/greeting';
@@ -62,7 +63,7 @@ export function AgeWellHeader({
       accessibilityRole="button"
       accessibilityLabel={t('common.back')}
     >
-      <Icon name="arrow-back" size={22} color={colors.text} />
+      <Icon name="arrow-back" size={22} color={familyHome.text} />
       <Text style={styles.backLabel}>{t('common.back')}</Text>
     </Pressable>
   ) : null;
@@ -119,7 +120,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.md,
-    backgroundColor: colors.background,
+    backgroundColor: familyHome.white,
     position: 'relative',
   },
   side: {
@@ -147,21 +148,21 @@ const styles = StyleSheet.create({
   },
   brand: {
     ...typography.title,
-    color: colors.primary,
+    color: familyHome.green,
   },
   greeting: {
     ...typography.subtitle,
-    color: colors.text,
+    color: familyHome.text,
     marginTop: 4,
   },
   tagline: {
     ...typography.caption,
-    color: colors.textSecondary,
+    color: familyHome.muted,
     marginTop: 2,
   },
   subtitle: {
     ...typography.caption,
-    color: colors.textSecondary,
+    color: familyHome.muted,
     marginTop: 2,
   },
   rightSide: {
@@ -178,7 +179,7 @@ const styles = StyleSheet.create({
   },
   backLabel: {
     ...typography.caption,
-    color: colors.textSecondary,
+    color: familyHome.muted,
     marginTop: 2,
   },
   profileAvatar: {
@@ -189,7 +190,7 @@ const styles = StyleSheet.create({
   },
   profileLabel: {
     ...typography.caption,
-    color: colors.textSecondary,
+    color: familyHome.muted,
     marginTop: 2,
   },
 });

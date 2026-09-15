@@ -1,5 +1,6 @@
 import type { ComponentProps, ReactNode } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { KeyboardAwareScrollView } from '@/components/KeyboardAwareScrollView';
 import { colors, spacing, typography } from '@/constants/theme';
 
 interface CareScreenProps {
@@ -7,13 +8,13 @@ interface CareScreenProps {
   subtitle?: string;
   trailing?: ReactNode;
   children: ReactNode;
-  refreshControl?: ComponentProps<typeof ScrollView>['refreshControl'];
+  refreshControl?: ComponentProps<typeof KeyboardAwareScrollView>['refreshControl'];
 }
 
 export function CareScreen({ title, subtitle, trailing, children, refreshControl }: CareScreenProps) {
   return (
     <View style={styles.container}>
-      <ScrollView
+      <KeyboardAwareScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
         refreshControl={refreshControl}
@@ -26,7 +27,7 @@ export function CareScreen({ title, subtitle, trailing, children, refreshControl
           {trailing}
         </View>
         {children}
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </View>
   );
 }
@@ -53,7 +54,7 @@ const styles = StyleSheet.create({
   },
   title: {
     ...typography.title,
-    color: colors.text,
+    color: colors.primary,
   },
   subtitle: {
     ...typography.body,

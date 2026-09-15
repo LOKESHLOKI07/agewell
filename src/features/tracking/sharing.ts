@@ -1,4 +1,10 @@
-import { POINT_CREATE_FAILED_MESSAGE, SESSION_CREATE_FAILED_MESSAGE } from './selectors';
+import {
+  LOCATION_NO_FIX_MESSAGE,
+  LOCATION_PERMISSION_MESSAGE,
+  LOCATION_SERVICES_MESSAGE,
+  POINT_CREATE_FAILED_MESSAGE,
+  SESSION_CREATE_FAILED_MESSAGE,
+} from './selectors';
 import type { TrackingPoint, TrackingPointCreate, TrackingSession } from './types';
 import type { ForegroundCoordinates, PermissionCheck } from './location';
 
@@ -18,10 +24,10 @@ interface StartLiveLocationDeps {
 export async function startLiveLocationShare(deps: StartLiveLocationDeps): Promise<StartLiveLocationResult> {
   const permission = await deps.requestPermission();
   if (permission.state === 'denied') {
-    return { ok: false, reason: 'denied', message: permission.message ?? 'Location permission is required to share your location.' };
+    return { ok: false, reason: 'denied', message: permission.message ?? LOCATION_PERMISSION_MESSAGE };
   }
   if (permission.state !== 'granted') {
-    return { ok: false, reason: 'unavailable', message: permission.message ?? 'Your location is unavailable right now.' };
+    return { ok: false, reason: 'unavailable', message: permission.message ?? LOCATION_SERVICES_MESSAGE };
   }
 
   let session: TrackingSession;
@@ -40,8 +46,12 @@ export async function startLiveLocationShare(deps: StartLiveLocationDeps): Promi
   let coords: ForegroundCoordinates;
   try {
     coords = await deps.readCoordinates();
-  } catch {
-    return { ok: false, reason: 'location', message: 'Your location is unavailable right now.' };
+  } catch (error) {
+    return {
+      ok: false,
+      reason: 'location',
+      message: error instanceof Error ? error.message : LOCATION_NO_FIX_MESSAGE,
+    };
   }
 
   try {

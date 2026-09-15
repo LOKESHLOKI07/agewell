@@ -6,10 +6,17 @@ import { spacing, typography } from '@/constants/theme';
 import { AgeWellHeader } from '@/features/home/components/AgeWellHeader';
 import { familyHome } from '@/features/home/components/familyHomeTheme';
 import { MembershipServiceHero } from './MembershipServiceHero';
+import { gatedMembershipScreen } from './MembershipServiceGate';
 import { useMembershipSubmit } from './useMembershipSubmit';
 import { useServiceOfferings } from './useCatalog';
 
-export function PoojaHelperScreen() {
+export const PoojaHelperScreen = gatedMembershipScreen(
+  'pooja',
+  'Pooja Helper',
+  PoojaHelperLive,
+);
+
+function PoojaHelperLive() {
   const insets = useSafeAreaInsets();
   const [cart, setCart] = useState<Record<string, number>>({});
   const cartCount = Object.values(cart).reduce((sum, n) => sum + n, 0);

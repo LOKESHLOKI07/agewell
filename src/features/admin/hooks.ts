@@ -7,9 +7,11 @@ import type { MembershipRequestStatus } from '@/features/membership/membershipTy
 import {
   approveAdminCareManager,
   createAdminCareManager,
+  provisionAdminStaff,
   createAdminSenior,
   createAdminService,
   createAdminUser,
+  cancelAdminMembershipRecord,
   createAdminVisit,
   fetchAdminAppointments,
   fetchAdminAuditLogs,
@@ -48,8 +50,11 @@ import {
   updateAdminUser,
   updateAdminVisit,
 } from './api';
+import { fetchCareActivities, updateCareActivity } from '@/features/membership/careManagerApi';
+import type { CareActivityUpdate } from '@/features/membership/careManagerTypes';
+import { homeQueryKeys } from '@/features/home/api/homeQueryKeys';
 import { adminQueryKeys } from './queryKeys';
-import type { AdminCareManagerCreate, AdminCareManagerUpdate, AdminSeniorCreate, AdminSeniorUpdate, AdminUserCreate, AdminUserUpdate } from './types';
+import type { AdminCareManagerCreate, AdminCareManagerUpdate, AdminSeniorCreate, AdminSeniorUpdate, AdminStaffProvision, AdminUserCreate, AdminUserUpdate } from './types';
 import { ADMIN_PAGE_SIZE } from './types';
 
 function useStaffQuery<T>(queryKey: readonly unknown[], queryFn: () => Promise<T>, enabled = true): UseQueryResult<T> {
@@ -111,8 +116,12 @@ export function useUpdateAdminUser(id: string) {
   });
 }
 
-export function useAdminSeniors(params: { limit?: number; offset?: number }) {
-  const query = { limit: params.limit ?? ADMIN_PAGE_SIZE, offset: params.offset ?? 0 };
+export function useAdminSeniors(params: { limit?: number; offset?: number; segment?: string }) {
+  const query = {
+    limit: params.limit ?? ADMIN_PAGE_SIZE,
+    offset: params.offset ?? 0,
+    ...(params.segment ? { segment: params.segment } : {}),
+  };
   return useStaffQuery(adminQueryKeys.seniors(query), () => fetchAdminSeniors(query));
 }
 
@@ -150,12 +159,46 @@ export function useAdminCareManager(id: string | undefined) {
   return useStaffQuery(adminQueryKeys.careManager(id ?? ''), () => fetchAdminCareManager(id as string), Boolean(id));
 }
 
+export function useAdminCareActivities(seniorId: string | undefined) {
+  return useStaffQuery(
+    adminQueryKeys.careActivities(seniorId ?? ''),
+    () => fetchCareActivities(seniorId),
+    Boolean(seniorId),
+  );
+}
+
+export function useUpdateAdminCareActivity(seniorId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { id: string } & CareActivityUpdate) => {
+      const { id, ...rest } = input;
+      return updateCareActivity(id, rest);
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: adminQueryKeys.careActivities(seniorId) });
+    },
+  });
+}
+
 export function useCreateAdminCareManager() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: AdminCareManagerCreate) => createAdminCareManager(input),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['admin', 'careManagers'] });
+    },
+  });
+}
+
+export function useProvisionAdminStaff() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: AdminStaffProvision) => provisionAdminStaff(input),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['admin', 'careManagers'] }),
+        queryClient.invalidateQueries({ queryKey: ['admin', 'users'] }),
+      ]);
     },
   });
 }
@@ -345,6 +388,21 @@ export function useReviewAdminMembershipRequest() {
       reviewAdminMembershipRequest(input.id, input.status),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['admin', 'memberships'] });
+    },
+  });
+}
+
+export function useCancelAdminMembership() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => cancelAdminMembershipRecord(id),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: adminQueryKeys.memberships }),
+        queryClient.invalidateQueries({ queryKey: ['admin', 'seniors'] }),
+        queryClient.invalidateQueries({ queryKey: homeQueryKeys.membershipCurrent }),
+        queryClient.invalidateQueries({ queryKey: homeQueryKeys.membershipUsage }),
+      ]);
     },
   });
 }

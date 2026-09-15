@@ -12,7 +12,7 @@ export function AdminProfileScreen() {
   const [signingOut, setSigningOut] = useState(false);
 
   return (
-    <AdminScreen title="Profile" subtitle="Signed-in staff account.">
+    <AdminScreen title="Settings" subtitle="Signed-in staff account.">
       {user ? (
         <View style={[styles.card, shadows.card]}>
           <Text style={styles.email}>{user.email}</Text>

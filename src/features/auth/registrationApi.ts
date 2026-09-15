@@ -3,7 +3,7 @@ import { toApiError } from '@/api/errors';
 import { toIsoDate } from '@/utils/date';
 import { fetchCurrentUser } from './authService';
 import type { AuthUser, TokenResponse } from './authTypes';
-import { getIdentityToken, getOnboardingServiceFor } from './onboardingProfile';
+import { getIdentityToken } from './onboardingProfile';
 import { saveTokens } from './tokenStorage';
 import type { RegisterCareValues, RegisterSeniorValues } from './registrationSchemas';
 
@@ -51,7 +51,12 @@ export async function registerSenior(values: RegisterSeniorValues): Promise<Regi
         address: values.address,
         emergency_contact: values.emergencyContact,
         preferred_language: values.preferredLanguage ?? null,
-        membership_kind: values.membershipKind ?? getOnboardingServiceFor(),
+        membership_kind: values.membershipKind ?? null,
+        in_service_area: values.inServiceArea ?? null,
+        location_lat: values.locationLat ?? null,
+        location_lng: values.locationLng ?? null,
+        location_query: values.locationQuery ?? null,
+        location_source: values.locationSource ?? null,
         identity_token: getIdentityToken() || null,
       },
       { skipAuth: true },
@@ -76,6 +81,7 @@ export async function registerCareAssociate(values: RegisterCareValues): Promise
         experience: values.experience || null,
         languages: values.languages || null,
         availability: values.availability || null,
+        staff_kind: values.staffKind ?? null,
       },
       { skipAuth: true },
     );

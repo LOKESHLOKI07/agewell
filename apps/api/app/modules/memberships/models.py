@@ -43,5 +43,10 @@ class MembershipRequest(Base):
     plan_id = Column(UUID(as_uuid=True), ForeignKey("membership_plans.id"), nullable=False)
     status = Column(String, nullable=False, default="REQUESTED")  # REQUESTED | APPROVED | REJECTED
     notes = Column(String, nullable=True)
+    family_contact_1_name = Column(String, nullable=True)
+    family_contact_1_phone = Column(String, nullable=True)
+    family_contact_2_name = Column(String, nullable=True)
+    family_contact_2_phone = Column(String, nullable=True)
+    preferred_hospital = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     reviewed_at = Column(DateTime(timezone=True), nullable=True)

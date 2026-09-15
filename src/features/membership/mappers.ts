@@ -46,6 +46,11 @@ export function toMembershipRequest(payload: unknown): MembershipRequest {
     planPrice: asOptionalNumber(data.plan_price),
     status: data.status,
     notes: asOptionalString(data.notes),
+    familyContact1Name: asOptionalString(data.family_contact_1_name),
+    familyContact1Phone: asOptionalString(data.family_contact_1_phone),
+    familyContact2Name: asOptionalString(data.family_contact_2_name),
+    familyContact2Phone: asOptionalString(data.family_contact_2_phone),
+    preferredHospital: asOptionalString(data.preferred_hospital),
     createdAt: asOptionalString(data.created_at),
     reviewedAt: asOptionalString(data.reviewed_at),
   };

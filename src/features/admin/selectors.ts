@@ -3,6 +3,7 @@ import { ApiError, getApiErrorMessage } from '@/api/errors';
 import { AUTH_ROLE_LABELS, type AuthRole } from '@/features/auth/authTypes';
 import { isStaffRole } from '@/features/auth/roleRouting';
 import { getSectionState, humanizeStatus } from '@/features/home/selectors/homeViewModel';
+import { STAFF_KIND_LABELS, parseStaffKind } from '@/features/care/staffKind';
 import type { AdminCareManager, AdminDashboardMetric, AdminSenior, AdminUser } from './types';
 import { ADMIN_DESKTOP_MIN_WIDTH, ADMIN_PAGE_SIZE } from './types';
 import { joinPersonName } from '@/utils/personName';
@@ -24,9 +25,10 @@ export const ADMIN_NAV: readonly AdminNavItem[] = [
   { key: 'dashboard', href: '/(admin)', label: 'Dashboard', icon: 'home-outline', mobileTab: true },
   { key: 'users', href: '/(admin)/users', label: 'Users', icon: 'people-outline', mobileTab: true },
   { key: 'seniors', href: '/(admin)/seniors', label: 'Seniors', icon: 'person-outline' },
-  { key: 'careManagers', href: '/(admin)/care-managers', label: 'Care Associates', icon: 'medkit-outline' },
+  { key: 'careManagers', href: '/(admin)/care-managers', label: 'Care Team', icon: 'medkit-outline' },
   { key: 'services', href: '/(admin)/services', label: 'Services', icon: 'grid-outline' },
-  { key: 'serviceItems', href: '/(admin)/catalog/offerings', label: 'Service items', icon: 'cart-outline' },
+  { key: 'addonServices', href: '/(admin)/addon-services', label: 'Add-on Services', icon: 'sparkles' },
+  { key: 'serviceItems', href: '/(admin)/catalog/offerings', label: 'Service Catalog', icon: 'cart-outline' },
   { key: 'requests', href: '/(admin)/requests', label: 'Requests', icon: 'clipboard-outline' },
   { key: 'visits', href: '/(admin)/visits', label: 'Visits', icon: 'calendar-outline', mobileTab: true },
   { key: 'appointments', href: '/(admin)/appointments', label: 'Appointments', icon: 'time-outline' },
@@ -35,7 +37,15 @@ export const ADMIN_NAV: readonly AdminNavItem[] = [
   { key: 'emergencies', href: '/(admin)/emergencies', label: 'Emergencies', icon: 'warning-outline', mobileTab: true },
   { key: 'notifications', href: '/(admin)/notifications', label: 'Notifications', icon: 'notifications-outline' },
   { key: 'audit', href: '/(admin)/audit', label: 'Audit Logs', icon: 'document-text-outline' },
-  { key: 'profile', href: '/(admin)/profile', label: 'Profile', icon: 'person-circle-outline' },
+  { key: 'profile', href: '/(admin)/profile', label: 'Settings', icon: 'settings-outline' },
+];
+
+export const ADMIN_NAV_GROUPS: { title: string; keys: string[] }[] = [
+  { title: 'Main', keys: ['dashboard'] },
+  { title: 'People', keys: ['users', 'seniors', 'careManagers'] },
+  { title: 'Care operations', keys: ['visits', 'appointments', 'services', 'addonServices', 'requests', 'emergencies'] },
+  { title: 'Programs', keys: ['community', 'memberships', 'serviceItems'] },
+  { title: 'System', keys: ['notifications', 'audit', 'profile'] },
 ];
 
 export const ADMIN_MORE_HREF = '/(admin)/more';
@@ -87,10 +97,79 @@ export function adminSeniorDisplay(senior: Pick<AdminSenior, 'firstName' | 'last
   return titleCaseName(joinPersonName(senior.firstName, senior.lastName));
 }
 
+export function seniorAgeYears(dateOfBirth: string, now = new Date()): number | null {
+  const born = new Date(dateOfBirth);
+  if (Number.isNaN(born.getTime())) {
+    return null;
+  }
+  let age = now.getFullYear() - born.getFullYear();
+  const monthDelta = now.getMonth() - born.getMonth();
+  if (monthDelta < 0 || (monthDelta === 0 && now.getDate() < born.getDate())) {
+    age -= 1;
+  }
+  return age >= 0 && age < 130 ? age : null;
+}
+
+export function shortSeniorCode(id: string): string {
+  const compact = id.replace(/-/g, '').slice(0, 5).toUpperCase();
+  return compact ? `SR-${compact}` : 'SR';
+}
+
+/** Formats saved GPS / manual location check for Admin detail. */
+export function adminSeniorLocationLabel(
+  senior: Pick<AdminSenior, 'locationLat' | 'locationLng' | 'locationQuery' | 'locationSource'>,
+): string {
+  if (senior.locationSource === 'gps' && senior.locationLat != null && senior.locationLng != null) {
+    return `GPS ${senior.locationLat.toFixed(5)}, ${senior.locationLng.toFixed(5)}`;
+  }
+  if (senior.locationSource === 'manual' && senior.locationQuery) {
+    return `Manual: ${senior.locationQuery}`;
+  }
+  if (senior.locationQuery) {
+    return senior.locationQuery;
+  }
+  if (senior.locationLat != null && senior.locationLng != null) {
+    return `${senior.locationLat.toFixed(5)}, ${senior.locationLng.toFixed(5)}`;
+  }
+  return 'Not recorded';
+}
+
+export function adminContactLine(name?: string | null, phone?: string | null): string {
+  const who = name?.trim() ?? '';
+  const tel = phone?.trim() ?? '';
+  if (who && tel) {
+    return `${who} · ${tel}`;
+  }
+  return who || tel || 'Not on file';
+}
+
 export function adminCareManagerDisplay(manager: AdminCareManager): string {
   const fromParts = [manager.firstName, manager.lastName].filter(Boolean).join(' ').trim();
   const raw = fromParts || manager.name || 'Care manager';
   return titleCaseName(raw);
+}
+
+export function adminStaffKindLabel(staffKind: string | null | undefined): string {
+  return STAFF_KIND_LABELS[parseStaffKind(staffKind)];
+}
+
+export function splitTagList(value: string | null | undefined): string[] {
+  if (!value?.trim()) {
+    return [];
+  }
+  return value
+    .split(/[,;|/]+/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+export function monthsBetween(fromIso: string, now = new Date()): number | null {
+  const from = new Date(fromIso);
+  if (Number.isNaN(from.getTime())) {
+    return null;
+  }
+  const months = (now.getFullYear() - from.getFullYear()) * 12 + (now.getMonth() - from.getMonth());
+  return months >= 0 ? months : null;
 }
 
 export function pageCount(total: number, limit: number): number {

@@ -12,6 +12,7 @@ import {
   LOCATION_PERMISSION_MESSAGE,
   SHARING_CONFIRM_MESSAGE,
   SHARING_CONFIRM_TITLE,
+  isLocationPermissionDeniedMessage,
 } from './selectors';
 import {
   hasGpsCoordinate,
@@ -83,15 +84,15 @@ export function SeniorTrackingScreen() {
           fixed and is never treated as live GPS.
         </Text>
 
-        {shareError === LOCATION_PERMISSION_MESSAGE ? (
+        {isLocationPermissionDeniedMessage(shareError) ? (
           <ErrorState
             title="Permission denied"
-            message={LOCATION_PERMISSION_MESSAGE}
+            message={shareError ?? LOCATION_PERMISSION_MESSAGE}
             onRetry={() => setConfirmOpen(true)}
           />
         ) : null}
 
-        {shareError && shareError !== LOCATION_PERMISSION_MESSAGE ? (
+        {shareError && !isLocationPermissionDeniedMessage(shareError) ? (
           <ErrorState title="Could not share location" message={shareError} onRetry={() => setConfirmOpen(true)} />
         ) : null}
 

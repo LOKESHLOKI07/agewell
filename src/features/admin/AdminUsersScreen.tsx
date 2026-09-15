@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { router, type Href } from 'expo-router';
+import { router, useLocalSearchParams, type Href } from 'expo-router';
 import { ApiError } from '@/api/errors';
 import { ConfirmDialog, PrimaryButton, TextField } from '@/components';
 import { colors, spacing, typography } from '@/constants/theme';
@@ -23,11 +23,21 @@ import { ADMIN_PAGE_SIZE } from './types';
 const ROLE_OPTIONS = AUTH_ROLES.map((role) => ({ value: role, label: adminRoleLabel(role) }));
 
 export function AdminUsersScreen() {
+  const params = useLocalSearchParams<{ email?: string }>();
+  const initialEmail = typeof params.email === 'string' ? params.email : '';
   const [offset, setOffset] = useState(0);
   const [role, setRole] = useState<AuthRole | undefined>();
-  const [emailInput, setEmailInput] = useState('');
-  const [email, setEmail] = useState<string | undefined>();
+  const [emailInput, setEmailInput] = useState(initialEmail);
+  const [email, setEmail] = useState<string | undefined>(initialEmail || undefined);
   const currentUserId = useAuthStore((state) => state.user?.id);
+
+  useEffect(() => {
+    if (typeof params.email === 'string' && params.email) {
+      setEmailInput(params.email);
+      setEmail(params.email);
+      setOffset(0);
+    }
+  }, [params.email]);
 
   const query = useAdminUsers({ limit: ADMIN_PAGE_SIZE, offset, role, email });
   const seniors = useAdminSeniors({ limit: 100, offset: 0 });
@@ -79,6 +89,7 @@ export function AdminUsersScreen() {
   };
 
   return (
+    <>
     <AdminScreen
       title="Users"
       subtitle="Login accounts and roles. Use Edit, View, or Delete on each row. Delete removes the account and its linked profile."
@@ -200,7 +211,7 @@ export function AdminUsersScreen() {
           onOffsetChange={setOffset}
         />
       </AdminQueryView>
-
+    </AdminScreen>
       <ConfirmDialog
         visible={Boolean(selection.deleteId)}
         title="Delete this account?"
@@ -210,6 +221,8 @@ export function AdminUsersScreen() {
             : ''
         }
         confirmLabel={selection.busy ? 'Working…' : 'Delete account'}
+        busy={selection.busy}
+        error={selection.actionError}
         onCancel={() => selection.setDeleteId(null)}
         onConfirm={() => {
           if (selection.deleteId) void selection.deleteRecords([selection.deleteId]);
@@ -220,12 +233,14 @@ export function AdminUsersScreen() {
         title="Delete selected accounts?"
         message={`${selection.selectedIds.length} account(s) and any linked People profiles will be permanently removed.`}
         confirmLabel={selection.busy ? 'Working…' : 'Delete selected'}
+        busy={selection.busy}
+        error={selection.actionError}
         onCancel={() => selection.setBulkDelete(false)}
         onConfirm={() => {
-          void selection.deleteRecords(selection.selectedIds);
+          void selection.deleteRecords([...selection.selectedIds]);
         }}
       />
-    </AdminScreen>
+    </>
   );
 }
 

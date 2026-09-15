@@ -20,6 +20,8 @@ class Visit(Base):
     care_manager_id = Column(UUID(as_uuid=True), ForeignKey("care_managers.id"), nullable=True)
     status = Column(Enum(VisitStatus), default=VisitStatus.SCHEDULED)
     scheduled_at = Column(DateTime(timezone=True))
+    started_at = Column(DateTime(timezone=True), nullable=True)
+    completed_at = Column(DateTime(timezone=True), nullable=True)
     notes = Column(String)
 
 from sqlalchemy import Boolean

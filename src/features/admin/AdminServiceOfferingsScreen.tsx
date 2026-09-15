@@ -1,10 +1,12 @@
-import { useMemo, useState } from 'react';
 import { Alert, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams, type Href } from 'expo-router';
-import { ConfirmDialog, PrimaryButton, SecondaryButton, TextField } from '@/components';
-import { colors, radius, spacing, typography } from '@/constants/theme';
+import { useState } from 'react';
+import { ConfirmDialog, PrimaryButton, SecondaryButton, StatusPill, TextField } from '@/components';
+import { Icon, IconWell, type IconName } from '@/components/ui';
+import { colors, minTouchSize, radius, shadows, spacing, typography } from '@/constants/theme';
 import {
   OFFERING_SERVICE_SLUGS,
+  type OfferingServiceSlug,
   type ServiceOffering,
 } from '@/features/membership/catalogTypes';
 import {
@@ -14,78 +16,88 @@ import {
   useUpdateServiceOffering,
 } from '@/features/membership/useCatalog';
 import { pickProfilePhoto } from '@/features/profile/profilePhoto';
+import { ADD_ON_SERVICES } from '@/features/services/addOnServiceCatalog';
 import { MARKETPLACE_SERVICES } from '@/features/services/serviceCatalog';
-import { AdminCollection } from './components/AdminCollection';
-import { AdminFilterChips } from './components/AdminFilterChips';
 import { AdminQueryView } from './components/AdminQueryView';
 import { AdminScreen } from './components/AdminScreen';
 import { getAdminErrorMessage, getSectionState } from './selectors';
+import { ADDON_SLUG_ORDER, EXTRA_CATALOG_SLUGS, adminCatalogPath } from './servicesAdminModel';
+import { useAdminLayout } from './useAdminLayout';
 
-const DEDICATED_CATALOGS: { label: string; slug: string; href: Href; hint: string }[] = [
-  {
-    label: 'Grocery Delivery',
-    slug: 'grocery',
-    href: '/(admin)/catalog/grocery' as Href,
-    hint: 'Categories, products and product images',
-  },
-  {
-    label: 'Food Delivery',
-    slug: 'food',
-    href: '/(admin)/catalog/food' as Href,
-    hint: 'Cuisines, menu items and dish images',
-  },
-];
+const EXTRA_LABELS: Record<(typeof EXTRA_CATALOG_SLUGS)[number], string> = {
+  'lab-testing': 'Lab Testing',
+  'medical-history': 'Medical History',
+  'tech-assistance': 'Tech Assistance',
+};
 
-const SLUG_OPTIONS = OFFERING_SERVICE_SLUGS.map((slug) => {
-  const service = MARKETPLACE_SERVICES.find((item) => item.id === slug);
-  return { value: slug, label: service?.title ?? slug };
-});
+type CatalogChip = {
+  slug: string;
+  title: string;
+  icon: IconName;
+  color: string;
+  background: string;
+  dedicated?: boolean;
+};
+
+function membershipChips(): CatalogChip[] {
+  return MARKETPLACE_SERVICES.map((item) => ({
+    slug: item.id,
+    title: item.title,
+    icon: item.icon,
+    color: item.color,
+    background: item.background,
+    dedicated: item.id === 'grocery',
+  }));
+}
+
+function addonChips(): CatalogChip[] {
+  return ADD_ON_SERVICES.map((item) => ({
+    slug: item.id,
+    title: item.title,
+    icon: item.icon,
+    color: item.color,
+    background: item.background,
+    dedicated: item.id === 'food',
+  }));
+}
+
+function extraChips(): CatalogChip[] {
+  return EXTRA_CATALOG_SLUGS.map((slug) => ({
+    slug,
+    title: EXTRA_LABELS[slug],
+    icon: 'flask-outline' as IconName,
+    color: colors.info,
+    background: colors.infoSoft,
+  }));
+}
+
+function allCatalogChips(): CatalogChip[] {
+  return [...membershipChips(), ...addonChips(), ...extraChips()];
+}
+
+function openCatalog(slug: string) {
+  router.replace(adminCatalogPath(slug) as Href);
+}
 
 export function AdminServiceOfferingsHubScreen() {
   return (
     <AdminScreen
-      title="Service items"
-      subtitle="Catalogues for every membership service — add, edit and upload images."
+      title="Service Catalog"
+      subtitle="Choose a membership service to add items. Add-ons are listed separately."
     >
-      <Text style={styles.hubSection}>Delivery catalogs</Text>
-      <View style={styles.hubList}>
-        {DEDICATED_CATALOGS.map((item) => (
-          <Pressable
-            key={item.slug}
-            style={styles.hubRow}
-            onPress={() => router.push(item.href)}
-            accessibilityRole="button"
-            accessibilityLabel={`Manage ${item.label}`}
-          >
-            <Text style={styles.hubTitle}>{item.label}</Text>
-            <Text style={styles.hubSlug}>{item.hint}</Text>
-          </Pressable>
-        ))}
-      </View>
-
-      <Text style={styles.hubSection}>Other services</Text>
-      <View style={styles.hubList}>
-        {SLUG_OPTIONS.map((item) => (
-          <Pressable
-            key={item.value}
-            style={styles.hubRow}
-            onPress={() => router.push(`/(admin)/catalog/offerings/${item.value}` as Href)}
-            accessibilityRole="button"
-            accessibilityLabel={`Manage ${item.label}`}
-          >
-            <Text style={styles.hubTitle}>{item.label}</Text>
-            <Text style={styles.hubSlug}>{item.value}</Text>
-          </Pressable>
-        ))}
-      </View>
+      <ChipSection title="Single membership (21)" chips={membershipChips()} selected={null} />
+      <ChipSection title="Add-ons" chips={addonChips()} selected={null} />
+      <ChipSection title="Other catalogs" chips={extraChips()} selected={null} />
     </AdminScreen>
   );
 }
 
 export function AdminServiceOfferingsScreen() {
   const { slug: slugParam } = useLocalSearchParams<{ slug?: string }>();
+  const { isDesktop } = useAdminLayout();
+  const chips = allCatalogChips();
   const initialSlug =
-    typeof slugParam === 'string' && OFFERING_SERVICE_SLUGS.includes(slugParam as (typeof OFFERING_SERVICE_SLUGS)[number])
+    typeof slugParam === 'string' && OFFERING_SERVICE_SLUGS.includes(slugParam as OfferingServiceSlug)
       ? slugParam
       : OFFERING_SERVICE_SLUGS[0];
 
@@ -96,10 +108,8 @@ export function AdminServiceOfferingsScreen() {
   const deleteItem = useDeleteServiceOffering();
 
   const items = query.data ?? [];
-  const serviceLabel = useMemo(
-    () => SLUG_OPTIONS.find((item) => item.value === serviceSlug)?.label ?? serviceSlug,
-    [serviceSlug],
-  );
+  const selectedChip = chips.find((item) => item.slug === serviceSlug);
+  const serviceLabel = selectedChip?.title ?? serviceSlug;
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
@@ -115,6 +125,11 @@ export function AdminServiceOfferingsScreen() {
     isError: query.isError,
     isEmpty: items.length === 0,
   });
+
+  const previewTitle = title.trim() || 'Item title';
+  const previewDescription = description.trim() || 'Describe the item and when it is used.';
+  const previewBadge = badge.trim();
+  const previewPrice = priceLabel.trim() || 'Price / slot';
 
   const resetForm = () => {
     setEditingId(null);
@@ -142,6 +157,17 @@ export function AdminServiceOfferingsScreen() {
     } catch (error) {
       Alert.alert('Image', error instanceof Error ? error.message : 'Unable to pick image.');
     }
+  };
+
+  const selectService = (slug: string) => {
+    const chip = chips.find((item) => item.slug === slug);
+    if (chip?.dedicated || slug === 'grocery' || slug === 'food') {
+      openCatalog(slug);
+      return;
+    }
+    setServiceSlug(slug);
+    resetForm();
+    router.replace(`/(admin)/catalog/offerings/${slug}` as Href);
   };
 
   const onSave = () => {
@@ -175,47 +201,122 @@ export function AdminServiceOfferingsScreen() {
     });
   };
 
+  const addonSelected = (ADDON_SLUG_ORDER as readonly string[]).includes(serviceSlug);
+
   return (
     <AdminScreen
       title={`${serviceLabel} items`}
-      subtitle="These items appear on the member service screen. Upload an image per item."
+      subtitle={
+        addonSelected
+          ? 'Add-on catalogue items. These are not part of the 21 membership services.'
+          : 'These items appear on the member service screen.'
+      }
     >
-      <AdminFilterChips
-        label="Service"
-        value={serviceSlug}
-        options={SLUG_OPTIONS}
-        onChange={(next) => {
-          if (!next) return;
-          setServiceSlug(next);
-          resetForm();
-          router.replace(`/(admin)/catalog/offerings/${next}` as Href);
-        }}
-        allowAll={false}
-      />
+      <Pressable
+        onPress={() => router.replace('/(admin)/catalog/offerings' as Href)}
+        accessibilityRole="button"
+        accessibilityLabel="Back to Service Catalog"
+        style={({ pressed }) => [styles.backLink, pressed ? styles.pressed : null]}
+      >
+        <Icon name="chevron-back" size={16} color={colors.sidebarActive} />
+        <Text style={styles.backLinkLabel}>Back to Service Catalog</Text>
+      </Pressable>
+
+      <ChipSection title="Single membership (21)" chips={membershipChips()} selected={serviceSlug} onSelect={selectService} />
+      <ChipSection title="Add-ons" chips={addonChips()} selected={serviceSlug} onSelect={selectService} />
+      <ChipSection title="Other catalogs" chips={extraChips()} selected={serviceSlug} onSelect={selectService} />
 
       {formError ? <Text style={styles.error}>{formError}</Text> : null}
 
-      <Text style={styles.section}>{editingId ? 'Edit item' : 'Add item'}</Text>
-      <TextField label="Title" value={title} onChangeText={setTitle} />
-      <TextField label="Description" value={description} onChangeText={setDescription} multiline />
-      <TextField label="Badge (e.g. helpers, specialty)" value={badge} onChangeText={setBadge} />
-      <TextField label="Price / slot label" value={priceLabel} onChangeText={setPriceLabel} />
-      <View style={styles.imageRow}>
-        {image ? <Image source={{ uri: image }} style={styles.thumb} accessibilityLabel="Item image preview" /> : null}
-        <PrimaryButton label={image ? 'Change image' : 'Upload image'} onPress={() => void onPickImage()} />
-        {image ? (
-          <Pressable onPress={() => setImage(null)} accessibilityRole="button" accessibilityLabel="Remove image">
-            <Text style={styles.link}>Remove</Text>
+      <View style={isDesktop ? styles.formGrid : styles.stack}>
+        <View style={[styles.panel, styles.formCol]}>
+          <Text style={styles.panelTitle}>{editingId ? 'Edit item' : 'Add item'}</Text>
+          <Text style={styles.panelHint}>
+            Fill in the details to {editingId ? 'update this' : 'add a new'} item to {serviceLabel}.
+          </Text>
+          <TextField label="Title *" value={title} onChangeText={setTitle} placeholder="e.g. SOS Helpline" />
+          <TextField
+            label="Description *"
+            value={description}
+            onChangeText={setDescription}
+            placeholder="Describe the item and when it is used."
+            multiline
+          />
+          <TextField
+            label="Badge (e.g. helpers, specialty)"
+            value={badge}
+            onChangeText={setBadge}
+            placeholder="e.g. 24x7, Urgent, Priority"
+          />
+          <TextField label="Price / slot label" value={priceLabel} onChangeText={setPriceLabel} placeholder="e.g. 500 or Free" />
+          <Text style={styles.uploadLabel}>Upload image</Text>
+          <Pressable
+            onPress={() => void onPickImage()}
+            accessibilityRole="button"
+            accessibilityLabel={image ? 'Change image' : 'Upload image'}
+            style={({ pressed }) => [styles.upload, pressed ? styles.pressed : null]}
+          >
+            {image ? (
+              <Image source={{ uri: image }} style={styles.uploadPreview} accessibilityLabel="Item image preview" />
+            ) : (
+              <>
+                <IconWell tone="primary" size={44}>
+                  <Icon name="camera-outline" size={20} color={colors.primary} />
+                </IconWell>
+                <Text style={styles.uploadTitle}>PNG, JPG</Text>
+                <Text style={styles.uploadHint}>Tap to upload a clear icon or photo</Text>
+              </>
+            )}
           </Pressable>
-        ) : null}
-      </View>
-      <View style={styles.formActions}>
-        <PrimaryButton
-          label={editingId ? 'Save item' : 'Add item'}
-          loading={createItem.isPending || updateItem.isPending}
-          onPress={onSave}
-        />
-        {editingId ? <SecondaryButton label="Cancel edit" onPress={resetForm} /> : null}
+          {image ? (
+            <Pressable onPress={() => setImage(null)} accessibilityRole="button" accessibilityLabel="Remove image">
+              <Text style={styles.link}>Remove image</Text>
+            </Pressable>
+          ) : null}
+          <View style={styles.formActions}>
+            {editingId ? <SecondaryButton label="Cancel" fullWidth={false} onPress={resetForm} /> : null}
+            <PrimaryButton
+              label={editingId ? 'Save item' : 'Add item'}
+              fullWidth={false}
+              loading={createItem.isPending || updateItem.isPending}
+              onPress={onSave}
+            />
+          </View>
+        </View>
+
+        <View style={styles.sideCol}>
+          <View style={styles.panel}>
+            <Text style={styles.panelTitle}>Item preview</Text>
+            <View style={styles.previewRow}>
+              {image ? (
+                <Image source={{ uri: image }} style={styles.previewThumb} accessibilityLabel="Preview image" />
+              ) : (
+                <View style={[styles.previewIcon, { backgroundColor: selectedChip?.background ?? colors.primarySoft }]}>
+                  <Icon name={selectedChip?.icon ?? 'grid-outline'} size={22} color={selectedChip?.color ?? colors.primary} />
+                </View>
+              )}
+              <View style={styles.flex}>
+                <View style={styles.previewTitleRow}>
+                  <Text style={styles.previewTitle}>{previewTitle}</Text>
+                  {previewBadge ? <StatusPill label={previewBadge} tone="emergency" /> : null}
+                </View>
+                <Text style={styles.previewBody}>{previewDescription}</Text>
+              </View>
+              <Text style={styles.previewPrice}>{previewPrice}</Text>
+            </View>
+          </View>
+          <View style={styles.tips}>
+            <View style={styles.tipsHead}>
+              <Icon name="sparkles" size={16} color={colors.primaryDark} />
+              <Text style={styles.tipsTitle}>Tips</Text>
+            </View>
+            <Text style={styles.tipsLine}>Use a clear and concise title.</Text>
+            <Text style={styles.tipsLine}>Add a short, helpful description.</Text>
+            <Text style={styles.tipsLine}>Use a relevant badge (e.g. Urgent, 24x7).</Text>
+            <Text style={styles.tipsLine}>Upload a clear icon or image for quick recognition.</Text>
+            <Text style={styles.tipsLine}>Keep the price / slot label simple (₹500, Free, Per visit).</Text>
+          </View>
+        </View>
       </View>
 
       <AdminQueryView
@@ -226,36 +327,27 @@ export function AdminServiceOfferingsScreen() {
         emptyTitle="No items yet"
         emptyMessage="Add the first catalogue item for this service."
       >
-        <AdminCollection
-          items={items}
-          keyExtractor={(item) => item.id}
-          accessibilityLabel={(item) => item.title}
-          columns={[
-            {
-              key: 'image',
-              label: 'Image',
-              flex: 0.7,
-              render: (item) =>
-                item.image ? (
-                  <Image source={{ uri: item.image }} style={styles.thumbSm} accessibilityLabel={`${item.title} image`} />
-                ) : (
-                  <Text style={cell}>—</Text>
-                ),
-            },
-            { key: 'title', label: 'Item', render: (item) => <Text style={cell}>{item.title}</Text> },
-            {
-              key: 'meta',
-              label: 'Badge / price',
-              render: (item) => (
-                <Text style={cell}>
-                  {item.badge || '—'} · {item.priceLabel || '—'}
+        <View style={styles.itemList}>
+          {items.map((item) => (
+            <View key={item.id} style={styles.itemCard}>
+              {item.image ? (
+                <Image source={{ uri: item.image }} style={styles.itemThumb} accessibilityLabel={`${item.title} image`} />
+              ) : (
+                <View style={[styles.itemThumb, styles.itemThumbEmpty]}>
+                  <Icon name="document-outline" size={18} color={colors.textMuted} />
+                </View>
+              )}
+              <View style={styles.flex}>
+                <View style={styles.previewTitleRow}>
+                  <Text style={styles.serviceName}>{item.title}</Text>
+                  {item.badge ? <StatusPill label={item.badge} tone="info" /> : null}
+                </View>
+                <Text style={styles.itemMeta} numberOfLines={2}>
+                  {item.description || 'No description'}
                 </Text>
-              ),
-            },
-            {
-              key: 'active',
-              label: 'Shown',
-              render: (item) => (
+                <Text style={styles.itemMeta}>{item.priceLabel || 'No price label'}</Text>
+              </View>
+              <View style={styles.itemActions}>
                 <Pressable
                   onPress={() =>
                     updateItem.mutate(
@@ -264,31 +356,24 @@ export function AdminServiceOfferingsScreen() {
                     )
                   }
                   accessibilityRole="button"
+                  accessibilityLabel={item.isActive ? `Hide ${item.title}` : `Show ${item.title}`}
                 >
                   <Text style={styles.link}>{item.isActive ? 'Active' : 'Hidden'}</Text>
                 </Pressable>
-              ),
-            },
-            {
-              key: 'actions',
-              label: 'Actions',
-              flex: 1.2,
-              render: (item) => (
-                <View style={styles.rowActions}>
-                  <Pressable onPress={() => startEdit(item)} accessibilityRole="button">
-                    <Text style={styles.link}>Edit</Text>
-                  </Pressable>
-                  <Pressable
-                    onPress={() => setPendingDelete({ id: item.id, name: item.title })}
-                    accessibilityRole="button"
-                  >
-                    <Text style={styles.danger}>Delete</Text>
-                  </Pressable>
-                </View>
-              ),
-            },
-          ]}
-        />
+                <Pressable onPress={() => startEdit(item)} accessibilityRole="button" accessibilityLabel={`Edit ${item.title}`}>
+                  <Icon name="create-outline" size={18} color={colors.sidebarActive} />
+                </Pressable>
+                <Pressable
+                  onPress={() => setPendingDelete({ id: item.id, name: item.title })}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Delete ${item.title}`}
+                >
+                  <Icon name="trash-outline" size={18} color={colors.emergency} />
+                </Pressable>
+              </View>
+            </View>
+          ))}
+        </View>
       </AdminQueryView>
 
       <ConfirmDialog
@@ -308,57 +393,281 @@ export function AdminServiceOfferingsScreen() {
   );
 }
 
-const cell = { ...typography.body, color: colors.text };
+function ChipSection({
+  title,
+  chips,
+  selected,
+  onSelect,
+}: {
+  title: string;
+  chips: CatalogChip[];
+  selected: string | null;
+  onSelect?: (slug: string) => void;
+}) {
+  const handlePress = onSelect ?? openCatalog;
+  return (
+    <View style={styles.chipSection}>
+      <Text style={styles.chipSectionTitle}>{title}</Text>
+      <View style={styles.chipWrap}>
+        {chips.map((chip) => {
+          const on = selected === chip.slug;
+          return (
+            <Pressable
+              key={chip.slug}
+              onPress={() => handlePress(chip.slug)}
+              accessibilityRole="button"
+              accessibilityState={{ selected: on }}
+              accessibilityLabel={chip.title}
+              style={({ pressed }) => [styles.chip, on ? styles.chipOn : null, pressed ? styles.pressed : null]}
+            >
+              <View style={[styles.chipIcon, { backgroundColor: chip.background }]}>
+                <Icon name={chip.icon} size={14} color={chip.color} />
+              </View>
+              <Text style={[styles.chipLabel, on ? styles.chipLabelOn : null]}>{chip.title}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
 
 const styles = StyleSheet.create({
-  section: {
+  backLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    minHeight: minTouchSize,
+    alignSelf: 'flex-start',
+    marginBottom: spacing.md,
+  },
+  backLinkLabel: {
+    ...typography.bodyStrong,
+    color: colors.sidebarActive,
+  },
+  chipSection: {
+    marginBottom: spacing.lg,
+    gap: spacing.sm,
+  },
+  chipSectionTitle: {
+    ...typography.captionStrong,
+    color: colors.textMuted,
+    textTransform: 'uppercase',
+  },
+  chipWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    minHeight: 40,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.full,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.white,
+  },
+  chipOn: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primarySoft,
+  },
+  chipIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  chipLabel: {
+    ...typography.captionStrong,
+    color: colors.text,
+  },
+  chipLabelOn: {
+    color: colors.primaryDark,
+  },
+  formGrid: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.lg,
+    marginBottom: spacing.xl,
+  },
+  stack: {
+    gap: spacing.lg,
+    marginBottom: spacing.xl,
+  },
+  formCol: {
+    flex: 1.2,
+    minWidth: 280,
+  },
+  sideCol: {
+    flex: 1,
+    minWidth: 260,
+    gap: spacing.lg,
+  },
+  panel: {
+    backgroundColor: colors.white,
+    borderRadius: radius.lg,
+    padding: spacing.xl,
+    ...shadows.card,
+    gap: spacing.md,
+  },
+  panelTitle: {
+    ...typography.heading,
+    color: colors.text,
+  },
+  panelHint: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    lineHeight: 18,
+  },
+  uploadLabel: {
+    ...typography.captionStrong,
+    color: colors.text,
+  },
+  upload: {
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: colors.primary,
+    borderRadius: radius.lg,
+    minHeight: 120,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    padding: spacing.lg,
+    backgroundColor: colors.primarySoft,
+  },
+  uploadPreview: {
+    width: '100%',
+    height: 120,
+    borderRadius: radius.md,
+    backgroundColor: colors.surfaceMuted,
+  },
+  uploadTitle: {
+    ...typography.bodyStrong,
+    color: colors.text,
+  },
+  uploadHint: {
+    ...typography.caption,
+    color: colors.textSecondary,
+  },
+  formActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    justifyContent: 'flex-end',
+  },
+  previewRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  previewIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  previewThumb: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: colors.surfaceMuted,
+  },
+  previewTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  previewTitle: {
+    ...typography.bodyStrong,
+    color: colors.text,
+  },
+  previewBody: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    marginTop: 4,
+  },
+  previewPrice: {
+    ...typography.bodyStrong,
+    color: colors.text,
+  },
+  tips: {
+    backgroundColor: colors.primarySoft,
+    borderRadius: radius.lg,
+    padding: spacing.xl,
+    gap: spacing.sm,
+  },
+  tipsHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.xs,
+  },
+  tipsTitle: {
     ...typography.subtitle,
     color: colors.text,
-    marginTop: spacing.lg,
-    marginBottom: spacing.sm,
+  },
+  tipsLine: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    lineHeight: 18,
   },
   error: {
     ...typography.caption,
     color: colors.emergency,
     marginBottom: spacing.md,
   },
-  formActions: { gap: spacing.sm, marginBottom: spacing.md },
-  imageRow: {
+  itemList: {
+    gap: spacing.md,
+  },
+  itemCard: {
+    backgroundColor: colors.white,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    ...shadows.card,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    marginBottom: spacing.md,
-    flexWrap: 'wrap',
   },
-  thumb: {
-    width: 64,
-    height: 64,
-    borderRadius: radius.md,
+  itemThumb: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
     backgroundColor: colors.surfaceMuted,
   },
-  thumbSm: {
-    width: 40,
-    height: 40,
-    borderRadius: radius.sm,
-    backgroundColor: colors.surfaceMuted,
+  itemThumbEmpty: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  rowActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  link: { ...typography.captionStrong, color: colors.primary },
-  danger: { ...typography.captionStrong, color: colors.emergency },
-  hubList: { gap: spacing.sm },
-  hubSection: {
-    ...typography.subtitle,
+  itemMeta: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  itemActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  serviceName: {
+    ...typography.bodyStrong,
     color: colors.text,
-    marginTop: spacing.lg,
-    marginBottom: spacing.sm,
   },
-  hubRow: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.lg,
-    padding: spacing.lg,
-    backgroundColor: colors.surfaceElevated,
+  link: {
+    ...typography.captionStrong,
+    color: colors.primary,
   },
-  hubTitle: { ...typography.bodyStrong, color: colors.text },
-  hubSlug: { ...typography.caption, color: colors.textSecondary, marginTop: 2 },
+  flex: {
+    flex: 1,
+    minWidth: 0,
+  },
+  pressed: {
+    opacity: 0.85,
+  },
 });

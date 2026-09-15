@@ -59,6 +59,18 @@ async def register_senior(client: AsyncClient, email: str) -> str:
     return response.json()["access_token"]
 
 
+def onboarding_payload(**overrides):
+    body = {
+        "family_contact_1_name": "Asha Sharma",
+        "family_contact_1_phone": "9876543210",
+        "family_contact_2_name": "Rohit Sharma",
+        "family_contact_2_phone": "9876501234",
+        "preferred_hospital": "Apex Hospital, Borivali",
+    }
+    body.update(overrides)
+    return body
+
+
 @pytest.mark.asyncio
 async def test_family_can_request_membership_and_admin_can_approve(client):
     email = unique_email("member")
@@ -71,18 +83,26 @@ async def test_family_can_request_membership_and_admin_can_approve(client):
     created = await client.post(
         "/api/v1/memberships/requests",
         headers=senior,
-        json={"plan_key": "basic"},
+        json=onboarding_payload(plan_key="single"),
     )
     assert created.status_code == 200, created.text
     body = created.json()
     assert body["status"] == "REQUESTED"
-    assert body["plan_name"] == "Basic Membership"
+    assert body["plan_name"] == "Single Membership"
+    assert body["family_contact_1_name"] == "Asha Sharma"
+    assert body["family_contact_1_phone"] == "9876543210"
+    assert body["preferred_hospital"] == "Apex Hospital, Borivali"
     request_id = body["id"]
+
+    profile = await client.get("/api/v1/seniors/me", headers=senior)
+    assert profile.status_code == 200, profile.text
+    assert profile.json()["family_contact_1_name"] == "Asha Sharma"
+    assert profile.json()["preferred_hospital"] == "Apex Hospital, Borivali"
 
     duplicate = await client.post(
         "/api/v1/memberships/requests",
         headers=senior,
-        json={"plan_key": "couple"},
+        json=onboarding_payload(plan_key="couple"),
     )
     assert duplicate.status_code == 409
 
@@ -110,15 +130,55 @@ async def test_family_can_request_membership_and_admin_can_approve(client):
 
     current = await client.get("/api/v1/memberships/current", headers=senior)
     assert current.status_code == 200, current.text
-    assert current.json()["plan_name"] == "Basic Membership"
+    assert current.json()["plan_name"] == "Single Membership"
     assert current.json()["status"] == "ACTIVE"
 
     again = await client.post(
         "/api/v1/memberships/requests",
         headers=senior,
-        json={"plan_key": "basic"},
+        json=onboarding_payload(plan_key="single"),
     )
     assert again.status_code == 409
+
+
+@pytest.mark.asyncio
+async def test_admin_can_reject_after_membership_is_approved(client):
+    email = unique_email("postapprove")
+    senior = auth_header(await register_senior(client, email))
+
+    created = await client.post(
+        "/api/v1/memberships/requests",
+        headers=senior,
+        json=onboarding_payload(plan_key="single"),
+    )
+    assert created.status_code == 200, created.text
+    request_id = created.json()["id"]
+
+    admin = auth_header(await login(client, ADMIN_EMAIL))
+    approved = await client.patch(
+        f"/api/v1/memberships/requests/{request_id}",
+        headers=admin,
+        json={"status": "APPROVED"},
+    )
+    assert approved.status_code == 200, approved.text
+    assert (await client.get("/api/v1/memberships/current", headers=senior)).status_code == 200
+
+    rejected = await client.patch(
+        f"/api/v1/memberships/requests/{request_id}",
+        headers=admin,
+        json={"status": "REJECTED"},
+    )
+    assert rejected.status_code == 200, rejected.text
+    assert rejected.json()["status"] == "REJECTED"
+    assert (await client.get("/api/v1/memberships/current", headers=senior)).status_code == 404
+
+    retry = await client.post(
+        "/api/v1/memberships/requests",
+        headers=senior,
+        json=onboarding_payload(plan_key="single"),
+    )
+    assert retry.status_code == 200, retry.text
+    assert retry.json()["status"] == "REQUESTED"
 
 
 @pytest.mark.asyncio
@@ -129,7 +189,7 @@ async def test_admin_can_reject_membership_request(client):
     created = await client.post(
         "/api/v1/memberships/requests",
         headers=senior,
-        json={"plan_key": "couple"},
+        json=onboarding_payload(plan_key="couple"),
     )
     assert created.status_code == 200, created.text
     request_id = created.json()["id"]
@@ -150,7 +210,20 @@ async def test_admin_can_reject_membership_request(client):
     retry = await client.post(
         "/api/v1/memberships/requests",
         headers=senior,
-        json={"plan_key": "couple"},
+        json=onboarding_payload(plan_key="couple"),
     )
     assert retry.status_code == 200, retry.text
     assert retry.json()["status"] == "REQUESTED"
+
+
+@pytest.mark.asyncio
+async def test_membership_request_requires_family_and_hospital(client):
+    email = unique_email("onboard")
+    senior = auth_header(await register_senior(client, email))
+    missing = await client.post(
+        "/api/v1/memberships/requests",
+        headers=senior,
+        json={"plan_key": "single"},
+    )
+    assert missing.status_code == 422
+

@@ -75,11 +75,21 @@ export async function fetchMembershipRequests(params?: {
 export async function createMembershipPurchaseRequest(input: {
   planKey: MembershipPlanKey;
   notes?: string;
+  familyContact1Name: string;
+  familyContact1Phone: string;
+  familyContact2Name?: string;
+  familyContact2Phone?: string;
+  preferredHospital: string;
 }): Promise<MembershipRequest> {
   try {
     const response = await apiClient.post('/memberships/requests', {
       plan_key: input.planKey,
       notes: input.notes,
+      family_contact_1_name: input.familyContact1Name,
+      family_contact_1_phone: input.familyContact1Phone,
+      family_contact_2_name: input.familyContact2Name,
+      family_contact_2_phone: input.familyContact2Phone,
+      preferred_hospital: input.preferredHospital,
     });
     return toMembershipRequest(response.data);
   } catch (error) {

@@ -91,10 +91,6 @@ const emptyProfile: PersonalDetailsValues = {
   address: '',
 };
 
-export type ServiceFor = 'single' | 'couple';
-
-export type MembershipKind = ServiceFor;
-
 export function splitFullName(fullName: string): { firstName: string; lastName: string } {
   const parts = fullName.trim().split(/\s+/).filter(Boolean);
   const firstName = parts[0] ?? '';
@@ -115,19 +111,10 @@ export function onboardingLanguageLabel(id: string | null | undefined): string {
 }
 
 let profile: PersonalDetailsValues = { ...emptyProfile };
-let serviceFor: ServiceFor | null = null;
 let verifiedEmail = '';
 let createdPassword = '';
 let googleFullName = '';
 let identityToken = '';
-
-export function setOnboardingServiceFor(value: ServiceFor) {
-  serviceFor = value;
-}
-
-export function getOnboardingServiceFor(): ServiceFor | null {
-  return serviceFor;
-}
 
 export function setVerifiedEmail(email: string) {
   verifiedEmail = email.trim().toLowerCase();

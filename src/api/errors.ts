@@ -20,6 +20,8 @@ const MESSAGES = {
 const CONFLICT_DETAIL_MESSAGES: Record<string, string> = {
   'Email already exists': MESSAGES.emailExists,
   'Phone already exists': MESSAGES.phoneExists,
+  'An emergency case is already active.':
+    'An emergency request is already active. Open it from Emergency Support.',
 };
 
 function conflictMessage(error: unknown): string {

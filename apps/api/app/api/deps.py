@@ -15,6 +15,9 @@ from app.core.security import ALGORITHM
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"/api/v1/auth/login")
 
 STAFF_ROLES = [RoleEnum.ADMIN, RoleEnum.OPERATIONS]
+# Field employees (care manager / companion / delivery) share RoleEnum.CARE_MANAGER.
+CARE_ASSOCIATE_ROLES = [RoleEnum.CARE_MANAGER]
+CARE_OR_STAFF_ROLES = [*STAFF_ROLES, *CARE_ASSOCIATE_ROLES]
 
 async def get_db() -> AsyncGenerator:
     async with AsyncSessionLocal() as session:
@@ -59,3 +62,5 @@ def require_role(roles: List[RoleEnum]):
 
 
 require_staff = require_role(STAFF_ROLES)
+require_care_associate = require_role(CARE_ASSOCIATE_ROLES)
+require_care_or_staff = require_role(CARE_OR_STAFF_ROLES)

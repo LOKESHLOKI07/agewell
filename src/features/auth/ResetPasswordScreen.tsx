@@ -4,10 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -16,7 +13,7 @@ import { router, useNavigation } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getApiErrorMessage } from '@/api/errors';
 import { AgeWellLogo, brandGreen } from '@/components/AgeWellLogo';
-import { TextField } from '@/components';
+import { KeyboardAwareScrollView, TextField } from '@/components';
 import { Icon } from '@/components/ui';
 import { minTouchSize, spacing, typography } from '@/constants/theme';
 import { emailOtpHref, forgotPasswordHref } from './authEntry';
@@ -127,12 +124,9 @@ export function ResetPasswordScreen() {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.root, { paddingTop: insets.top + spacing.md }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <ScrollView
-        keyboardShouldPersistTaps="handled"
+    <View style={[styles.root, { paddingTop: insets.top + spacing.md }]}>
+      <KeyboardAwareScrollView
+        style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: insets.bottom + spacing.xl }}
       >
@@ -209,8 +203,8 @@ export function ResetPasswordScreen() {
         >
           {busy ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.submitLabel}>Update password</Text>}
         </Pressable>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
+    </View>
   );
 }
 

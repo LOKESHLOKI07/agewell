@@ -5,11 +5,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ApiError } from '@/api/errors';
 import { spacing } from '@/constants/theme';
 import { useAuthStore } from '@/features/auth/authStore';
-import { canAvailServices } from '@/features/auth/serviceAreaPreference';
+import { useServicesLive } from '@/features/auth/useServicesLive';
 import { FamilyHomeTopBar } from '@/features/home/components/FamilyHomeTopBar';
 import {
   FamilyMembershipPlansCarousel,
-  FamilyTalkToExpertBanner,
 } from '@/features/home/components/FamilyMembershipSections';
 import { FamilyMembershipCtaCard } from '@/features/home/components/FamilyMembershipCtaCard';
 import { FamilyCompleteCareBanner } from '@/features/home/components/FamilyCompleteCareBanner';
@@ -47,7 +46,7 @@ export function HomeScreen() {
   const email = useAuthStore((state) => state.user?.email);
   const [refreshing, setRefreshing] = useState(false);
   const bottomPad = useTabScreenBottomPad(spacing.xl);
-  const servicesLive = canAvailServices();
+  const servicesLive = useServicesLive();
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -90,8 +89,6 @@ export function HomeScreen() {
             <FamilyOurServicesGrid />
             <FamilyAddOnServices />
             <FamilyWhyChooseAgeWell />
-            <FamilyMembershipPlansCarousel />
-            <FamilyTalkToExpertBanner />
           </>
         ) : null}
 
@@ -116,7 +113,7 @@ export function HomeScreen() {
             />
             <FamilyMembersStatus youName={greetingName} youPhotoUri={home.senior.data?.photo} />
             <FamilyUpcomingSplit requests={home.serviceRequests.data?.items ?? []} />
-            <FamilyOurServicesGrid title="Basic Membership Services" showViewAll />
+            <FamilyOurServicesGrid title="Our Membership Services" showViewAll />
             <FamilyAddOnServices showViewAll />
           </>
         ) : null}

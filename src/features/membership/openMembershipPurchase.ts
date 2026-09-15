@@ -7,7 +7,6 @@ import {
 } from '@/features/auth/serviceAreaPreference';
 import {
   membershipPurchaseHref,
-  preferredMembershipPlanKey,
   type MembershipPlanKey,
 } from './planCatalog';
 
@@ -16,5 +15,5 @@ export function openMembershipPurchase(planKey?: MembershipPlanKey) {
     Alert.alert(SERVICE_AREA_LOCKED_TITLE, SERVICE_AREA_LOCKED_MESSAGE);
     return;
   }
-  router.push(membershipPurchaseHref(planKey ?? preferredMembershipPlanKey()));
+  router.push(membershipPurchaseHref(planKey));
 }

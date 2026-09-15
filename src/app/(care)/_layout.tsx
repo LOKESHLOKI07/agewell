@@ -4,8 +4,10 @@ import { Redirect, Tabs, type Href } from 'expo-router';
 import { LoadingState } from '@/components';
 import { Icon } from '@/components/ui';
 import { colors, typography } from '@/constants/theme';
+import { isCareApp } from '@/config/appVariant';
 import { useAuthStore } from '@/features/auth/authStore';
 import { authenticatedHomeHref, isCareManagerRole } from '@/features/auth/roleRouting';
+import { parseStaffKind } from '@/features/care/staffKind';
 import { useCareManagerProfile } from '@/features/care/hooks';
 import { useSafeTabBarStyle } from '@/utils/safeBottom';
 
@@ -15,6 +17,8 @@ export default function CareTabsLayout() {
   const careStatus = useAuthStore((state) => state.careStatus);
   const profile = useCareManagerProfile();
   const tabBarStyle = useSafeTabBarStyle();
+  const staffKind = parseStaffKind(profile.data?.staffKind);
+  const tasksTitle = staffKind === 'DELIVERY_EXECUTIVE' ? 'Deliveries' : 'Tasks';
 
   useEffect(() => {
     if (profile.data?.status) {
@@ -22,13 +26,17 @@ export default function CareTabsLayout() {
     }
   }, [profile.data?.status, setCareStatus]);
 
+  if (!isCareApp()) {
+    return <Redirect href={'/role-unavailable?role=CARE_MANAGER' as Href} />;
+  }
+
   if (role && !isCareManagerRole(role)) {
     return <Redirect href={authenticatedHomeHref(role) as Href} />;
   }
 
   if (profile.isPending && !profile.data) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center' }}>
+      <View style={{ flex: 1, justifyContent: 'center', backgroundColor: colors.background }}>
         <LoadingState message="Loading care profile..." />
       </View>
     );
@@ -44,36 +52,48 @@ export default function CareTabsLayout() {
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.textSecondary,
+        tabBarInactiveTintColor: colors.textMuted,
         tabBarLabelStyle: {
           ...typography.captionStrong,
           fontSize: 13,
         },
-        tabBarStyle,
+        tabBarStyle: {
+          ...tabBarStyle,
+          backgroundColor: colors.white,
+          borderTopColor: colors.border,
+        },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Dashboard',
+          title: 'Home',
           tabBarIcon: ({ color, size }) => <Icon name="home-outline" color={color} size={size} />,
-          tabBarAccessibilityLabel: 'Dashboard',
+          tabBarAccessibilityLabel: 'Home',
         }}
       />
       <Tabs.Screen
-        name="visits"
+        name="tasks"
         options={{
-          title: 'Visits',
-          tabBarIcon: ({ color, size }) => <Icon name="calendar-outline" color={color} size={size} />,
-          tabBarAccessibilityLabel: 'Visits',
+          title: tasksTitle,
+          tabBarIcon: ({ color, size }) => <Icon name="clipboard-outline" color={color} size={size} />,
+          tabBarAccessibilityLabel: tasksTitle,
         }}
       />
       <Tabs.Screen
-        name="appointments"
+        name="map"
         options={{
-          title: 'Appointments',
-          tabBarIcon: ({ color, size }) => <Icon name="medkit-outline" color={color} size={size} />,
-          tabBarAccessibilityLabel: 'Appointments',
+          title: 'Map',
+          tabBarIcon: ({ color, size }) => <Icon name="location" color={color} size={size} />,
+          tabBarAccessibilityLabel: 'Map',
+        }}
+      />
+      <Tabs.Screen
+        name="alerts"
+        options={{
+          title: 'Alerts',
+          tabBarIcon: ({ color, size }) => <Icon name="notifications-outline" color={color} size={size} />,
+          tabBarAccessibilityLabel: 'Alerts',
         }}
       />
       <Tabs.Screen
@@ -82,6 +102,18 @@ export default function CareTabsLayout() {
           title: 'Profile',
           tabBarIcon: ({ color, size }) => <Icon name="person-outline" color={color} size={size} />,
           tabBarAccessibilityLabel: 'Profile',
+        }}
+      />
+      <Tabs.Screen
+        name="visits"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="appointments"
+        options={{
+          href: null,
         }}
       />
     </Tabs>

@@ -138,3 +138,12 @@ export async function fetchCareAssociateLatest(visitId: string): Promise<Trackin
     throw toCareAssociateError(error);
   }
 }
+
+export async function fetchDeliveryExecutiveLatest(deliveryId: string): Promise<TrackingPoint> {
+  try {
+    const response = await apiClient.get(`/tracking/deliveries/${deliveryId}/executive/latest`);
+    return toTrackingPoint(response.data);
+  } catch (error) {
+    throw toCareAssociateError(error);
+  }
+}

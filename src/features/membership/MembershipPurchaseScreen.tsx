@@ -1,27 +1,39 @@
 import { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getApiErrorMessage } from '@/api/errors';
 import { queryClient } from '@/api/queryClient';
+import { KeyboardAwareScrollView } from '@/components';
 import { Icon } from '@/components/ui';
 import { spacing, typography } from '@/constants/theme';
 import { useAuthStore } from '@/features/auth/authStore';
 import {
-  canAvailServices,
   SERVICE_AREA_LOCKED_MESSAGE,
   SERVICE_AREA_LOCKED_TITLE,
 } from '@/features/auth/serviceAreaPreference';
+import { useServicesLive } from '@/features/auth/useServicesLive';
 import { AgeWellHeader } from '@/features/home/components/AgeWellHeader';
 import { familyHome } from '@/features/home/components/familyHomeTheme';
 import { homeQueryKeys } from '@/features/home/api/homeQueryKeys';
-import { useCurrentMembership } from '@/features/home/hooks/queries';
+import { useCurrentMembership, useSeniorProfile } from '@/features/home/hooks/queries';
 import { createMembershipPurchaseRequest, fetchMembershipRequests } from './membershipApi';
+import { MembershipOnboardingForm } from './MembershipOnboardingForm';
 import { membershipQueryKeys } from './queryKeys';
-import { getMembershipPlanByKey, type MembershipPlanKey } from './planCatalog';
+import {
+  emptyMembershipOnboardingValues,
+  toMembershipPurchaseBody,
+  type MembershipOnboardingValues,
+} from './onboardingForm';
+import {
+  MEMBERSHIP_ONBOARDING_NOTE,
+  MEMBERSHIP_PLAN_CATALOG,
+  getMembershipPlanByKey,
+  type MembershipPlanKey,
+} from './planCatalog';
 
 const PLAN_THEME = {
-  basic: {
+  single: {
     color: familyHome.green,
     soft: familyHome.greenSoft,
     button: familyHome.greenDark,
@@ -33,54 +45,75 @@ const PLAN_THEME = {
   },
 } as const;
 
-export function MembershipPurchaseScreen({ planKey }: { planKey: MembershipPlanKey }) {
+type CatalogPlan = (typeof MEMBERSHIP_PLAN_CATALOG)[number];
+
+export function MembershipPurchaseScreen({ planKey }: { planKey?: MembershipPlanKey }) {
   const insets = useSafeAreaInsets();
   const isAuthenticated = useAuthStore((state) => state.status === 'AUTHENTICATED');
-  const plan = getMembershipPlanByKey(planKey);
-  const theme = PLAN_THEME[planKey];
+  const servicesLive = useServicesLive();
   const membership = useCurrentMembership();
   const pending = useQuery({
     queryKey: membershipQueryKeys.requests({ status: 'REQUESTED' }),
     queryFn: () => fetchMembershipRequests({ status: 'REQUESTED', limit: 20, offset: 0 }),
     enabled: isAuthenticated,
   });
-  const [submitting, setSubmitting] = useState(false);
+  const [submittingKey, setSubmittingKey] = useState<MembershipPlanKey | null>(null);
+  const [selectedPlan, setSelectedPlan] = useState<CatalogPlan | null>(null);
+  const senior = useSeniorProfile();
 
+  const plans = planKey
+    ? MEMBERSHIP_PLAN_CATALOG.filter((plan) => plan.key === planKey)
+    : [...MEMBERSHIP_PLAN_CATALOG];
   const hasActive = membership.data?.status.toUpperCase() === 'ACTIVE';
   const pendingRequest = pending.data?.items[0] ?? null;
 
-  const onPurchase = () => {
-    if (!canAvailServices()) {
+  const onSelectPlan = (plan: CatalogPlan) => {
+    if (!servicesLive) {
       Alert.alert(SERVICE_AREA_LOCKED_TITLE, SERVICE_AREA_LOCKED_MESSAGE);
       return;
     }
-    if (!plan || submitting || hasActive || pendingRequest) {
+    if (submittingKey || hasActive || pendingRequest) {
       return;
     }
-    setSubmitting(true);
-    void createMembershipPurchaseRequest({
-      planKey,
-      notes: `${plan.name} purchase request`,
-    })
+    setSelectedPlan(plan);
+  };
+
+  const onSubmitOnboarding = (values: MembershipOnboardingValues) => {
+    if (!selectedPlan) {
+      return;
+    }
+    setSubmittingKey(selectedPlan.key);
+    void createMembershipPurchaseRequest(toMembershipPurchaseBody(selectedPlan.key, values))
       .then(async () => {
         await Promise.all([
           queryClient.invalidateQueries({ queryKey: ['membership', 'requests'] }),
           queryClient.invalidateQueries({ queryKey: homeQueryKeys.membershipCurrent }),
+          queryClient.invalidateQueries({ queryKey: homeQueryKeys.seniorMe }),
         ]);
+        setSelectedPlan(null);
         Alert.alert(
           'Request submitted',
-          'AgeWell received your membership request. No payment is taken in the app — ops will approve it under Admin → Memberships.',
+          'AgeWell received your membership request with family contacts and your preferred hospital. Ops will approve it under Admin → Memberships.',
         );
       })
       .catch((error) => {
         Alert.alert('Unable to submit', getApiErrorMessage(error));
       })
       .finally(() => {
-        setSubmitting(false);
+        setSubmittingKey(null);
       });
   };
 
-  if (!plan) {
+  const formDefaults: MembershipOnboardingValues = {
+    ...emptyMembershipOnboardingValues(),
+    familyContact1Name: senior.data?.familyContact1Name ?? '',
+    familyContact1Phone: senior.data?.familyContact1Phone ?? senior.data?.emergencyContact ?? '',
+    familyContact2Name: senior.data?.familyContact2Name ?? '',
+    familyContact2Phone: senior.data?.familyContact2Phone ?? '',
+    preferredHospital: senior.data?.preferredHospital ?? '',
+  };
+
+  if (planKey && !getMembershipPlanByKey(planKey)) {
     return (
       <View style={[styles.root, { paddingTop: insets.top }]}>
         <AgeWellHeader title="Membership" showBack showProfile={false} showBell={false} />
@@ -89,60 +122,109 @@ export function MembershipPurchaseScreen({ planKey }: { planKey: MembershipPlanK
     );
   }
 
-  const buttonLabel = hasActive
-    ? 'Already a member'
-    : pendingRequest
-      ? 'Request pending'
-      : submitting
-        ? 'Sending…'
-        : 'Purchase Now';
-  const locked = submitting || hasActive || Boolean(pendingRequest);
-
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
-      <AgeWellHeader title="Purchase Now" showBack showProfile={false} showBell={false} />
-      <ScrollView
+      <AgeWellHeader
+        title={selectedPlan ? 'Emergency details' : plans.length > 1 ? 'Membership Plans' : 'Purchase Now'}
+        showBack
+        showProfile={false}
+        showBell={false}
+      />
+      <KeyboardAwareScrollView
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + spacing.xxxl }]}
         showsVerticalScrollIndicator={false}
       >
-        <View style={[styles.card, { backgroundColor: theme.soft }]}>
-          <Text style={[styles.planName, { color: theme.color }]}>{plan.name}</Text>
-          <Text style={styles.blurb}>{plan.blurb}</Text>
-          <View style={styles.features}>
-            {plan.features.map((feature) => (
-              <View key={feature} style={styles.featureRow}>
-                <Icon name="checkmark" size={16} color={theme.color} />
-                <Text style={styles.featureText}>{feature}</Text>
-              </View>
-            ))}
+        {selectedPlan ? (
+          <MembershipOnboardingForm
+            planName={selectedPlan.name}
+            defaultValues={formDefaults}
+            submitting={submittingKey === selectedPlan.key}
+            onBack={() => setSelectedPlan(null)}
+            onSubmit={onSubmitOnboarding}
+          />
+        ) : (
+          plans.map((plan) => (
+            <PlanPurchaseCard
+              key={plan.key}
+              plan={plan}
+              hasActive={hasActive}
+              pendingPlanName={pendingRequest?.planName ?? null}
+              submitting={submittingKey === plan.key}
+              locked={Boolean(submittingKey) || hasActive || Boolean(pendingRequest)}
+              onPurchase={() => onSelectPlan(plan)}
+            />
+          ))
+        )}
+      </KeyboardAwareScrollView>
+    </View>
+  );
+}
+
+function PlanPurchaseCard({
+  plan,
+  hasActive,
+  pendingPlanName,
+  submitting,
+  locked,
+  onPurchase,
+}: {
+  plan: CatalogPlan;
+  hasActive: boolean;
+  pendingPlanName: string | null;
+  submitting: boolean;
+  locked: boolean;
+  onPurchase: () => void;
+}) {
+  const theme = PLAN_THEME[plan.key];
+  const buttonLabel = hasActive
+    ? 'Already a member'
+    : pendingPlanName
+      ? 'Request pending'
+      : submitting
+        ? 'Sending…'
+        : 'Continue';
+
+  return (
+    <View style={[styles.card, { backgroundColor: theme.soft }]}>
+      <Text style={[styles.planName, { color: theme.color }]}>{plan.name}</Text>
+      <Text style={styles.blurb}>{plan.blurb}</Text>
+      <View style={styles.features}>
+        {plan.features.map((feature) => (
+          <View key={feature} style={styles.featureRow}>
+            <Icon name="checkmark" size={16} color={theme.color} />
+            <Text style={styles.featureText}>{feature}</Text>
           </View>
-          <Text style={[styles.price, { color: theme.color }]}>
-            {plan.price} <Text style={styles.period}>/ month</Text>
-          </Text>
-          <Text style={styles.priceNote}>{plan.priceNote}</Text>
-          {pendingRequest ? (
-            <Text style={styles.pendingNote}>
-              Your {pendingRequest.planName} request is waiting for AgeWell to approve.
-            </Text>
-          ) : null}
-          <Text style={styles.noPay}>No payment is taken in the app. Ops reviews this request, then your plan becomes active.</Text>
-          <Pressable
-            onPress={onPurchase}
-            disabled={locked}
-            accessibilityRole="button"
-            accessibilityLabel={`Purchase ${plan.name}`}
-            accessibilityState={{ disabled: locked }}
-            style={({ pressed }) => [
-              styles.button,
-              { backgroundColor: theme.button },
-              pressed && !locked ? styles.pressed : null,
-              locked ? styles.disabled : null,
-            ]}
-          >
-            <Text style={styles.buttonLabel}>{buttonLabel}</Text>
-          </Pressable>
-        </View>
-      </ScrollView>
+        ))}
+      </View>
+      <Text style={[styles.price, { color: theme.color }]}>
+        {plan.price} <Text style={styles.period}>/ month</Text>
+      </Text>
+      <Text style={styles.priceNote}>{plan.priceNote}</Text>
+      <Text style={styles.onboardingNote}>{MEMBERSHIP_ONBOARDING_NOTE}</Text>
+      {pendingPlanName ? (
+        <Text style={styles.pendingNote}>
+          Your {pendingPlanName} request is waiting for AgeWell to approve.
+        </Text>
+      ) : null}
+      <Text style={styles.noPay}>
+        Next you will add two family contacts and a nearby hospital. No payment is taken in the app. Ops
+        reviews this request, then your plan becomes active.
+      </Text>
+      <Pressable
+        onPress={onPurchase}
+        disabled={locked}
+        accessibilityRole="button"
+        accessibilityLabel={`Purchase ${plan.name}`}
+        accessibilityState={{ disabled: locked }}
+        style={({ pressed }) => [
+          styles.button,
+          { backgroundColor: theme.button },
+          pressed && !locked ? styles.pressed : null,
+          locked ? styles.disabled : null,
+        ]}
+      >
+        <Text style={styles.buttonLabel}>{buttonLabel}</Text>
+      </Pressable>
     </View>
   );
 }
@@ -155,6 +237,7 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.lg,
+    gap: spacing.lg,
   },
   missing: {
     ...typography.body,
@@ -205,6 +288,11 @@ const styles = StyleSheet.create({
   priceNote: {
     ...typography.caption,
     color: familyHome.muted,
+  },
+  onboardingNote: {
+    ...typography.caption,
+    color: familyHome.muted,
+    lineHeight: 18,
   },
   pendingNote: {
     ...typography.captionStrong,

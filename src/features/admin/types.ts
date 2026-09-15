@@ -37,10 +37,25 @@ export interface AdminSenior {
   address: string;
   emergencyContact: string;
   preferredLanguage: string | null;
+  familyContact1Name?: string | null;
+  familyContact1Phone?: string | null;
+  familyContact2Name?: string | null;
+  familyContact2Phone?: string | null;
+  preferredHospital?: string | null;
   email: string | null;
   phone: string | null;
   accountStatus: string | null;
+  inServiceArea: boolean;
+  locationLat: number | null;
+  locationLng: number | null;
+  locationQuery: string | null;
+  locationSource: 'gps' | 'manual' | null;
+  hasMembership: boolean;
+  careManagerId: string | null;
 }
+
+/** Admin seniors list filter segments. */
+export type AdminSeniorSegment = 'membership' | 'outside_area' | 'in_area_no_membership';
 
 export interface AdminSeniorCreate {
   userId: string;
@@ -59,8 +74,14 @@ export interface AdminSeniorUpdate {
   address?: string;
   emergencyContact?: string;
   preferredLanguage?: string;
+  familyContact1Name?: string | null;
+  familyContact1Phone?: string | null;
+  familyContact2Name?: string | null;
+  familyContact2Phone?: string | null;
+  preferredHospital?: string | null;
   email?: string;
   phone?: string;
+  careManagerId?: string | null;
 }
 
 export interface AdminCareManager {
@@ -75,6 +96,7 @@ export interface AdminCareManager {
   languages: string | null;
   availability: string | null;
   status: string | null;
+  staffKind: string | null;
 }
 
 export interface AdminCareManagerCreate {
@@ -82,6 +104,22 @@ export interface AdminCareManagerCreate {
   employeeId: string;
   firstName?: string;
   lastName?: string;
+  skills?: string;
+  experience?: string;
+  languages?: string;
+  availability?: string;
+  status?: string;
+  staffKind?: string;
+}
+
+export interface AdminStaffProvision {
+  email: string;
+  phone: string;
+  password: string;
+  employeeId: string;
+  firstName: string;
+  lastName: string;
+  staffKind: string;
   skills?: string;
   experience?: string;
   languages?: string;
@@ -98,6 +136,7 @@ export interface AdminCareManagerUpdate {
   languages?: string;
   availability?: string;
   status?: string;
+  staffKind?: string;
 }
 
 export interface AdminService {
@@ -151,11 +190,51 @@ export interface AdminAuditLog {
   createdAt: string | null;
 }
 
+export interface AdminMetricBreakdown {
+  label: string;
+  value: number;
+  color: string;
+}
+
 export interface AdminDashboardMetric {
   key: string;
   label: string;
   href: string;
   state: 'loading' | 'error' | 'ready';
   value: number | null;
-  tone?: 'default' | 'primary' | 'emergency' | 'warning';
+  tone?: 'default' | 'primary' | 'accent' | 'emergency' | 'warning' | 'info' | 'safe';
+  icon?: string;
+  breakdown?: AdminMetricBreakdown[];
+}
+
+export interface AdminChartSlice {
+  label: string;
+  value: number;
+  color: string;
+}
+
+export interface AdminAttentionItem {
+  id: string;
+  kind: 'emergency' | 'request' | 'visit';
+  title: string;
+  detail: string;
+  timestamp: string | null;
+  actionLabel: string;
+  href: string;
+}
+
+export interface AdminUpcomingVisitRow {
+  id: string;
+  time: string;
+  name: string;
+  type: string;
+  status: string;
+  href: string;
+}
+
+export interface AdminActivityRow {
+  id: string;
+  title: string;
+  detail: string;
+  timestamp: string | null;
 }

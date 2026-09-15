@@ -40,7 +40,7 @@ export function AdminNotificationsScreen() {
   });
 
   return (
-    <AdminScreen title="Notifications" subtitle="Operational inbox. No SMS, push, or WhatsApp delivery.">
+    <AdminScreen title="Notifications" subtitle="Operational inbox. SOS also fans out as phone push (FCM/APNs via Expo). SMS and WhatsApp are not connected.">
       <TextField
         label="Filter by user ID"
         value={userId}

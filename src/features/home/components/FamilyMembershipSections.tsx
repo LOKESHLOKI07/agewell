@@ -3,9 +3,7 @@ import { router, type Href } from 'expo-router';
 import { Icon } from '@/components/ui';
 import { spacing, typography } from '@/constants/theme';
 import type { CurrentMembership, MembershipUsage } from '@/features/home/types/home';
-import { getMembershipKind } from '@/features/auth/membershipPlanPreference';
-import { getOnboardingServiceFor } from '@/features/auth/onboardingProfile';
-import { MEMBERSHIP_PLAN_CATALOG } from '@/features/membership/planCatalog';
+import { MEMBERSHIP_PLAN_CATALOG, MEMBERSHIP_ONBOARDING_NOTE } from '@/features/membership/planCatalog';
 import { openMembershipPurchase } from '@/features/membership/openMembershipPurchase';
 import { FamilyHomeSectionHeader } from './FamilyHomePrimitives';
 import { familyHome } from './familyHomeTheme';
@@ -79,7 +77,7 @@ export function FamilyActiveMembershipCard({
               <Text style={styles.usageLabel}>{companion.benefitName}</Text>
               <Text style={styles.usageValue}>
                 {used} / {quota || '—'}
-                {quota ? ' hrs' : ''}
+                {quota ? (/companion/i.test(companion.benefitName) ? ' visits' : '') : ''}
               </Text>
             </View>
             <View style={styles.barTrack}>
@@ -96,34 +94,20 @@ export function FamilyActiveMembershipCard({
 }
 
 const PLAN_THEME = {
-  basic: { color: familyHome.green, soft: familyHome.greenSoft, button: familyHome.greenDark },
+  single: { color: familyHome.green, soft: familyHome.greenSoft, button: familyHome.greenDark },
   couple: { color: familyHome.blue, soft: familyHome.blueSoft, button: familyHome.blueDark },
 } as const;
 
 export function FamilyMembershipPlansCarousel() {
   const { width: windowWidth } = useWindowDimensions();
-  const membershipKind = getMembershipKind() ?? getOnboardingServiceFor();
-  const visiblePlans = MEMBERSHIP_PLAN_CATALOG.filter((plan) => {
-    if (membershipKind === 'single') {
-      return plan.key === 'basic';
-    }
-    if (membershipKind === 'couple') {
-      return plan.key === 'couple';
-    }
-    return true;
-  });
-  // Nearly full-width card; with one plan use full content width, with two keep a peek.
-  const cardWidth =
-    visiblePlans.length === 1
-      ? Math.max(280, windowWidth - spacing.xl * 2)
-      : Math.min(320, Math.max(260, windowWidth - spacing.xl * 2 - 28));
+  const cardWidth = Math.min(320, Math.max(260, windowWidth - spacing.xl * 2 - 28));
 
   return (
     <View style={styles.section}>
       <FamilyHomeSectionHeader
         title="Membership Plans"
         actionLabel="View All Plans"
-        onAction={() => openMembershipPurchase(visiblePlans[0]?.key)}
+        onAction={() => openMembershipPurchase()}
       />
       <ScrollView
         horizontal
@@ -132,7 +116,7 @@ export function FamilyMembershipPlansCarousel() {
         snapToInterval={cardWidth + spacing.md}
         contentContainerStyle={styles.plansRow}
       >
-        {visiblePlans.map((plan) => (
+        {MEMBERSHIP_PLAN_CATALOG.map((plan) => (
           <View
             key={plan.key}
             style={[styles.planCard, { width: cardWidth, backgroundColor: PLAN_THEME[plan.key].soft }]}
@@ -151,6 +135,7 @@ export function FamilyMembershipPlansCarousel() {
               {plan.price} <Text style={styles.planPeriod}>/ month</Text>
             </Text>
             <Text style={styles.planPriceNote}>{plan.priceNote}</Text>
+            <Text style={styles.planPriceNote}>{MEMBERSHIP_ONBOARDING_NOTE}</Text>
             <Pressable
               onPress={() => openMembershipPurchase(plan.key)}
               accessibilityRole="button"

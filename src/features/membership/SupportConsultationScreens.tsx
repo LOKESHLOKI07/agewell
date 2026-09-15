@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { KeyboardAwareScrollView } from '@/components/KeyboardAwareScrollView';
 import type { IconName } from '@/components/ui';
 import { Icon } from '@/components/ui';
 import { spacing, typography } from '@/constants/theme';
 import { AgeWellHeader } from '@/features/home/components/AgeWellHeader';
 import { familyHome } from '@/features/home/components/familyHomeTheme';
+import { MembershipServiceGate } from './MembershipServiceGate';
 import { MembershipServiceHero } from './MembershipServiceHero';
 import { useMembershipSubmit } from './useMembershipSubmit';
 
@@ -20,7 +22,15 @@ type Props = {
   slug: string;
 };
 
-export function SupportConsultationScreen({
+export function SupportConsultationScreen(props: Props) {
+  return (
+    <MembershipServiceGate slug={props.slug} title={props.title}>
+      <SupportConsultationBody {...props} />
+    </MembershipServiceGate>
+  );
+}
+
+function SupportConsultationBody({
   title,
   subtitle,
   timingNote,
@@ -49,7 +59,7 @@ export function SupportConsultationScreen({
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
       <AgeWellHeader title={title} showBack showProfile={false} showBell={false} />
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <KeyboardAwareScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <MembershipServiceHero slug={slug} />
         <Text style={styles.hint}>{subtitle}</Text>
         <Text style={styles.timing}>{timingNote}</Text>
@@ -105,7 +115,7 @@ export function SupportConsultationScreen({
         >
           <Text style={styles.secondaryCtaText}>Set up Customer Support call</Text>
         </Pressable>
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </View>
   );
 }
@@ -146,6 +156,86 @@ export function CaAssistanceScreen() {
       accent={familyHome.green}
       accentSoft={familyHome.greenSoft}
       slug="ca"
+    />
+  );
+}
+
+export function SmallErrandsScreen() {
+  return (
+    <SupportConsultationScreen
+      title="Small Errands Assistance"
+      subtitle="Our companion will call before the visit and assist with small errands that can be managed during the visit."
+      timingNote="Bundled with companion visits · max ~30 mins as needed"
+      topics={[
+        'Pharmacy pickup',
+        'Nearby shop purchase',
+        'Document drop / pickup',
+        'Other small errand',
+      ]}
+      icon="accessibility-outline"
+      accent={familyHome.orange}
+      accentSoft={familyHome.orangeSoft}
+      slug="small-errands"
+    />
+  );
+}
+
+export function ErrandCoordinationScreen() {
+  return (
+    <SupportConsultationScreen
+      title="Coordination for Other Errands"
+      subtitle="Our companion will coordinate errands such as ironing, haircut and other personal services as needed."
+      timingNote="Coordination support — service provider charges may apply"
+      topics={[
+        'Ironing / laundry coordination',
+        'Haircut / grooming appointment',
+        'Personal service booking',
+        'Other errand coordination',
+      ]}
+      icon="clipboard-outline"
+      accent={familyHome.purple}
+      accentSoft={familyHome.purpleSoft}
+      slug="errand-coordination"
+    />
+  );
+}
+
+export function CyberSecurityGuidanceScreen() {
+  return (
+    <SupportConsultationScreen
+      title="Cyber Security Guidance"
+      subtitle="Guidance on online scams and awareness by a trained companion. Help before investing or sharing OTPs, and support after fraud."
+      timingNote="Companion guidance · complaint follow-up when needed"
+      topics={[
+        'Online scam / phishing awareness',
+        'OTP and password safety',
+        'Advice before investing or paying',
+        'Help after fraud (complaints / follow-up)',
+      ]}
+      icon="shield-checkmark-outline"
+      accent={familyHome.purple}
+      accentSoft={familyHome.purpleSoft}
+      slug="cyber-security"
+    />
+  );
+}
+
+export function BankingCompanionScreen() {
+  return (
+    <SupportConsultationScreen
+      title="Banking Companion"
+      subtitle="Book a companion for bank visits like pension withdrawal, cheque deposit, passbook update and other banking work."
+      timingNote="Paid per visit · prior appointment required"
+      topics={[
+        'Pension withdrawal',
+        'Cheque deposit',
+        'Passbook update',
+        'Other banking work',
+      ]}
+      icon="card-outline"
+      accent={familyHome.green}
+      accentSoft={familyHome.greenSoft}
+      slug="banking-companion"
     />
   );
 }

@@ -1,144 +1,182 @@
-import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
-import { router, type Href } from 'expo-router';
-import { cardSurface, colors, typography, spacing, minTouchSize } from '@/constants/theme';
+import { useMemo, useState } from 'react';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { KeyboardAwareScrollView } from '@/components/KeyboardAwareScrollView';
+import { Icon } from '@/components/ui';
+import { spacing, typography } from '@/constants/theme';
 import { AgeWellHeader } from '@/features/home/components/AgeWellHeader';
-import { EmptyState, LoadingState, ErrorState } from '@/components';
-import { Icon, SectionTitle } from '@/components/ui';
-import { useServices } from '@/features/services/hooks';
-import { SERVICE_CATEGORY_LABELS, serviceRequestHref } from '@/features/services/selectors';
-import { findAddonBookNow } from './addonBookCatalog';
-import type { CatalogService, ServiceCategory } from '@/features/home/types/home';
-import { useI18n } from '@/i18n';
-import { getSectionState } from '@/features/home/selectors/homeViewModel';
+import { familyHome } from '@/features/home/components/familyHomeTheme';
+import { ADD_ON_SERVICES } from '@/features/services/addOnServiceCatalog';
+import type { HomeServiceTile } from '@/features/services/serviceCatalog';
+import { useTabScreenBottomPad } from '@/utils/safeBottom';
 
-/**
- * Consumer add-on catalogue.
- * Dedicated `/addons/` API is staff-only today, so we surface the real services
- * catalogue grouped into product categories and use service-request (not fake payment).
- */
-const STORE_GROUPS: { id: string; title: string; categories: ServiceCategory[]; match?: RegExp }[] = [
-  { id: 'care', title: 'Care', categories: ['CARE'], match: /companion|care|visit/i },
-  { id: 'food', title: 'Food', categories: ['FOOD_HOME'], match: /food|meal|lunch|dinner/i },
-  { id: 'daily', title: 'Daily Life', categories: ['FOOD_HOME', 'ADD_ON'], match: /grocery|shopping|home|daily|laundry|cleaning/i },
-  { id: 'transport', title: 'Transport', categories: ['MOBILITY'], match: /transport|cab|ride|mobility/i },
-  { id: 'healthcare', title: 'Healthcare', categories: ['HEALTH'], match: /physio|health|doctor|nurse|therapy/i },
-  { id: 'home', title: 'Home', categories: ['ADD_ON', 'FOOD_HOME'], match: /home|safety|grab|install|repair/i },
-];
+const GRID_COLUMNS = 3;
 
-function groupForStore(services: CatalogService[]) {
-  const assigned = new Set<string>();
-  return STORE_GROUPS.map((group) => {
-    const items = services.filter((service) => {
-      if (assigned.has(service.id)) {
-        return false;
-      }
-      const inCategory = group.categories.includes(service.category);
-      const nameHit = group.match ? group.match.test(service.name) || group.match.test(service.description) : false;
-      if (inCategory || nameHit) {
-        assigned.add(service.id);
-        return true;
-      }
-      return false;
-    });
-    return { ...group, items };
-  }).filter((group) => group.items.length > 0);
+function chunkItems<T>(items: T[], size: number): T[][] {
+  const rows: T[][] = [];
+  for (let index = 0; index < items.length; index += size) {
+    rows.push(items.slice(index, index + size));
+  }
+  return rows;
 }
 
+/** View All add-ons — only the dedicated AgeWell add-on catalogue (not Single Membership). */
 export function AddonsScreen() {
-  const { t } = useI18n();
-  const query = useServices();
-  const services = query.data ?? [];
-  const groups = groupForStore(services);
-  const state = getSectionState({
-    isPending: query.isPending,
-    isError: query.isError,
-    isEmpty: services.length === 0,
-  });
+  const insets = useSafeAreaInsets();
+  const bottomPad = useTabScreenBottomPad(spacing.xxl);
+  const [query, setQuery] = useState('');
+
+  const addons = useMemo(() => {
+    const term = query.trim().toLowerCase();
+    if (!term) {
+      return ADD_ON_SERVICES;
+    }
+    return ADD_ON_SERVICES.filter((item) => item.title.toLowerCase().includes(term));
+  }, [query]);
+
+  const rows = chunkItems(addons, GRID_COLUMNS);
+
+  const openAddon = (item: HomeServiceTile) => {
+    router.push(item.href);
+  };
 
   return (
-    <View style={styles.container}>
-      <AgeWellHeader title={t('addons.title')} showBack />
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-        <Text style={styles.description}>{t('addons.requestOnly')}</Text>
-        <Text style={styles.paymentNote}>{t('addons.noPayment')}</Text>
+    <View style={[styles.root, { paddingTop: insets.top }]}>
+      <AgeWellHeader title="Add-on Services" showBack showProfile={false} showBell={false} />
+      <KeyboardAwareScrollView
+        contentContainerStyle={[styles.content, { paddingBottom: bottomPad }]}
+        showsVerticalScrollIndicator={false}
+      >
+        <Text style={styles.subtitle}>
+          Optional add-ons beyond Single Membership — book on request (extra cost).
+        </Text>
 
-        {state === 'loading' ? <LoadingState message="Loading catalogue…" /> : null}
-        {state === 'error' ? (
-          <ErrorState title="Unable to load add-ons" message="Please try again." onRetry={() => void query.refetch()} />
-        ) : null}
-        {state === 'empty' ? (
-          <EmptyState
-            icon="cart-outline"
-            title="No add-ons available"
-            message="When AgeWell publishes services or add-ons for your account, they will appear here."
+        <View style={styles.searchWrap}>
+          <Icon name="search-outline" size={18} color={familyHome.muted} />
+          <TextInput
+            value={query}
+            onChangeText={setQuery}
+            placeholder="Search add-ons"
+            placeholderTextColor={familyHome.muted}
+            style={styles.searchInput}
+            accessibilityLabel="Search add-ons"
           />
-        ) : null}
+        </View>
 
-        {groups.map((group) => (
-          <View key={group.id} style={styles.categorySection}>
-            <SectionTitle title={group.title} />
-            {group.items.map((addon) => (
-              <Pressable
-                key={addon.id}
-                style={styles.addonCard}
-                onPress={() => {
-                  const bookNow = findAddonBookNow(addon.slug ?? undefined);
-                  if (bookNow) {
-                    router.push({ pathname: '/addons/[id]', params: { id: bookNow.slug } } as Href);
-                    return;
-                  }
-                  router.push(serviceRequestHref(addon.id) as unknown as Href);
-                }}
-                accessibilityRole="button"
-                accessibilityLabel={`Request ${addon.name}`}
-              >
-                <View style={styles.addonContent}>
-                  <Text style={styles.addonTitle}>{addon.name}</Text>
-                  <Text style={styles.addonDesc}>{addon.description || 'No description on file.'}</Text>
-                  <Text style={styles.meta}>
-                    {SERVICE_CATEGORY_LABELS[addon.category]} · Request only — no in-app payment
+        <View style={styles.grid}>
+          {rows.map((row, rowIndex) => (
+            <View key={`row-${rowIndex}`} style={styles.gridRow}>
+              {row.map((item) => (
+                <Pressable
+                  key={item.id}
+                  onPress={() => openAddon(item)}
+                  accessibilityRole="button"
+                  accessibilityLabel={item.title}
+                  style={({ pressed }) => [
+                    styles.gridCard,
+                    { backgroundColor: item.background },
+                    pressed ? styles.pressed : null,
+                  ]}
+                >
+                  <View style={[styles.iconCircle, { backgroundColor: familyHome.white }]}>
+                    <Icon name={item.icon} size={22} color={item.color} />
+                  </View>
+                  <Text style={styles.gridLabel} numberOfLines={3}>
+                    {item.title}
                   </Text>
-                </View>
-                <View style={styles.cta}>
-                  <Icon name="plus-circle" size={26} color={colors.primary} />
-                  <Text style={styles.ctaLabel}>Request</Text>
-                </View>
-              </Pressable>
-            ))}
-          </View>
-        ))}
+                </Pressable>
+              ))}
+              {row.length < GRID_COLUMNS
+                ? Array.from({ length: GRID_COLUMNS - row.length }).map((_, index) => (
+                    <View key={`pad-${rowIndex}-${index}`} style={styles.gridCardSpacer} />
+                  ))
+                : null}
+            </View>
+          ))}
+        </View>
 
-        {state === 'ready' && groups.length === 0 ? (
-          <EmptyState
-            icon="cart-outline"
-            title="No matching add-ons"
-            message="Your service catalogue does not include items for these categories yet."
-          />
+        {addons.length === 0 ? (
+          <Text style={styles.empty}>No add-ons match your search.</Text>
         ) : null}
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  scrollView: { flex: 1 },
-  scrollContent: { padding: spacing.lg, paddingBottom: spacing.xxxl },
-  description: { ...typography.body, color: colors.textSecondary, marginBottom: spacing.sm },
-  paymentNote: { ...typography.caption, color: colors.textMuted, marginBottom: spacing.xl },
-  categorySection: { marginBottom: spacing.xl },
-  addonCard: {
-    ...cardSurface,
-    flexDirection: 'row',
-    padding: spacing.lg,
-    marginBottom: spacing.md,
-    alignItems: 'center',
-    minHeight: minTouchSize + 24,
+  root: {
+    flex: 1,
+    backgroundColor: familyHome.white,
   },
-  addonContent: { flex: 1, paddingRight: spacing.md },
-  addonTitle: { ...typography.subtitle, color: colors.text, marginBottom: 4 },
-  addonDesc: { ...typography.caption, color: colors.textSecondary, marginBottom: 8 },
-  meta: { ...typography.captionStrong, color: colors.primary },
-  cta: { alignItems: 'center', gap: 4, minWidth: 64 },
-  ctaLabel: { ...typography.captionStrong, color: colors.primary },
+  content: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.md,
+    gap: spacing.md,
+  },
+  subtitle: {
+    ...typography.body,
+    color: familyHome.muted,
+  },
+  searchWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    borderWidth: 1,
+    borderColor: familyHome.border,
+    borderRadius: 14,
+    paddingHorizontal: spacing.md,
+    minHeight: 48,
+    backgroundColor: '#FAFAFA',
+  },
+  searchInput: {
+    flex: 1,
+    ...typography.body,
+    color: familyHome.text,
+    paddingVertical: spacing.sm,
+  },
+  grid: {
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  gridRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  gridCard: {
+    flex: 1,
+    minHeight: 112,
+    borderRadius: 16,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  gridCardSpacer: {
+    flex: 1,
+  },
+  iconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  gridLabel: {
+    ...typography.captionStrong,
+    color: familyHome.text,
+    textAlign: 'center',
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  empty: {
+    ...typography.body,
+    color: familyHome.muted,
+    textAlign: 'center',
+    marginTop: spacing.xl,
+  },
+  pressed: {
+    opacity: 0.9,
+  },
 });

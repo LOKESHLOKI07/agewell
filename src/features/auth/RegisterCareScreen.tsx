@@ -1,12 +1,15 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ScrollView, StyleSheet, Text } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 import { router, type Href } from 'expo-router';
 import { PrimaryButton, Screen, TextField } from '@/components';
 import { AgeWellHeader } from '@/features/home/components/AgeWellHeader';
 import { colors, spacing, typography } from '@/constants/theme';
 import { getApiErrorMessage } from '@/api/errors';
+import { isCareApp } from '@/config/appVariant';
+import { STAFF_KIND_LABELS } from '@/features/care/staffKind';
+import { getSelectedStaffKind } from './staffKindPreference';
 import { useAuthStore } from './authStore';
 import { registerCareAssociate } from './registrationApi';
 import { registrationSuccessHref } from './registrationNavigation';
@@ -14,7 +17,18 @@ import { registerCareSchema, type RegisterCareValues } from './registrationSchem
 
 export function RegisterCareScreen() {
   const completeRegistration = useAuthStore((state) => state.completeRegistration);
+  const staffKind = getSelectedStaffKind();
   const [formError, setFormError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isCareApp()) {
+      router.replace('/(auth)/login' as Href);
+      return;
+    }
+    if (!staffKind) {
+      router.replace('/(auth)/select-role' as Href);
+    }
+  }, [staffKind]);
   const {
     control,
     handleSubmit,
@@ -35,9 +49,13 @@ export function RegisterCareScreen() {
   });
 
   const onSubmit = async (values: RegisterCareValues) => {
+    if (isCareApp() && !staffKind) {
+      router.replace('/(auth)/select-role' as Href);
+      return;
+    }
     setFormError(null);
     try {
-      const result = await registerCareAssociate(values);
+      const result = await registerCareAssociate({ ...values, staffKind: staffKind ?? 'CARE_MANAGER' });
       completeRegistration(result.user, result.careStatus);
       router.replace(
         registrationSuccessHref({
@@ -55,28 +73,28 @@ export function RegisterCareScreen() {
   return (
     <Screen>
       <AgeWellHeader title="Care Associate application" showBack showProfile={false} />
-      <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.step}>Application · Pending review</Text>
-        <Text style={styles.intro}>
-          This is an application, not immediate access. AgeWell staff must approve you before visits can be assigned.
+      <Text style={styles.step}>
+        {staffKind ? `${STAFF_KIND_LABELS[staffKind]} · Pending review` : 'Application · Pending review'}
+      </Text>
+      <Text style={styles.intro}>
+        This is an application, not immediate access. AgeWell staff must approve you before work can be assigned.
+      </Text>
+      <Field control={control} name="firstName" label="First name" error={errors.firstName?.message} />
+      <Field control={control} name="lastName" label="Last name" error={errors.lastName?.message} />
+      <Field control={control} name="email" label="Email" keyboardType="email-address" autoCapitalize="none" error={errors.email?.message} />
+      <Field control={control} name="phone" label="Phone" keyboardType="phone-pad" error={errors.phone?.message} />
+      <Field control={control} name="password" label="Password" secureTextEntry error={errors.password?.message} />
+      <Field control={control} name="skills" label="Skills" placeholder="Companionship, mobility support…" error={errors.skills?.message} />
+      <Field control={control} name="experience" label="Experience" error={errors.experience?.message} />
+      <Field control={control} name="languages" label="Languages" error={errors.languages?.message} />
+      <Field control={control} name="availability" label="Availability" placeholder="Weekdays mornings…" error={errors.availability?.message} />
+      {formError ? (
+        <Text style={styles.error} accessibilityRole="alert" accessibilityLiveRegion="polite">
+          {formError}
         </Text>
-        <Field control={control} name="firstName" label="First name" error={errors.firstName?.message} />
-        <Field control={control} name="lastName" label="Last name" error={errors.lastName?.message} />
-        <Field control={control} name="email" label="Email" keyboardType="email-address" autoCapitalize="none" error={errors.email?.message} />
-        <Field control={control} name="phone" label="Phone" keyboardType="phone-pad" error={errors.phone?.message} />
-        <Field control={control} name="password" label="Password" secureTextEntry error={errors.password?.message} />
-        <Field control={control} name="skills" label="Skills" placeholder="Companionship, mobility support…" error={errors.skills?.message} />
-        <Field control={control} name="experience" label="Experience" error={errors.experience?.message} />
-        <Field control={control} name="languages" label="Languages" error={errors.languages?.message} />
-        <Field control={control} name="availability" label="Availability" placeholder="Weekdays mornings…" error={errors.availability?.message} />
-        {formError ? (
-          <Text style={styles.error} accessibilityRole="alert" accessibilityLiveRegion="polite">
-            {formError}
-          </Text>
-        ) : null}
-        <PrimaryButton label="Submit application" loading={isSubmitting} onPress={handleSubmit(onSubmit)} />
-        <Text style={styles.hint}>If this succeeds, you will see a confirmation. Visits stay locked until AgeWell approves you.</Text>
-      </ScrollView>
+      ) : null}
+      <PrimaryButton label="Submit application" loading={isSubmitting} onPress={handleSubmit(onSubmit)} />
+      <Text style={styles.hint}>If this succeeds, you will see a confirmation. Visits stay locked until AgeWell approves you.</Text>
     </Screen>
   );
 }
@@ -106,10 +124,6 @@ function Field({
 }
 
 const styles = StyleSheet.create({
-  content: {
-    padding: spacing.xl,
-    paddingBottom: spacing.xxxl,
-  },
   step: {
     ...typography.captionStrong,
     color: colors.warning,

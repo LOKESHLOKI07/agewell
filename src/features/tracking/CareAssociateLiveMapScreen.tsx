@@ -25,7 +25,6 @@ import {
   type CameraFollowMode,
 } from './live';
 import { ASSOCIATE_NOT_ASSIGNED_MESSAGE, ASSOCIATE_NOT_SHARING_MESSAGE } from './selectors';
-import { isDemoSeniorEmail, startDemoCareAssociateTrip } from './demoLocation';
 import { safeGoBack } from '@/utils/navigation';
 
 interface CareAssociateLiveMapScreenProps {
@@ -37,17 +36,13 @@ interface CareAssociateLiveMapScreenProps {
 export function CareAssociateLiveMapScreen({ visitId, viewer, homeAddress }: CareAssociateLiveMapScreenProps) {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
-  const email = useAuthStore((state) => state.user?.email);
   const role = useAuthStore((state) => state.user?.role);
   const [focused, setFocused] = useState(true);
   useFocusEffect(
     useCallback(() => {
-      if (isDemoSeniorEmail(email)) {
-        startDemoCareAssociateTrip();
-      }
       setFocused(true);
       return () => setFocused(false);
-    }, [email]),
+    }, []),
   );
   const [followMode, setFollowMode] = useState<CameraFollowMode>('follow');
   const [mapReady, setMapReady] = useState(false);
@@ -57,9 +52,7 @@ export function CareAssociateLiveMapScreen({ visitId, viewer, homeAddress }: Car
   const seniorLocation = useSeniorViewerLocation(viewer === 'family' ? visitQuery.data?.seniorId : null);
 
   const visit = visitQuery.data;
-  const demoTrip = latest.demoTrip;
-  const associateCoord =
-    demoTrip?.coordinate ?? parseMapCoordinate(latest.data?.latitude, latest.data?.longitude);
+  const associateCoord = parseMapCoordinate(latest.data?.latitude, latest.data?.longitude);
   const seniorPoint = viewer === 'family' ? seniorLocation.state.point : ownLocation.state.point;
   const seniorCoord = parseMapCoordinate(seniorPoint?.latitude, seniorPoint?.longitude);
   const homeCoord = parseSavedHomeCoordinate(homeAddress);
@@ -148,12 +141,9 @@ export function CareAssociateLiveMapScreen({ visitId, viewer, homeAddress }: Car
         associate={associateCoord}
         associateName={name}
         live={status === 'live'}
-        heading={demoTrip?.heading}
         senior={seniorCoord}
         seniorLive={Boolean(seniorCoord)}
         home={homeCoord}
-        traveledPath={demoTrip?.traveled}
-        remainingPath={demoTrip?.remaining}
         showDeviceLocation={false}
         followMode={followMode}
         onUserGesture={() => setFollowMode('free')}
@@ -170,9 +160,9 @@ export function CareAssociateLiveMapScreen({ visitId, viewer, homeAddress }: Car
           status={assigned ? status : 'unavailable'}
           name={name}
           visitTitle="Today's Care Visit"
-          visitMeta={demoTrip ? 'DGP Apartment, Velachery → Home' : visitTimeLine(visit)}
+          visitMeta={visitTimeLine(visit)}
           employeeId={visit.employeeId}
-          lastUpdated={assigned ? (demoTrip?.remainingLabel ?? lastUpdated) : null}
+          lastUpdated={assigned ? lastUpdated : null}
           message={assigned ? (associateCoord ? message : emptyMessage) : emptyMessage}
           followEnabled={followMode === 'follow'}
           onFollow={() => setFollowMode('follow')}
@@ -233,6 +223,6 @@ const styles = StyleSheet.create({
   padded: {
     flex: 1,
     padding: spacing.xl,
-    paddingTop: 96,
+    justifyContent: 'center',
   },
 });

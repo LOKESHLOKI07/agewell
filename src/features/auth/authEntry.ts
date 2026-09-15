@@ -1,4 +1,5 @@
 import type { Href } from 'expo-router';
+import { isCareApp } from '@/config/appVariant';
 import type { OnboardingAuthMethod } from './onboardingLocation';
 
 /** First-time Continue buttons start onboarding. Signed-out members use Sign in. */
@@ -27,5 +28,8 @@ export function resetPasswordHref(): Href {
 }
 
 export function createAccountHref(method: OnboardingAuthMethod = 'email'): Href {
+  if (isCareApp()) {
+    return signInHref();
+  }
   return { pathname: '/(auth)/personal-details', params: { method } } as Href;
 }

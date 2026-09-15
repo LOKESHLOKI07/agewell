@@ -41,11 +41,13 @@ const visitPayload = {
 
 describe('CARE_MANAGER login routing', () => {
   it('sends CARE_MANAGER to the care dashboard, not Senior tabs', () => {
-    expect(authenticatedHomeHref('CARE_MANAGER')).toBe('/(care)');
+    expect(authenticatedHomeHref('CARE_MANAGER', { variant: 'care' })).toBe('/(care)');
     expect(authenticatedHomeHref('SENIOR')).toBe('/(tabs)');
     expect(authenticatedHomeHref('FAMILY')).toBe('/(tabs)');
     expect(authenticatedHomeHref('ADMIN')).toBe('/(admin)');
     expect(authenticatedHomeHref('OPERATIONS')).toBe('/(admin)');
+    expect(authenticatedHomeHref('CARE_MANAGER', { variant: 'family' })).toBe('/role-unavailable?role=CARE_MANAGER');
+    expect(authenticatedHomeHref('SENIOR', { variant: 'care' })).toBe('/role-unavailable?role=SENIOR');
   });
 
   it('keeps Senior Home routing unchanged', () => {
@@ -75,6 +77,7 @@ describe('care manager APIs', () => {
       employeeId: 'CM01',
       skills: 'Nursing',
       status: 'ACTIVE',
+      staffKind: 'CARE_MANAGER',
     });
     expect(mockedGet).toHaveBeenCalledWith('/care/', { params: undefined });
   });
