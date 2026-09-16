@@ -104,7 +104,7 @@ function FoodDeliveryLive() {
               accessibilityLabel={`${item.name}. View menu and order`}
             >
               <View style={styles.cuisineIcon}>
-                <Icon name="restaurant-outline" size={22} color={familyHome.orange} />
+                <Icon name="shopping-bag" size={22} color={familyHome.orange} />
               </View>
               <View style={styles.cuisineBody}>
                 <Text style={styles.cuisineName}>{item.name}</Text>

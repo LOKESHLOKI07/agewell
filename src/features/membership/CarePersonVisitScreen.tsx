@@ -5,8 +5,25 @@ import { spacing, typography } from '@/constants/theme';
 import { AgeWellHeader } from '@/features/home/components/AgeWellHeader';
 import { familyHome } from '@/features/home/components/familyHomeTheme';
 import { MembershipServiceGate } from './MembershipServiceGate';
-import type { MembershipCarePerson } from './mockStaff';
 import { MembershipServiceHero } from './MembershipServiceHero';
+
+type MembershipVisit = {
+  id: string;
+  label: string;
+  when: string;
+  status: 'Upcoming' | 'Completed';
+  notes?: string;
+};
+
+type MembershipCarePerson = {
+  id: string;
+  roleLabel: string;
+  name: string;
+  phone: string;
+  photoUri: string | null;
+  nextVisit: MembershipVisit;
+  history: MembershipVisit[];
+};
 
 type Props = {
   title: string;

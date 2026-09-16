@@ -261,6 +261,7 @@ export function toServiceRequest(payload: unknown): ServiceRequest {
     serviceSlug: asOptionalString(data.service_slug),
     status: asString(data.status, 'service_request.status') as ServiceRequest['status'],
     notes: asOptionalString(data.notes),
+    createdAt: asOptionalString((data as { created_at?: unknown }).created_at),
   };
 }
 
@@ -272,6 +273,8 @@ export function toCatalogService(payload: unknown): CatalogService {
     category: asString(data.category, 'service.category') as CatalogService['category'],
     description: asString(data.description, 'service.description'),
     slug: asOptionalString((data as { slug?: unknown }).slug),
+    callHoursText: asOptionalString((data as { call_hours_text?: unknown }).call_hours_text),
+    supportPhone: asOptionalString((data as { support_phone?: unknown }).support_phone),
   };
 }
 
@@ -338,6 +341,7 @@ export function toCreatedServiceRequest(payload: unknown): CreatedServiceRequest
     serviceId: asId(data.service_id, 'service_request.service_id'),
     status: asString(data.status, 'service_request.status') as CreatedServiceRequest['status'],
     notes: asOptionalString(data.notes),
+    createdAt: asOptionalString((data as { created_at?: unknown }).created_at),
   };
 }
 

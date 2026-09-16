@@ -1,17 +1,14 @@
 import { useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from '@/components/ui';
 import { spacing, typography } from '@/constants/theme';
 import { AgeWellHeader } from '@/features/home/components/AgeWellHeader';
 import { familyHome } from '@/features/home/components/familyHomeTheme';
-import {
-  HISTORY_CATEGORIES,
-  MEDICAL_HISTORY,
-  type HistoryCategory,
-} from './mockHealth';
+import { filterOfferingsByKind, parseOfferingMeta } from './catalogTypes';
 import { MembershipServiceHero } from './MembershipServiceHero';
 import { gatedMembershipScreen } from './MembershipServiceGate';
+import { useServiceOfferings } from './useCatalog';
 
 export const MedicalHistoryScreen = gatedMembershipScreen(
   'medical-history',
@@ -21,14 +18,31 @@ export const MedicalHistoryScreen = gatedMembershipScreen(
 
 function MedicalHistoryLive() {
   const insets = useSafeAreaInsets();
-  const [category, setCategory] = useState<HistoryCategory | 'All'>('All');
+  const catalog = useServiceOfferings('medical-history');
+  const records = useMemo(
+    () => filterOfferingsByKind(catalog.data ?? [], 'record'),
+    [catalog.data],
+  );
+  const categories = useMemo(() => {
+    const unique = new Set(records.map((item) => item.badge).filter(Boolean));
+    return ['All', ...Array.from(unique).sort()];
+  }, [records]);
+  const [category, setCategory] = useState('All');
 
-  const records = useMemo(() => {
-    if (category === 'All') {
-      return MEDICAL_HISTORY;
+  const filtered = useMemo(() => {
+    if (category === 'All') return records;
+    return records.filter((item) => item.badge === category);
+  }, [records, category]);
+
+  const onOpenRecord = (title: string, categoryLabel: string, date: string, summary: string, url?: string) => {
+    if (url) {
+      void Linking.openURL(url).catch(() => {
+        Alert.alert('Unable to open document', 'Please try again or contact support.');
+      });
+      return;
     }
-    return MEDICAL_HISTORY.filter((item) => item.category === category);
-  }, [category]);
+    Alert.alert(title, `${categoryLabel} · ${date}\n\n${summary}`);
+  };
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
@@ -37,48 +51,61 @@ function MedicalHistoryLive() {
         <MembershipServiceHero slug="medical-history" />
         <Text style={styles.hint}>Reports by category and date · companion & support assist uploads</Text>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.cats}>
-          {(['All', ...HISTORY_CATEGORIES] as const).map((item) => {
-            const active = item === category;
+        {catalog.isPending ? <Text style={styles.hint}>Loading records…</Text> : null}
+        {catalog.isError ? (
+          <Pressable onPress={() => void catalog.refetch()} accessibilityRole="button">
+            <Text style={styles.retry}>Unable to load · Tap to retry</Text>
+          </Pressable>
+        ) : null}
+
+        {categories.length > 1 ? (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.cats}>
+            {categories.map((item) => {
+              const active = item === category;
+              return (
+                <Pressable
+                  key={item}
+                  onPress={() => setCategory(item)}
+                  style={[styles.catChip, active ? styles.catChipActive : null]}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                >
+                  <Text style={[styles.catLabel, active ? styles.catLabelActive : null]}>{item}</Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        ) : null}
+
+        <View style={styles.list}>
+          {filtered.map((record) => {
+            const meta = parseOfferingMeta(record.metaJson);
+            const date = meta.date || '—';
             return (
               <Pressable
-                key={item}
-                onPress={() => setCategory(item)}
-                style={[styles.catChip, active ? styles.catChipActive : null]}
+                key={record.id}
+                style={styles.row}
+                onPress={() =>
+                  onOpenRecord(record.title, record.badge, date, record.description, meta.url)
+                }
                 accessibilityRole="button"
-                accessibilityState={{ selected: active }}
+                accessibilityLabel={`${record.title}, ${record.badge}`}
               >
-                <Text style={[styles.catLabel, active ? styles.catLabelActive : null]}>{item}</Text>
+                <View style={styles.iconWell}>
+                  <Icon name="clipboard-text-outline" size={18} color={familyHome.blue} />
+                </View>
+                <View style={styles.body}>
+                  <Text style={styles.category}>{record.badge}</Text>
+                  <Text style={styles.title}>{record.title}</Text>
+                  <Text style={styles.meta}>{date}</Text>
+                  <Text style={styles.summary}>{record.description}</Text>
+                </View>
+                <Icon name="chevron-forward" size={18} color={familyHome.muted} />
               </Pressable>
             );
           })}
-        </ScrollView>
-
-        <View style={styles.list}>
-          {records.map((record) => (
-            <Pressable
-              key={record.id}
-              style={styles.row}
-              onPress={() =>
-                Alert.alert(record.title, `${record.date}\n\n${record.summary}\n\nDocument viewer will open here when files are connected.`)
-              }
-              accessibilityRole="button"
-              accessibilityLabel={`${record.title}, ${record.category}`}
-            >
-              <View style={styles.iconWell}>
-                <Icon name="clipboard-text-outline" size={18} color={familyHome.blue} />
-              </View>
-              <View style={styles.body}>
-                <Text style={styles.category}>{record.category}</Text>
-                <Text style={styles.title}>{record.title}</Text>
-                <Text style={styles.meta}>{record.date}</Text>
-                <Text style={styles.summary}>{record.summary}</Text>
-              </View>
-              <Icon name="chevron-forward" size={18} color={familyHome.muted} />
-            </Pressable>
-          ))}
-          {records.length === 0 ? (
-            <Text style={styles.empty}>No records in this category yet.</Text>
+          {!catalog.isPending && filtered.length === 0 ? (
+            <Text style={styles.hint}>No medical records yet. Reports will appear here once uploaded.</Text>
           ) : null}
         </View>
       </ScrollView>
@@ -89,7 +116,8 @@ function MedicalHistoryLive() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: familyHome.white },
   content: { paddingHorizontal: spacing.xl, paddingBottom: spacing.xxxl, gap: spacing.md },
-  hint: { ...typography.caption, color: familyHome.muted },
+  hint: { ...typography.caption, color: familyHome.muted, lineHeight: 18 },
+  retry: { ...typography.captionStrong, color: familyHome.blue },
   cats: { gap: spacing.sm, paddingVertical: spacing.xs },
   catChip: {
     borderWidth: 1,
@@ -97,9 +125,8 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
-    backgroundColor: familyHome.white,
   },
-  catChipActive: { backgroundColor: familyHome.green, borderColor: familyHome.green },
+  catChipActive: { backgroundColor: familyHome.blue, borderColor: familyHome.blue },
   catLabel: { ...typography.captionStrong, color: familyHome.text },
   catLabelActive: { color: familyHome.white },
   list: { gap: spacing.sm },
@@ -109,26 +136,20 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     borderWidth: 1,
     borderColor: familyHome.border,
-    borderRadius: 14,
-    padding: spacing.lg,
+    borderRadius: 12,
+    padding: spacing.md,
   },
   iconWell: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+    width: 36,
+    height: 36,
+    borderRadius: 10,
     backgroundColor: familyHome.blueSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
   body: { flex: 1, gap: 2 },
-  category: {
-    ...typography.captionStrong,
-    color: familyHome.blue,
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
-  },
+  category: { ...typography.captionStrong, color: familyHome.blue },
   title: { ...typography.bodyStrong, color: familyHome.text },
   meta: { ...typography.caption, color: familyHome.muted },
-  summary: { ...typography.caption, color: familyHome.muted, marginTop: 2, lineHeight: 18 },
-  empty: { ...typography.body, color: familyHome.muted, textAlign: 'center', marginTop: spacing.xl },
+  summary: { ...typography.caption, color: familyHome.muted, lineHeight: 18, marginTop: 2 },
 });

@@ -296,6 +296,76 @@ async def seed_delivery_catalogs(session: AsyncSession) -> int:
 
 async def seed_service_offerings(session: AsyncSession) -> int:
     """Upsert shared membership offerings by slug + title (idempotent)."""
+    # Retire renamed cyber awareness rows from earlier seeds.
+    for old_title in ("Digital Arrest", "Fake WhatsApp Links"):
+        legacy = (
+            await session.execute(
+                select(ServiceOffering).where(
+                    ServiceOffering.service_slug == "cyber-security",
+                    ServiceOffering.title == old_title,
+                )
+            )
+        ).scalar_one_or_none()
+        if legacy:
+            legacy.is_active = False
+
+    # Retire renamed events-trips rows from earlier seeds.
+    for old_title in (
+        "Marathi Play — Evening Show",
+        "Classical Music Morning",
+        "Lonavala One Day Trip",
+        "Private Family Day Outing",
+    ):
+        legacy = (
+            await session.execute(
+                select(ServiceOffering).where(
+                    ServiceOffering.service_slug == "events-trips",
+                    ServiceOffering.title == old_title,
+                )
+            )
+        ).scalar_one_or_none()
+        if legacy:
+            legacy.is_active = False
+
+    # Retire renamed home-repair rows from earlier seeds.
+    for old_title in ("Other",):
+        legacy = (
+            await session.execute(
+                select(ServiceOffering).where(
+                    ServiceOffering.service_slug == "home-repair",
+                    ServiceOffering.title == old_title,
+                )
+            )
+        ).scalar_one_or_none()
+        if legacy:
+            legacy.is_active = False
+
+    # Retire renamed legal rows from earlier seeds.
+    for old_title in ("Family Matters", "Other Legal"):
+        legacy = (
+            await session.execute(
+                select(ServiceOffering).where(
+                    ServiceOffering.service_slug == "legal",
+                    ServiceOffering.title == old_title,
+                )
+            )
+        ).scalar_one_or_none()
+        if legacy:
+            legacy.is_active = False
+
+    # Retire early transport duration rows (vehicle types are the catalog now).
+    for old_title in ("Half day driver", "Full day driver", "Half Day Driver", "Full Day Driver"):
+        legacy = (
+            await session.execute(
+                select(ServiceOffering).where(
+                    ServiceOffering.service_slug == "transport",
+                    ServiceOffering.title == old_title,
+                )
+            )
+        ).scalar_one_or_none()
+        if legacy:
+            legacy.is_active = False
+
     touched = 0
     for item in SEED_SERVICE_OFFERINGS:
         existing = (
@@ -449,6 +519,11 @@ async def repair_care_manager_assignment(session: AsyncSession) -> None:
             select(CareManager).where(CareManager.staff_kind == "CARE_MANAGER").order_by(CareManager.employee_id.asc())
         )
     ).scalars().first()
+    companion = (
+        await session.execute(
+            select(CareManager).where(CareManager.staff_kind == "COMPANION").order_by(CareManager.employee_id.asc())
+        )
+    ).scalars().first()
     if care:
         if not care.experience:
             care.experience = "3+ years in eldercare support"
@@ -458,25 +533,42 @@ async def repair_care_manager_assignment(session: AsyncSession) -> None:
             care.availability = "Compassionate • Reliable • Always Available"
     seniors = (await session.execute(select(Senior))).scalars().all()
     for senior in seniors:
-        if getattr(senior, "care_manager_id", None):
-            continue
-        visit = (
-            await session.execute(
-                select(Visit)
-                .join(CareManager, Visit.care_manager_id == CareManager.id)
-                .where(
-                    Visit.senior_id == senior.id,
-                    CareManager.staff_kind == "CARE_MANAGER",
-                    Visit.care_manager_id.is_not(None),
+        if not getattr(senior, "care_manager_id", None):
+            visit = (
+                await session.execute(
+                    select(Visit)
+                    .join(CareManager, Visit.care_manager_id == CareManager.id)
+                    .where(
+                        Visit.senior_id == senior.id,
+                        CareManager.staff_kind == "CARE_MANAGER",
+                        Visit.care_manager_id.is_not(None),
+                    )
+                    .order_by(Visit.scheduled_at.desc().nulls_last())
+                    .limit(1)
                 )
-                .order_by(Visit.scheduled_at.desc().nulls_last())
-                .limit(1)
-            )
-        ).scalars().first()
-        if visit and visit.care_manager_id:
-            senior.care_manager_id = visit.care_manager_id
-        elif care and senior.first_name == "John":
-            senior.care_manager_id = care.id
+            ).scalars().first()
+            if visit and visit.care_manager_id:
+                senior.care_manager_id = visit.care_manager_id
+            elif care and senior.first_name == "John":
+                senior.care_manager_id = care.id
+        if not getattr(senior, "companion_id", None):
+            companion_visit = (
+                await session.execute(
+                    select(Visit)
+                    .join(CareManager, Visit.care_manager_id == CareManager.id)
+                    .where(
+                        Visit.senior_id == senior.id,
+                        CareManager.staff_kind == "COMPANION",
+                        Visit.care_manager_id.is_not(None),
+                    )
+                    .order_by(Visit.scheduled_at.desc().nulls_last())
+                    .limit(1)
+                )
+            ).scalars().first()
+            if companion_visit and companion_visit.care_manager_id:
+                senior.companion_id = companion_visit.care_manager_id
+            elif companion and senior.first_name == "John":
+                senior.companion_id = companion.id
     await session.commit()
 
 
@@ -574,6 +666,7 @@ async def seed_data():
             staff_kind="DELIVERY_EXECUTIVE",
         )
         senior_a.care_manager_id = care_mgr.id
+        senior_a.companion_id = companion.id
         session.add_all([senior_a, senior_b, family, care_mgr, companion, delivery])
         await session.commit()
         

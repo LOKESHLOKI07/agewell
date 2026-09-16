@@ -1,1 +1,1 @@
-export { CyberSecurityGuidanceScreen as TechAssistanceScreen } from './SupportConsultationScreens';
+export { CyberSecurityGuidanceScreen as TechAssistanceScreen } from './CyberSecurityScreen';

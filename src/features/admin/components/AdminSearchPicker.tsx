@@ -73,7 +73,7 @@ export function AdminSearchPicker({
       setDraft((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
       return;
     }
-    setDraft([id]);
+    setDraft((prev) => (prev[0] === id ? [] : [id]));
   };
 
   return (
@@ -128,6 +128,16 @@ export function AdminSearchPicker({
             </ScrollView>
             <View style={styles.actions}>
               <SecondaryButton label="Cancel" fullWidth={false} onPress={() => setOpen(false)} />
+              {!multiple ? (
+                <SecondaryButton
+                  label="Clear"
+                  fullWidth={false}
+                  onPress={() => {
+                    onChange?.(null);
+                    setOpen(false);
+                  }}
+                />
+              ) : null}
               <PrimaryButton
                 label={confirmLabel}
                 fullWidth={false}

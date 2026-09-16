@@ -4,7 +4,12 @@ from uuid import UUID
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.care.models import CARE_STAFF_KIND_CARE_MANAGER, CareManager, CareManagerActivity
+from app.modules.care.models import (
+    CARE_STAFF_KIND_CARE_MANAGER,
+    CARE_STAFF_KIND_COMPANION,
+    CareManager,
+    CareManagerActivity,
+)
 from app.modules.seniors.models import Senior
 from app.modules.users.models import User
 from app.modules.visits.models import Visit
@@ -35,20 +40,33 @@ class CareManagerRepository:
         standing = await self.get_standing_assignment(senior_id)
         if standing and all(row.id != standing.id for row in rows):
             rows.insert(0, standing)
+        standing_companion = await self.get_standing_assignment(senior_id, CARE_STAFF_KIND_COMPANION)
+        if standing_companion and all(row.id != standing_companion.id for row in rows):
+            rows.insert(0 if not standing else 1, standing_companion)
         return rows
 
-    async def get_standing_assignment(self, senior_id: UUID) -> Optional[CareManager]:
+    async def get_standing_assignment(
+        self,
+        senior_id: UUID,
+        staff_kind: str = CARE_STAFF_KIND_CARE_MANAGER,
+    ) -> Optional[CareManager]:
         senior = (
             await self.session.execute(select(Senior).where(Senior.id == senior_id))
         ).scalars().first()
-        assigned_id = getattr(senior, "care_manager_id", None) if senior else None
+        kind = (staff_kind or CARE_STAFF_KIND_CARE_MANAGER).upper()
+        if kind == CARE_STAFF_KIND_COMPANION:
+            assigned_id = getattr(senior, "companion_id", None) if senior else None
+            expected = CARE_STAFF_KIND_COMPANION
+        else:
+            assigned_id = getattr(senior, "care_manager_id", None) if senior else None
+            expected = CARE_STAFF_KIND_CARE_MANAGER
         if not assigned_id:
             return None
         row = await self.get_by_id(assigned_id)
         if not row:
             return None
-        kind = (row.staff_kind or CARE_STAFF_KIND_CARE_MANAGER).upper()
-        if kind != CARE_STAFF_KIND_CARE_MANAGER:
+        row_kind = (row.staff_kind or CARE_STAFF_KIND_CARE_MANAGER).upper()
+        if row_kind != expected:
             return None
         return row
 
@@ -58,10 +76,10 @@ class CareManagerRepository:
         staff_kind: str = CARE_STAFF_KIND_CARE_MANAGER,
     ) -> Optional[CareManager]:
         kind = (staff_kind or CARE_STAFF_KIND_CARE_MANAGER).upper()
+        standing = await self.get_standing_assignment(senior_id, kind)
+        if standing:
+            return standing
         if kind == CARE_STAFF_KIND_CARE_MANAGER:
-            standing = await self.get_standing_assignment(senior_id)
-            if standing:
-                return standing
             stmt = (
                 select(CareManager)
                 .join(Visit, Visit.care_manager_id == CareManager.id)
@@ -76,7 +94,6 @@ class CareManagerRepository:
                 .limit(1)
             )
         else:
-            # Companions / other staff kinds are assigned via visits only.
             stmt = (
                 select(CareManager)
                 .join(Visit, Visit.care_manager_id == CareManager.id)

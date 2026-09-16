@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -18,9 +18,9 @@ import {
   toMonthlyBloodStatusView,
   type MonthlyBloodStatusView,
 } from './monthlyBloodModel';
+import { filterOfferingsByKind } from './catalogTypes';
 import { useMembershipSubmit } from './useMembershipSubmit';
-
-const EXTRA_TESTS = ['LFT', 'KFT', 'Lipid profile', 'Thyroid', 'Urine routine'] as const;
+import { useServiceOfferings } from './useCatalog';
 
 export const MonthlyBloodTestScreen = gatedMembershipScreen(
   'monthly-blood-test',
@@ -30,11 +30,22 @@ export const MonthlyBloodTestScreen = gatedMembershipScreen(
 
 function MonthlyBloodTestLive() {
   const insets = useSafeAreaInsets();
+  const catalog = useServiceOfferings('monthly-blood-test');
+  const extraTests = useMemo(
+    () => filterOfferingsByKind(catalog.data ?? [], 'extra'),
+    [catalog.data],
+  );
   const labsQuery = useLabResults();
   const docsQuery = useHealthDocuments();
   const requestsQuery = useServiceRequests();
-  const [extra, setExtra] = useState<(typeof EXTRA_TESTS)[number] | null>(null);
+  const [extraId, setExtraId] = useState('');
   const { submitting, submit } = useMembershipSubmit('monthly-blood-test');
+
+  useEffect(() => {
+    if (!extraId && extraTests[0]) setExtraId(extraTests[0].id);
+  }, [extraTests, extraId]);
+
+  const selectedExtra = extraTests.find((item) => item.id === extraId) ?? extraTests[0];
 
   const status = toMonthlyBloodStatusView({
     requests: requestsQuery.data?.items ?? [],
@@ -63,12 +74,15 @@ function MonthlyBloodTestLive() {
   };
 
   const onRequestExtra = () => {
-    if (!extra) {
-      Alert.alert('Select a test', 'Choose an extra test such as LFT, KFT, lipid profile, thyroid or urine routine.');
+    if (!selectedExtra) {
+      Alert.alert('No extra tests', 'Extra blood tests will appear here once configured in the catalog.');
       return;
     }
     void (async () => {
-      const ok = await submit(`Extra test: ${extra} (charges apply)`, 'Extra blood test requested');
+      const ok = await submit(
+        `Extra test: ${selectedExtra.title} (${selectedExtra.priceLabel || 'charges apply'})`,
+        'Extra blood test requested',
+      );
       if (ok) {
         await Promise.all([
           queryClient.invalidateQueries({ queryKey: homeQueryKeys.serviceRequests }),
@@ -103,22 +117,34 @@ function MonthlyBloodTestLive() {
         ) : null}
 
         <Text style={styles.section}>Extra tests (charges apply)</Text>
+        {catalog.isPending ? <Text style={styles.hint}>Loading extra tests…</Text> : null}
+        {catalog.isError ? (
+          <Pressable onPress={() => void catalog.refetch()} accessibilityRole="button">
+            <Text style={styles.hint}>Unable to load extra tests · Tap to retry</Text>
+          </Pressable>
+        ) : null}
         <View style={styles.extraList}>
-          {EXTRA_TESTS.map((item) => {
-            const active = extra === item;
+          {extraTests.map((item) => {
+            const active = item.id === extraId;
             return (
               <Pressable
-                key={item}
-                onPress={() => setExtra(item)}
+                key={item.id}
+                onPress={() => setExtraId(item.id)}
                 style={[styles.extraRow, active ? styles.extraRowActive : null]}
                 accessibilityRole="radio"
                 accessibilityState={{ selected: active }}
               >
-                <Text style={styles.extraTitle}>{item}</Text>
+                <View style={styles.flex}>
+                  <Text style={styles.extraTitle}>{item.title}</Text>
+                  {item.description ? <Text style={styles.hint}>{item.description}</Text> : null}
+                </View>
                 {active ? <Icon name="checkmark-circle-outline" size={20} color={familyHome.green} /> : <View style={styles.radio} />}
               </Pressable>
             );
           })}
+          {!catalog.isPending && extraTests.length === 0 ? (
+            <Text style={styles.hint}>No extra tests configured yet.</Text>
+          ) : null}
         </View>
         <Pressable
           style={[styles.primaryCta, submitting ? styles.disabled : null]}
@@ -203,6 +229,7 @@ function StatusCard({ status }: { status: MonthlyBloodStatusView }) {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: familyHome.white },
+  flex: { flex: 1, gap: 2 },
   content: { paddingHorizontal: spacing.xl, paddingBottom: spacing.xxxl, gap: spacing.md },
   hint: { ...typography.caption, color: familyHome.muted },
   statusCard: {

@@ -66,6 +66,7 @@ class SeniorUpdate(BaseModel):
     photo: Optional[str] = None
     in_service_area: Optional[bool] = None
     care_manager_id: Optional[UUID4] = None
+    companion_id: Optional[UUID4] = None
     location_lat: Optional[float] = None
     location_lng: Optional[float] = None
     location_query: Optional[str] = None
@@ -89,6 +90,7 @@ class SeniorResponse(SeniorBase):
     photo: Optional[str] = None
     in_service_area: bool = False
     care_manager_id: Optional[UUID4] = None
+    companion_id: Optional[UUID4] = None
     location_lat: Optional[float] = None
     location_lng: Optional[float] = None
     location_query: Optional[str] = None

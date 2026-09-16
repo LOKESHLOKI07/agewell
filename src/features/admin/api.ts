@@ -167,6 +167,7 @@ export function updateAdminSenior(
     email?: string;
     phone?: string;
     careManagerId?: string | null;
+    companionId?: string | null;
   },
 ): Promise<AdminSenior> {
   const body: Record<string, unknown> = {};
@@ -184,6 +185,7 @@ export function updateAdminSenior(
   if (input.email !== undefined) body.email = input.email;
   if (input.phone !== undefined) body.phone = input.phone;
   if (input.careManagerId !== undefined) body.care_manager_id = input.careManagerId;
+  if (input.companionId !== undefined) body.companion_id = input.companionId;
   return sendMapped('patch', `/seniors/${id}`, toAdminSenior, body);
 }
 
@@ -288,13 +290,22 @@ export function createAdminService(input: {
 
 export function updateAdminService(
   id: string,
-  input: { name?: string; category?: string; description?: string; coverImage?: string | null },
+  input: {
+    name?: string;
+    category?: string;
+    description?: string;
+    coverImage?: string | null;
+    callHoursText?: string | null;
+    supportPhone?: string | null;
+  },
 ): Promise<AdminService> {
   return sendMapped('patch', `/services/${id}`, toAdminService, {
     ...(input.name !== undefined ? { name: input.name } : {}),
     ...(input.category !== undefined ? { category: input.category } : {}),
     ...(input.description !== undefined ? { description: input.description } : {}),
     ...(input.coverImage !== undefined ? { cover_image: input.coverImage } : {}),
+    ...(input.callHoursText !== undefined ? { call_hours_text: input.callHoursText } : {}),
+    ...(input.supportPhone !== undefined ? { support_phone: input.supportPhone } : {}),
   });
 }
 

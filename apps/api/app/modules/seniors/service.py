@@ -45,6 +45,7 @@ def to_senior_response(senior) -> SeniorResponse:
         photo=senior.photo,
         in_service_area=resolve_in_service_area(senior),
         care_manager_id=getattr(senior, "care_manager_id", None),
+        companion_id=getattr(senior, "companion_id", None),
         location_lat=getattr(senior, "location_lat", None),
         location_lng=getattr(senior, "location_lng", None),
         location_query=getattr(senior, "location_query", None),
@@ -80,6 +81,7 @@ def to_senior_directory_item(
         photo=None,
         in_service_area=resolve_in_service_area(senior),
         care_manager_id=getattr(senior, "care_manager_id", None),
+        companion_id=getattr(senior, "companion_id", None),
         location_lat=getattr(senior, "location_lat", None),
         location_lng=getattr(senior, "location_lng", None),
         location_query=getattr(senior, "location_query", None),
@@ -189,6 +191,22 @@ class SeniorService:
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
                         detail="Assigned staff must be a Care Manager",
+                    )
+        if "companion_id" in data:
+            assigned_id = data["companion_id"]
+            if assigned_id is not None:
+                from app.modules.care.models import CARE_STAFF_KIND_COMPANION, CareManager
+
+                companion = (
+                    await self.repo.session.execute(select(CareManager).where(CareManager.id == assigned_id))
+                ).scalars().first()
+                if not companion:
+                    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Companion not found")
+                kind = (companion.staff_kind or "").upper()
+                if kind != CARE_STAFF_KIND_COMPANION:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Assigned staff must be a Companion",
                     )
         if "photo" in data:
             data["photo"] = _validated_photo(data["photo"])

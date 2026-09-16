@@ -22,6 +22,7 @@ class Senior(Base):
     # Explicit location check result; None = fall back to address keywords.
     in_service_area = Column(Boolean, nullable=True)
     care_manager_id = Column(UUID(as_uuid=True), ForeignKey("care_managers.id"), nullable=True, index=True)
+    companion_id = Column(UUID(as_uuid=True), ForeignKey("care_managers.id"), nullable=True, index=True)
     # Last location check: GPS pin and/or manually typed place.
     location_lat = Column(Float, nullable=True)
     location_lng = Column(Float, nullable=True)

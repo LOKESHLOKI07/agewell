@@ -1,25 +1,38 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView } from '@/components/KeyboardAwareScrollView';
 import type { IconName } from '@/components/ui';
-import { Icon } from '@/components/ui';
 import { spacing, typography } from '@/constants/theme';
+import { useServiceRequests, useServices } from '@/features/home/hooks/queries';
 import { AgeWellHeader } from '@/features/home/components/AgeWellHeader';
 import { familyHome } from '@/features/home/components/familyHomeTheme';
+import {
+  AboutServiceCard,
+  CallSupportCard,
+  OfferingCategoryGrid,
+  RecentRequestsList,
+} from './components/LiveServiceParts';
 import { MembershipServiceGate } from './MembershipServiceGate';
 import { MembershipServiceHero } from './MembershipServiceHero';
+import { filterRequestsBySlug, toLiveRequestViews } from './liveServiceRequests';
 import { useMembershipSubmit } from './useMembershipSubmit';
+import { useServiceOfferings } from './useCatalog';
 
 type Props = {
   title: string;
   subtitle: string;
-  timingNote: string;
-  topics: string[];
+  defaultHours: string;
+  callEyebrow: string;
+  callTitle: string;
+  callBody: string;
+  callCta: string;
+  categoryHint: string;
   icon: IconName;
   accent: string;
   accentSoft: string;
   slug: string;
+  showNotes?: boolean;
 };
 
 export function SupportConsultationScreen(props: Props) {
@@ -33,25 +46,55 @@ export function SupportConsultationScreen(props: Props) {
 function SupportConsultationBody({
   title,
   subtitle,
-  timingNote,
-  topics,
+  defaultHours,
+  callEyebrow,
+  callTitle,
+  callBody,
+  callCta,
+  categoryHint,
   icon,
   accent,
   accentSoft,
   slug,
+  showNotes = true,
 }: Props) {
   const insets = useSafeAreaInsets();
-  const [topic, setTopic] = useState(topics[0] ?? '');
+  const services = useServices();
+  const catalog = useServiceOfferings(slug);
+  const requestsQuery = useServiceRequests();
+  const offerings = catalog.data ?? [];
+  const [selectedId, setSelectedId] = useState('');
   const [notes, setNotes] = useState('');
+  const selected = offerings.find((item) => item.id === selectedId);
   const { submitting, submit } = useMembershipSubmit(slug);
 
-  const onRequest = () => {
-    void submit(`${topic}. ${notes.trim() || 'No extra notes'}`, `${title} request sent`);
+  const service = useMemo(
+    () => (services.data ?? []).find((item) => item.slug === slug) ?? null,
+    [services.data, slug],
+  );
+
+  const recent = useMemo(() => {
+    const mine = filterRequestsBySlug(requestsQuery.data?.items ?? [], slug);
+    return toLiveRequestViews(mine, { fallbackTitle: title });
+  }, [requestsQuery.data?.items, slug, title]);
+
+  useEffect(() => {
+    if (!selectedId && offerings[0]) setSelectedId(offerings[0].id);
+  }, [offerings, selectedId]);
+
+  const hours = service?.callHoursText?.trim() || defaultHours;
+  const about = service?.description?.trim() || subtitle;
+
+  const onRaise = () => {
+    const topic = selected?.title ?? title;
+    void submit(`${topic}. ${notes.trim() || 'No extra notes'}`, `${title} request sent`).then((ok) => {
+      if (ok) setNotes('');
+    });
   };
 
-  const onSupportCall = () => {
+  const onCall = () => {
     void submit(
-      `Customer Support call requested for ${title}. Topic: ${topic}. ${notes.trim()}`.trim(),
+      `Call requested for ${title}. Topic: ${selected?.title ?? 'General'}. ${notes.trim()}`.trim(),
       'Support call requested',
     );
   };
@@ -62,181 +105,65 @@ function SupportConsultationBody({
       <KeyboardAwareScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <MembershipServiceHero slug={slug} />
         <Text style={styles.hint}>{subtitle}</Text>
-        <Text style={styles.timing}>{timingNote}</Text>
 
-        <Text style={styles.section}>What do you need help with?</Text>
-        <View style={styles.list}>
-          {topics.map((item) => {
-            const active = item === topic;
-            return (
-              <Pressable
-                key={item}
-                onPress={() => setTopic(item)}
-                style={[styles.row, active ? styles.rowActive : null]}
-                accessibilityRole="button"
-                accessibilityState={{ selected: active }}
-              >
-                <View style={[styles.iconWell, { backgroundColor: accentSoft }]}>
-                  <Icon name={icon} size={18} color={accent} />
-                </View>
-                <Text style={styles.rowTitle}>{item}</Text>
-                {active ? (
-                  <Icon name="checkmark-circle-outline" size={20} color={familyHome.green} />
-                ) : null}
-              </Pressable>
-            );
-          })}
-        </View>
-
-        <Text style={styles.section}>Additional notes</Text>
-        <TextInput
-          value={notes}
-          onChangeText={setNotes}
-          placeholder="Share a short note for support"
-          placeholderTextColor={familyHome.muted}
-          style={styles.notes}
-          multiline
-          textAlignVertical="top"
+        <CallSupportCard
+          eyebrow={callEyebrow}
+          title={callTitle}
+          body={callBody}
+          hoursText={hours}
+          phone={service?.supportPhone}
+          ctaLabel={callCta}
+          submitting={submitting}
+          onCallFallback={onCall}
         />
 
+        <Text style={styles.section}>{categoryHint}</Text>
+        {catalog.isPending ? <Text style={styles.muted}>Loading categories…</Text> : null}
+        {catalog.isError ? (
+          <Pressable onPress={() => void catalog.refetch()} accessibilityRole="button">
+            <Text style={styles.retry}>Unable to load · Tap to retry</Text>
+          </Pressable>
+        ) : null}
+        {offerings.length > 0 ? (
+          <OfferingCategoryGrid
+            items={offerings}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
+            accent={accent}
+            accentSoft={accentSoft}
+            icon={icon}
+          />
+        ) : null}
+
+        {showNotes ? (
+          <>
+            <Text style={styles.label}>Notes (optional)</Text>
+            <TextInput
+              value={notes}
+              onChangeText={setNotes}
+              placeholder="Share a short note for support"
+              placeholderTextColor={familyHome.muted}
+              style={styles.notes}
+              multiline
+              textAlignVertical="top"
+              accessibilityLabel="Notes"
+            />
+          </>
+        ) : null}
+
         <Pressable
-          style={[styles.primaryCta, submitting ? { opacity: 0.6 } : null]}
-          onPress={onRequest}
+          style={[styles.primaryCta, submitting ? styles.disabled : null]}
+          onPress={onRaise}
           disabled={submitting}
           accessibilityRole="button"
         >
-          <Text style={styles.primaryCtaText}>{submitting ? 'Sending…' : 'Generate Request'}</Text>
+          <Text style={styles.primaryCtaText}>{submitting ? 'Sending…' : 'Raise a Request'}</Text>
         </Pressable>
-        <Pressable
-          style={styles.secondaryCta}
-          onPress={onSupportCall}
-          disabled={submitting}
-          accessibilityRole="button"
-        >
-          <Text style={styles.secondaryCtaText}>Set up Customer Support call</Text>
-        </Pressable>
+
+        <RecentRequestsList items={recent} />
+        <AboutServiceCard text={about} />
       </KeyboardAwareScrollView>
     </View>
-  );
-}
-
-export function LegalAssistanceScreen() {
-  return (
-    <SupportConsultationScreen
-      title="Legal Assistance"
-      subtitle="Exclusive access to AgeWell’s lawyer team for consultation."
-      timingNote="Service timing: 10 AM–6 PM"
-      topics={[
-        'Will / estate guidance',
-        'Property documents',
-        'Family / elder rights',
-        'General legal consultation',
-      ]}
-      icon="document-text-outline"
-      accent={familyHome.blue}
-      accentSoft={familyHome.blueSoft}
-      slug="legal"
-    />
-  );
-}
-
-export function CaAssistanceScreen() {
-  return (
-    <SupportConsultationScreen
-      title="CA Assistance"
-      subtitle="Exclusive CA access for financial-assistance consultation."
-      timingNote="UI follows the Legal Assistance flow"
-      topics={[
-        'Tax filing help',
-        'Pension / investment queries',
-        'Bank and paperwork support',
-        'General financial consultation',
-      ]}
-      icon="card-outline"
-      accent={familyHome.green}
-      accentSoft={familyHome.greenSoft}
-      slug="ca"
-    />
-  );
-}
-
-export function SmallErrandsScreen() {
-  return (
-    <SupportConsultationScreen
-      title="Small Errands Assistance"
-      subtitle="Our companion will call before the visit and assist with small errands that can be managed during the visit."
-      timingNote="Bundled with companion visits · max ~30 mins as needed"
-      topics={[
-        'Pharmacy pickup',
-        'Nearby shop purchase',
-        'Document drop / pickup',
-        'Other small errand',
-      ]}
-      icon="accessibility-outline"
-      accent={familyHome.orange}
-      accentSoft={familyHome.orangeSoft}
-      slug="small-errands"
-    />
-  );
-}
-
-export function ErrandCoordinationScreen() {
-  return (
-    <SupportConsultationScreen
-      title="Coordination for Other Errands"
-      subtitle="Our companion will coordinate errands such as ironing, haircut and other personal services as needed."
-      timingNote="Coordination support — service provider charges may apply"
-      topics={[
-        'Ironing / laundry coordination',
-        'Haircut / grooming appointment',
-        'Personal service booking',
-        'Other errand coordination',
-      ]}
-      icon="clipboard-outline"
-      accent={familyHome.purple}
-      accentSoft={familyHome.purpleSoft}
-      slug="errand-coordination"
-    />
-  );
-}
-
-export function CyberSecurityGuidanceScreen() {
-  return (
-    <SupportConsultationScreen
-      title="Cyber Security Guidance"
-      subtitle="Guidance on online scams and awareness by a trained companion. Help before investing or sharing OTPs, and support after fraud."
-      timingNote="Companion guidance · complaint follow-up when needed"
-      topics={[
-        'Online scam / phishing awareness',
-        'OTP and password safety',
-        'Advice before investing or paying',
-        'Help after fraud (complaints / follow-up)',
-      ]}
-      icon="shield-checkmark-outline"
-      accent={familyHome.purple}
-      accentSoft={familyHome.purpleSoft}
-      slug="cyber-security"
-    />
-  );
-}
-
-export function BankingCompanionScreen() {
-  return (
-    <SupportConsultationScreen
-      title="Banking Companion"
-      subtitle="Book a companion for bank visits like pension withdrawal, cheque deposit, passbook update and other banking work."
-      timingNote="Paid per visit · prior appointment required"
-      topics={[
-        'Pension withdrawal',
-        'Cheque deposit',
-        'Passbook update',
-        'Other banking work',
-      ]}
-      icon="card-outline"
-      accent={familyHome.green}
-      accentSoft={familyHome.greenSoft}
-      slug="banking-companion"
-    />
   );
 }
 
@@ -244,27 +171,10 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: familyHome.white },
   content: { paddingHorizontal: spacing.xl, paddingBottom: spacing.xxxl, gap: spacing.md },
   hint: { ...typography.body, color: familyHome.muted, lineHeight: 22 },
-  timing: { ...typography.captionStrong, color: familyHome.greenDark },
   section: { ...typography.subtitle, color: familyHome.text, marginTop: spacing.sm },
-  list: { gap: spacing.sm },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    borderWidth: 1,
-    borderColor: familyHome.border,
-    borderRadius: 14,
-    padding: spacing.lg,
-  },
-  rowActive: { borderColor: familyHome.green, backgroundColor: familyHome.greenSoft },
-  iconWell: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  rowTitle: { ...typography.bodyStrong, color: familyHome.text, flex: 1 },
+  muted: { ...typography.caption, color: familyHome.muted },
+  retry: { ...typography.captionStrong, color: familyHome.green },
+  label: { ...typography.captionStrong, color: familyHome.text },
   notes: {
     minHeight: 96,
     borderWidth: 1,
@@ -283,13 +193,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   primaryCtaText: { ...typography.bodyStrong, color: familyHome.white },
-  secondaryCta: {
-    minHeight: 48,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: familyHome.green,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  secondaryCtaText: { ...typography.bodyStrong, color: familyHome.green },
+  disabled: { opacity: 0.6 },
 });

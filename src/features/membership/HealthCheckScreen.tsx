@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Alert,
   Image,
@@ -31,23 +31,12 @@ import {
 import { membershipPurchaseHref } from './planCatalog';
 import { SERVICE_HERO_IMAGES } from './serviceHeroes';
 import { useMembershipServicePageVariant } from './useMembershipServicePageVariant';
+import type { ServiceOffering } from './catalogTypes';
 import { useMembershipSubmit } from './useMembershipSubmit';
+import { useServiceOfferings } from './useCatalog';
 import { useTabScreenBottomPad } from '@/utils/safeBottom';
 
-const INCLUDED: { icon: IconName; title: string; line: string }[] = [
-  { icon: 'heart-outline', title: 'Blood Pressure', line: 'Monitor your heart health' },
-  { icon: 'medkit-outline', title: 'Pulse', line: 'Check your pulse rate' },
-  { icon: 'medkit-outline', title: 'SpO₂', line: 'Know your oxygen level' },
-  { icon: 'time-outline', title: 'Temperature', line: 'Track your body temperature' },
-  { icon: 'water', title: 'Blood Sugar', line: 'Monitor your sugar levels' },
-];
-
-const MEMBER_EXTRAS: { icon: IconName; title: string }[] = [
-  { icon: 'document-text-outline', title: 'Maintain digital health records' },
-  { icon: 'clipboard-outline', title: 'Track your health over time' },
-  { icon: 'shield-checkmark-outline', title: 'Early detection and preventive care' },
-  { icon: 'plus-circle', title: 'Access to additional tests (e.g. ECG)' },
-];
+const DEFAULT_VITAL_ICON: IconName = 'heart-outline';
 
 /**
  * Health Check — three gate states from product mockups; member hub uses real labs/docs/requests only.
@@ -56,6 +45,16 @@ export function HealthCheckScreen() {
   const insets = useSafeAreaInsets();
   const bottomPad = useTabScreenBottomPad(spacing.xxl);
   const variant = useMembershipServicePageVariant(true);
+  const catalog = useServiceOfferings('health-check');
+  const offerings = catalog.data ?? [];
+  const includedOfferings = useMemo(
+    () => offerings.filter((item) => item.badge.toLowerCase() === 'included'),
+    [offerings],
+  );
+  const extraOfferings = useMemo(
+    () => offerings.filter((item) => item.badge.toLowerCase() === 'extra'),
+    [offerings],
+  );
   const { submitting, submit } = useMembershipSubmit('health-check');
   const labsQuery = useLabResults();
   const docsQuery = useHealthDocuments();
@@ -76,45 +75,42 @@ export function HealthCheckScreen() {
     void Promise.all([labsQuery.refetch(), docsQuery.refetch(), requestsQuery.refetch()]);
 
   const requestAddon = () => {
-    Alert.alert('Request add-on test', 'Choose an extra test (charges apply).', [
-      {
-        text: 'ECG',
-        onPress: () => {
-          void (async () => {
-            const ok = await submit('Add-on test: ECG (charges apply)', 'Add-on test requested');
-            if (ok) {
-              await Promise.all([
-                queryClient.invalidateQueries({ queryKey: homeQueryKeys.serviceRequests }),
-                requestsQuery.refetch(),
-              ]);
-            }
-          })();
-        },
-      },
-      {
-        text: 'Other paid test',
-        onPress: () => {
-          void (async () => {
-            const ok = await submit('Add-on test: Other paid test (charges apply)', 'Add-on test requested');
-            if (ok) {
-              await Promise.all([
-                queryClient.invalidateQueries({ queryKey: homeQueryKeys.serviceRequests }),
-                requestsQuery.refetch(),
-              ]);
-            }
-          })();
-        },
-      },
-      { text: 'Cancel', style: 'cancel' },
-    ]);
+    if (extraOfferings.length === 0) {
+      Alert.alert('No add-on tests', 'Add-on tests will appear here once configured in the catalog.');
+      return;
+    }
+    Alert.alert(
+      'Request add-on test',
+      'Choose an extra test (charges apply).',
+      [
+        ...extraOfferings.map((item) => ({
+          text: item.title,
+          onPress: () => {
+            void (async () => {
+              const ok = await submit(
+                `Add-on test: ${item.title} (${item.priceLabel || 'charges apply'})`,
+                'Add-on test requested',
+              );
+              if (ok) {
+                await Promise.all([
+                  queryClient.invalidateQueries({ queryKey: homeQueryKeys.serviceRequests }),
+                  requestsQuery.refetch(),
+                ]);
+              }
+            })();
+          },
+        })),
+        { text: 'Cancel', style: 'cancel' as const },
+      ],
+    );
   };
 
   const bookMonthly = () => {
+    const vitals =
+      includedOfferings.map((item) => item.title).join(', ') ||
+      'Monthly vitals check';
     void (async () => {
-      const ok = await submit(
-        'Vitals: Blood pressure (BP), Pulse, SpO₂ (oxygen), Temperature, Blood sugar',
-        'Health check requested',
-      );
+      const ok = await submit(`Vitals: ${vitals}`, 'Health check requested');
       if (ok) {
         await Promise.all([
           queryClient.invalidateQueries({ queryKey: homeQueryKeys.serviceRequests }),
@@ -144,7 +140,7 @@ export function HealthCheckScreen() {
           <>
             <TitleBlock />
             <HeroBanner tone="soft" />
-            <IncludedSection />
+            <IncludedSection items={includedOfferings} loading={catalog.isPending} />
             <ComingSoonFooter />
             <HelpBanner />
           </>
@@ -154,9 +150,13 @@ export function HealthCheckScreen() {
           <>
             <TitleBlock />
             <HeroBanner tone="photo" />
-            <IncludedSection title="What's Included (Free for Members)" />
+            <IncludedSection
+              title="What's Included (Free for Members)"
+              items={includedOfferings}
+              loading={catalog.isPending}
+            />
             <MembershipRequiredFooter />
-            <MoreWithMembership />
+            <MoreWithMembership extras={extraOfferings} />
           </>
         ) : null}
 
@@ -226,20 +226,32 @@ function HeroBanner({ tone }: { tone: 'soft' | 'photo' }) {
   );
 }
 
-function IncludedSection({ title = "What's Included" }: { title?: string }) {
+function IncludedSection({
+  title = "What's Included",
+  items,
+  loading,
+}: {
+  title?: string;
+  items: ServiceOffering[];
+  loading?: boolean;
+}) {
   return (
     <View style={styles.stack}>
       <Text style={styles.sectionTitle}>{title}</Text>
+      {loading ? <Text style={styles.empty}>Loading included checks…</Text> : null}
       <View style={styles.includedGrid}>
-        {INCLUDED.map((item) => (
-          <View key={item.title} style={styles.includedCard}>
+        {items.map((item) => (
+          <View key={item.id} style={styles.includedCard}>
             <View style={styles.includedIcon}>
-              <Icon name={item.icon} size={18} color={familyHome.green} />
+              <Icon name={DEFAULT_VITAL_ICON} size={18} color={familyHome.green} />
             </View>
             <Text style={styles.includedTitle}>{item.title}</Text>
-            <Text style={styles.includedLine}>{item.line}</Text>
+            <Text style={styles.includedLine}>{item.description}</Text>
           </View>
         ))}
+        {!loading && items.length === 0 ? (
+          <Text style={styles.empty}>Included checks will appear here once configured.</Text>
+        ) : null}
       </View>
     </View>
   );
@@ -291,18 +303,24 @@ function MembershipRequiredFooter() {
   );
 }
 
-function MoreWithMembership() {
+function MoreWithMembership({ extras }: { extras: ServiceOffering[] }) {
   return (
     <View style={styles.stack}>
       <Text style={styles.sectionTitle}>More with Membership</Text>
-      {MEMBER_EXTRAS.map((item) => (
-        <View key={item.title} style={styles.extraRow}>
+      {extras.map((item) => (
+        <View key={item.id} style={styles.extraRow}>
           <View style={styles.extraIcon}>
-            <Icon name={item.icon} size={16} color={familyHome.green} />
+            <Icon name="plus-circle" size={16} color={familyHome.green} />
           </View>
-          <Text style={styles.extraTitle}>{item.title}</Text>
+          <View style={styles.flex}>
+            <Text style={styles.extraTitle}>{item.title}</Text>
+            <Text style={styles.includedLine}>{item.description}</Text>
+          </View>
         </View>
       ))}
+      {extras.length === 0 ? (
+        <Text style={styles.empty}>Add-on tests are configured in the admin catalog.</Text>
+      ) : null}
     </View>
   );
 }

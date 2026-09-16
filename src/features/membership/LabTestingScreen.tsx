@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from '@/components/ui';
 import { spacing, typography } from '@/constants/theme';
 import { AgeWellHeader } from '@/features/home/components/AgeWellHeader';
 import { familyHome } from '@/features/home/components/familyHomeTheme';
-import { LAB_SLOTS } from './mockHealth';
+import { filterOfferingsByKind, parseOfferingMeta } from './catalogTypes';
 import { MembershipServiceHero } from './MembershipServiceHero';
 import { gatedMembershipScreen } from './MembershipServiceGate';
 import { useMembershipSubmit } from './useMembershipSubmit';
@@ -20,9 +20,14 @@ export const LabTestingScreen = gatedMembershipScreen(
 function LabTestingLive() {
   const insets = useSafeAreaInsets();
   const catalog = useServiceOfferings('lab-testing');
-  const tests = catalog.data ?? [];
+  const allOfferings = catalog.data ?? [];
+  const tests = useMemo(
+    () => allOfferings.filter((item) => parseOfferingMeta(item.metaJson).kind !== 'slot'),
+    [allOfferings],
+  );
+  const slots = useMemo(() => filterOfferingsByKind(allOfferings, 'slot'), [allOfferings]);
   const [testId, setTestId] = useState('');
-  const [slot, setSlot] = useState(LAB_SLOTS[0] ?? '');
+  const [slotId, setSlotId] = useState('');
   const [homeVisit, setHomeVisit] = useState(true);
   const { submitting, submit } = useMembershipSubmit('lab-testing');
 
@@ -30,12 +35,17 @@ function LabTestingLive() {
     if (!testId && tests[0]) setTestId(tests[0].id);
   }, [tests, testId]);
 
+  useEffect(() => {
+    if (!slotId && slots[0]) setSlotId(slots[0].id);
+  }, [slots, slotId]);
+
   const selected = tests.find((item) => item.id === testId) ?? tests[0];
+  const selectedSlot = slots.find((item) => item.id === slotId) ?? slots[0];
 
   const onBook = () => {
-    if (!selected) return;
+    if (!selected || !selectedSlot) return;
     void submit(
-      `Lab: ${selected.title} · ${slot} · ${homeVisit ? 'Home visit' : 'Lab visit'} · ${selected.priceLabel}`,
+      `Lab: ${selected.title} · ${selectedSlot.title} · ${homeVisit ? 'Home visit' : 'Lab visit'} · ${selected.priceLabel}`,
       'Appointment requested',
     );
   };
@@ -83,27 +93,33 @@ function LabTestingLive() {
         </View>
 
         <Text style={styles.section}>Preferred date / time</Text>
-        <View style={styles.list}>
-          {LAB_SLOTS.map((item) => {
-            const active = item === slot;
-            return (
-              <Pressable
-                key={item}
-                onPress={() => setSlot(item)}
-                style={[styles.slotChip, active ? styles.slotChipActive : null]}
-                accessibilityRole="button"
-                accessibilityState={{ selected: active }}
-              >
-                <Icon
-                  name="calendar-outline"
-                  size={16}
-                  color={active ? familyHome.white : familyHome.blue}
-                />
-                <Text style={[styles.slotLabel, active ? styles.slotLabelActive : null]}>{item}</Text>
-              </Pressable>
-            );
-          })}
-        </View>
+        {slots.length > 0 ? (
+          <View style={styles.list}>
+            {slots.map((item) => {
+              const active = item.id === slotId;
+              return (
+                <Pressable
+                  key={item.id}
+                  onPress={() => setSlotId(item.id)}
+                  style={[styles.slotChip, active ? styles.slotChipActive : null]}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                >
+                  <Icon
+                    name="calendar-outline"
+                    size={16}
+                    color={active ? familyHome.white : familyHome.blue}
+                  />
+                  <Text style={[styles.slotLabel, active ? styles.slotLabelActive : null]}>
+                    {item.title}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        ) : (
+          <Text style={styles.hint}>No appointment slots available yet. Contact support to schedule.</Text>
+        )}
 
         <View style={styles.toggleRow}>
           <View style={styles.toggleText}>
@@ -119,22 +135,14 @@ function LabTestingLive() {
           />
         </View>
 
-        <View style={styles.summary}>
-          <Text style={styles.summaryTitle}>Booking summary</Text>
-          <Text style={styles.summaryLine}>{selected?.title}</Text>
-          <Text style={styles.summaryLine}>{slot}</Text>
-          <Text style={styles.summaryLine}>
-            {homeVisit ? 'Home visit' : 'Lab visit'} · Amount payable {selected?.priceLabel}
-          </Text>
-        </View>
-
         <Pressable
-          style={[styles.primaryCta, submitting ? { opacity: 0.6 } : null]}
           onPress={onBook}
-          disabled={submitting}
+          disabled={submitting || !selected || !selectedSlot}
+          style={[styles.bookBtn, submitting || !selected || !selectedSlot ? styles.bookBtnDisabled : null]}
           accessibilityRole="button"
+          accessibilityLabel="Request appointment"
         >
-          <Text style={styles.primaryCtaText}>{submitting ? 'Sending…' : 'Book Appointment'}</Text>
+          <Text style={styles.bookLabel}>{submitting ? 'Sending…' : 'Request appointment'}</Text>
         </Pressable>
       </ScrollView>
     </View>
@@ -144,21 +152,21 @@ function LabTestingLive() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: familyHome.white },
   content: { paddingHorizontal: spacing.xl, paddingBottom: spacing.xxxl, gap: spacing.md },
-  hint: { ...typography.caption, color: familyHome.muted },
-  retry: { ...typography.captionStrong, color: familyHome.green },
+  hint: { ...typography.caption, color: familyHome.muted, lineHeight: 18 },
+  retry: { ...typography.captionStrong, color: familyHome.blue },
   section: { ...typography.subtitle, color: familyHome.text, marginTop: spacing.sm },
   list: { gap: spacing.sm },
-  thumb: { width: 40, height: 40, borderRadius: 8, backgroundColor: familyHome.border },
   optionRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
     borderWidth: 1,
     borderColor: familyHome.border,
-    borderRadius: 14,
-    padding: spacing.lg,
+    borderRadius: 12,
+    padding: spacing.md,
   },
   optionRowActive: { borderColor: familyHome.green, backgroundColor: familyHome.greenSoft },
+  thumb: { width: 44, height: 44, borderRadius: 8 },
   optionBody: { flex: 1, gap: 2 },
   optionTitle: { ...typography.bodyStrong, color: familyHome.text },
   optionMeta: { ...typography.caption, color: familyHome.muted },
@@ -175,12 +183,12 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     borderWidth: 1,
     borderColor: familyHome.border,
-    borderRadius: 12,
+    borderRadius: 999,
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm,
   },
-  slotChipActive: { backgroundColor: familyHome.green, borderColor: familyHome.green },
-  slotLabel: { ...typography.captionStrong, color: familyHome.text },
+  slotChipActive: { backgroundColor: familyHome.blue, borderColor: familyHome.blue },
+  slotLabel: { ...typography.captionStrong, color: familyHome.blue },
   slotLabelActive: { color: familyHome.white },
   toggleRow: {
     flexDirection: 'row',
@@ -188,25 +196,18 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     borderWidth: 1,
     borderColor: familyHome.border,
-    borderRadius: 14,
-    padding: spacing.lg,
+    borderRadius: 12,
+    padding: spacing.md,
+    marginTop: spacing.sm,
   },
   toggleText: { flex: 1, gap: 2, paddingRight: spacing.md },
-  summary: {
-    borderRadius: 16,
-    backgroundColor: familyHome.blueSoft,
-    padding: spacing.lg,
-    gap: 4,
-  },
-  summaryTitle: { ...typography.bodyStrong, color: familyHome.text, marginBottom: 4 },
-  summaryLine: { ...typography.caption, color: familyHome.muted, lineHeight: 18 },
-  primaryCta: {
-    marginTop: spacing.sm,
-    minHeight: 52,
-    borderRadius: 14,
+  bookBtn: {
     backgroundColor: familyHome.green,
+    borderRadius: 12,
+    paddingVertical: spacing.md,
     alignItems: 'center',
-    justifyContent: 'center',
+    marginTop: spacing.md,
   },
-  primaryCtaText: { ...typography.bodyStrong, color: familyHome.white },
+  bookBtnDisabled: { opacity: 0.5 },
+  bookLabel: { ...typography.bodyStrong, color: familyHome.white },
 });

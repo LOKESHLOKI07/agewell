@@ -81,21 +81,31 @@ MEMBERSHIP_SERVICES: list[MembershipServiceDef] = [
         "slug": "small-errands",
         "name": "Small Errands Assistance",
         "category": ServiceCategory.CARE,
-        "description": "Companion calls before the visit and assists with small manageable errands.",
+        "description": (
+            "Our companion can assist you with small day-to-day errands such as buying medicines, "
+            "picking up groceries, submitting documents, post office visits, small household purchases "
+            "and other routine tasks nearby. Just give us a call and your companion will help you."
+        ),
         "admin_inbox": "visits",
     },
     {
         "slug": "errand-coordination",
         "name": "Coordination for Other Errands",
         "category": ServiceCategory.CARE,
-        "description": "Companion coordinates errands such as ironing, haircut and personal services.",
+        "description": (
+            "Our companion helps coordinate home services like ironing, haircuts, cleaning and minor repairs "
+            "with trusted professionals. Service provider costs are charged separately based on the actual bill."
+        ),
         "admin_inbox": "requests",
     },
     {
         "slug": "cyber-security",
         "name": "Cyber Security Guidance",
         "category": ServiceCategory.CARE,
-        "description": "Guidance on online scams, OTP sharing and fraud awareness by trained companion.",
+        "description": (
+            "Stay aware and stay safe. Guidance on common online scams, OTP sharing risks, "
+            "caution before investing, and support after fraud — our team is with you."
+        ),
         "admin_inbox": "requests",
     },
     {
@@ -109,14 +119,17 @@ MEMBERSHIP_SERVICES: list[MembershipServiceDef] = [
         "slug": "ca",
         "name": "CA Assistance",
         "category": ServiceCategory.ADD_ON,
-        "description": "Exclusive CA access for ITR filing and financial consultations (extra cost).",
+        "description": (
+            "Exclusive access to AgeWell CA partners for ITR filing, financial guidance and other CA services. "
+            "Consultation and filing costs are charged separately."
+        ),
         "admin_inbox": "requests",
     },
     {
         "slug": "events-trips",
         "name": "Local Events & Trips",
         "category": ServiceCategory.COMMUNITY,
-        "description": "Nearby events and at least one supported AgeWell tour a year with companion support (tours cost extra).",
+        "description": "Nearby events, priority AgeWell tours across Maharashtra & India, and companion support for luggage, boarding, seating, hotel check-in/out plus medication & emergency help (tours cost extra).",
         "admin_inbox": "community",
     },
     {
@@ -137,21 +150,21 @@ MEMBERSHIP_SERVICES: list[MembershipServiceDef] = [
         "slug": "legal",
         "name": "Legal Assistance",
         "category": ServiceCategory.ADD_ON,
-        "description": "Exclusive lawyer consultations (extra cost).",
+        "description": "Exclusive access to our lawyer team for consultations. (Costs extra)",
         "admin_inbox": "requests",
     },
     {
         "slug": "local-transport",
         "name": "Local Area Transportation",
         "category": ServiceCategory.MOBILITY,
-        "description": "Companion-supported coordination between cabs and rickshaws.",
+        "description": "Companion supported coordination between cabs and rikshaws.",
         "admin_inbox": "requests",
     },
     {
         "slug": "transport",
         "name": "Outstation Transport",
         "category": ServiceCategory.MOBILITY,
-        "description": "Trained driver assistance for outstation trips (cost as per trip).",
+        "description": "Well-trained driver assistance for outstation trips. Cost as per trip need.",
         "admin_inbox": "requests",
     },
     {
@@ -165,7 +178,7 @@ MEMBERSHIP_SERVICES: list[MembershipServiceDef] = [
         "slug": "cctv",
         "name": "CCTV Dashboard",
         "category": ServiceCategory.ADD_ON,
-        "description": "Entrance CCTV camera coverage available on-app.",
+        "description": "Entrance CCTV camera coverage available on-app activity.",
         "admin_inbox": "special",
     },
 ]

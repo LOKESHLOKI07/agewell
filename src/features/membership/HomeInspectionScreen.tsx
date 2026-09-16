@@ -1,13 +1,18 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from '@/components/ui';
 import { spacing, typography } from '@/constants/theme';
 import { AgeWellHeader } from '@/features/home/components/AgeWellHeader';
 import { familyHome } from '@/features/home/components/familyHomeTheme';
+import {
+  filterOfferingsByKind,
+  parseInspectionAreas,
+  parseOfferingMeta,
+} from './catalogTypes';
 import { MembershipServiceHero } from './MembershipServiceHero';
 import { gatedMembershipScreen } from './MembershipServiceGate';
-import { INSPECTION_REPORTS } from './mockLifestyle';
+import { useServiceOfferings } from './useCatalog';
 
 export const HomeInspectionScreen = gatedMembershipScreen(
   'home-inspection',
@@ -17,8 +22,21 @@ export const HomeInspectionScreen = gatedMembershipScreen(
 
 function HomeInspectionLive() {
   const insets = useSafeAreaInsets();
-  const [reportId, setReportId] = useState(INSPECTION_REPORTS[0]?.id ?? '');
-  const report = INSPECTION_REPORTS.find((item) => item.id === reportId) ?? INSPECTION_REPORTS[0];
+  const catalog = useServiceOfferings('home-inspection');
+  const reports = useMemo(
+    () => filterOfferingsByKind(catalog.data ?? [], 'report'),
+    [catalog.data],
+  );
+  const [reportId, setReportId] = useState('');
+
+  useEffect(() => {
+    if (!reportId && reports[0]) setReportId(reports[0].id);
+  }, [reports, reportId]);
+
+  const report = reports.find((item) => item.id === reportId) ?? reports[0];
+  const meta = parseOfferingMeta(report?.metaJson);
+  const areas = parseInspectionAreas(report?.metaJson);
+  const overall = meta.overall === 'Needs attention' ? 'Needs attention' : 'All clear';
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
@@ -29,43 +47,57 @@ function HomeInspectionLive() {
           Optional monthly general home safety check — washroom, bedroom, entrance and more
         </Text>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.months}>
-          {INSPECTION_REPORTS.map((item) => {
-            const active = item.id === reportId;
-            return (
-              <Pressable
-                key={item.id}
-                onPress={() => setReportId(item.id)}
-                style={[styles.monthChip, active ? styles.monthChipActive : null]}
-                accessibilityRole="button"
-                accessibilityState={{ selected: active }}
-              >
-                <Text style={[styles.monthLabel, active ? styles.monthLabelActive : null]}>
-                  {item.monthLabel}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
+        {catalog.isPending ? <Text style={styles.hint}>Loading reports…</Text> : null}
+        {catalog.isError ? (
+          <Pressable onPress={() => void catalog.refetch()} accessibilityRole="button">
+            <Text style={styles.retry}>Unable to load · Tap to retry</Text>
+          </Pressable>
+        ) : null}
+
+        {reports.length > 0 ? (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.months}>
+            {reports.map((item) => {
+              const active = item.id === reportId;
+              const label = parseOfferingMeta(item.metaJson).monthLabel || item.title;
+              return (
+                <Pressable
+                  key={item.id}
+                  onPress={() => setReportId(item.id)}
+                  style={[styles.monthChip, active ? styles.monthChipActive : null]}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                >
+                  <Text style={[styles.monthLabel, active ? styles.monthLabelActive : null]}>
+                    {label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        ) : null}
 
         {report ? (
           <View style={styles.reportCard}>
             <View style={styles.reportTop}>
-              <Text style={styles.reportTitle}>{report.monthLabel} checkup</Text>
+              <Text style={styles.reportTitle}>
+                {meta.monthLabel || report.title}
+              </Text>
               <View
                 style={[
                   styles.overallBadge,
-                  report.overall === 'Needs attention' ? styles.attentionBadge : null,
+                  overall === 'Needs attention' ? styles.attentionBadge : null,
                 ]}
               >
-                <Text style={styles.overallText}>{report.overall}</Text>
+                <Text style={styles.overallText}>{overall}</Text>
               </View>
             </View>
-            <Text style={styles.meta}>Inspected on {report.inspectedOn}</Text>
+            {meta.inspectedOn ? (
+              <Text style={styles.meta}>Inspected on {meta.inspectedOn}</Text>
+            ) : null}
 
             <View style={styles.areaList}>
-              {report.areas.map((area) => (
-                <View key={area.id} style={styles.areaRow}>
+              {areas.map((area) => (
+                <View key={`${report.id}-${area.name}`} style={styles.areaRow}>
                   <View
                     style={[
                       styles.areaIcon,
@@ -94,8 +126,13 @@ function HomeInspectionLive() {
                   </Text>
                 </View>
               ))}
+              {areas.length === 0 ? (
+                <Text style={styles.meta}>{report.description || 'Report details will appear here.'}</Text>
+              ) : null}
             </View>
           </View>
+        ) : !catalog.isPending ? (
+          <Text style={styles.hint}>No inspection reports yet. Your first report will appear here after a visit.</Text>
         ) : null}
       </ScrollView>
     </View>
@@ -106,6 +143,7 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: familyHome.white },
   content: { paddingHorizontal: spacing.xl, paddingBottom: spacing.xxxl, gap: spacing.md },
   hint: { ...typography.caption, color: familyHome.muted, lineHeight: 18 },
+  retry: { ...typography.captionStrong, color: familyHome.blue },
   months: { gap: spacing.sm, paddingVertical: spacing.xs },
   monthChip: {
     borderWidth: 1,

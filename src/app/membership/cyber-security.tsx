@@ -1,1 +1,1 @@
-export { CyberSecurityGuidanceScreen as default } from '@/features/membership/SupportConsultationScreens';
+export { CyberSecurityGuidanceScreen as default } from '@/features/membership/CyberSecurityScreen';

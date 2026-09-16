@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Text, ForeignKey, UUID, Enum
+from sqlalchemy import Column, String, Text, ForeignKey, UUID, Enum, DateTime, func
 import uuid
 import enum
 from app.db.base import Base
@@ -19,6 +19,8 @@ class Service(Base):
     category = Column(Enum(ServiceCategory))
     description = Column(String)
     cover_image = Column(Text, nullable=True)
+    call_hours_text = Column(String, nullable=True)
+    support_phone = Column(String, nullable=True)
 
 class ServiceRequestStatus(str, enum.Enum):
     REQUESTED = "REQUESTED"
@@ -36,3 +38,4 @@ class ServiceRequest(Base):
     service_id = Column(UUID(as_uuid=True), ForeignKey("services.id"))
     status = Column(Enum(ServiceRequestStatus), default=ServiceRequestStatus.REQUESTED)
     notes = Column(String, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)

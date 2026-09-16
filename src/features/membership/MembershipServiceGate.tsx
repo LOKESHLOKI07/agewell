@@ -11,7 +11,7 @@ import { MEMBERSHIP_SERVICE_AREA_LINE } from './membershipServicePageVariant';
 import { MembershipServiceHero } from './MembershipServiceHero';
 import { membershipPurchaseHref } from './planCatalog';
 import { useMembershipServicePageVariant } from './useMembershipServicePageVariant';
-import { useTabScreenBottomPad } from '@/utils/safeBottom';
+import { useSystemBottomInset } from '@/utils/safeBottom';
 
 type GateProps = {
   slug: string;
@@ -27,7 +27,7 @@ export function MembershipServiceGate({
   children,
 }: GateProps) {
   const insets = useSafeAreaInsets();
-  const bottomPad = useTabScreenBottomPad(spacing.xxl);
+  const bottomPad = useSystemBottomInset(12) + spacing.xxl;
   const variant = useMembershipServicePageVariant(requireMembership);
 
   if (variant === 'serviceable_with_membership') {
@@ -139,12 +139,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.md,
     gap: spacing.md,
+    width: '100%',
+    maxWidth: 720,
+    alignSelf: 'center',
   },
   stack: {
     gap: spacing.md,
   },
   bannerCopy: {
     flex: 1,
+    minWidth: 0,
   },
   soonBanner: {
     flexDirection: 'row',

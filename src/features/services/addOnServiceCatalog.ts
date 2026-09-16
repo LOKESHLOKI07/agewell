@@ -11,7 +11,7 @@ export const ADD_ON_SERVICES: HomeServiceTile[] = [
   {
     id: 'emergency-companion',
     title: 'Emergency Companion',
-    icon: 'heart-outline',
+    icon: 'heart-handshake',
     color: familyHome.purple,
     background: familyHome.purpleSoft,
     href: addonHref('emergency-companion'),
@@ -20,7 +20,7 @@ export const ADD_ON_SERVICES: HomeServiceTile[] = [
   {
     id: 'stool-cleaning',
     title: 'Stool Cleaning',
-    icon: 'water',
+    icon: 'broom-sparkles',
     color: familyHome.blue,
     background: familyHome.blueSoft,
     href: addonHref('stool-cleaning'),
@@ -28,8 +28,8 @@ export const ADD_ON_SERVICES: HomeServiceTile[] = [
   },
   {
     id: 'maid-assistance',
-    title: 'Maid Assistance',
-    icon: 'home',
+    title: 'House Cleaning',
+    icon: 'brush-cleaning',
     color: familyHome.green,
     background: familyHome.greenSoft,
     href: addonHref('maid-assistance'),
@@ -38,7 +38,7 @@ export const ADD_ON_SERVICES: HomeServiceTile[] = [
   {
     id: 'ayurvedic-massage',
     title: 'Ayurvedic Massage',
-    icon: 'sparkles',
+    icon: 'hand-heart',
     color: familyHome.orange,
     background: familyHome.yellowSoft,
     href: addonHref('ayurvedic-massage'),
@@ -47,7 +47,7 @@ export const ADD_ON_SERVICES: HomeServiceTile[] = [
   {
     id: 'food',
     title: 'Food Delivery',
-    icon: 'restaurant-outline',
+    icon: 'shopping-bag',
     color: familyHome.orange,
     background: familyHome.orangeSoft,
     href: '/membership/food' as Href,

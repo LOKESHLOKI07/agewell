@@ -51,7 +51,11 @@ export function AgeWellHeader({
         : null;
 
   const heading = (
-    <Text style={styles.brand} accessibilityRole="header" numberOfLines={1}>
+    <Text
+      style={[styles.brand, centerTitle ? styles.brandCentered : null]}
+      accessibilityRole="header"
+      numberOfLines={1}
+    >
       {title || t('brand.name')}
     </Text>
   );
@@ -64,7 +68,9 @@ export function AgeWellHeader({
       accessibilityLabel={t('common.back')}
     >
       <Icon name="arrow-back" size={22} color={familyHome.text} />
-      <Text style={styles.backLabel}>{t('common.back')}</Text>
+      <Text style={styles.backLabel} numberOfLines={1}>
+        {t('common.back')}
+      </Text>
     </Pressable>
   ) : null;
 
@@ -88,9 +94,19 @@ export function AgeWellHeader({
   if (centerTitle) {
     return (
       <View style={styles.container}>
-        <View style={styles.side}>{backButton}</View>
-        <View style={styles.centerTitle} pointerEvents="none">
+        <View style={[styles.side, styles.sideLeft]}>{backButton}</View>
+        <View style={styles.centerTitleFlex}>
           {heading}
+          {showTagline ? (
+            <Text style={styles.taglineCentered} numberOfLines={2}>
+              {t('brand.tagline')}
+            </Text>
+          ) : null}
+          {subtitle && !showTagline ? (
+            <Text style={styles.subtitleCentered} numberOfLines={2}>
+              {subtitle}
+            </Text>
+          ) : null}
         </View>
         <View style={[styles.side, styles.sideRight]}>{rightSide}</View>
       </View>
@@ -121,34 +137,54 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.md,
     backgroundColor: familyHome.white,
-    position: 'relative',
   },
   side: {
     minWidth: minTouchSize,
-    zIndex: 1,
+    flexShrink: 0,
+  },
+  sideLeft: {
+    alignItems: 'flex-start',
   },
   sideRight: {
     alignItems: 'flex-end',
-    marginLeft: 'auto',
   },
-  centerTitle: {
-    ...StyleSheet.absoluteFill,
+  centerTitleFlex: {
+    flex: 1,
+    minWidth: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 72,
+    paddingHorizontal: spacing.sm,
+  },
+  taglineCentered: {
+    ...typography.caption,
+    color: familyHome.muted,
+    marginTop: 2,
+    textAlign: 'center',
+  },
+  subtitleCentered: {
+    ...typography.caption,
+    color: familyHome.muted,
+    marginTop: 2,
+    textAlign: 'center',
   },
   left: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     flex: 1,
+    minWidth: 0,
   },
   titles: {
     flex: 1,
+    minWidth: 0,
     paddingRight: spacing.sm,
   },
   brand: {
     ...typography.title,
     color: familyHome.green,
+    flexShrink: 1,
+  },
+  brandCentered: {
+    textAlign: 'center',
   },
   greeting: {
     ...typography.subtitle,
@@ -169,6 +205,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
+    flexShrink: 0,
   },
   backBtn: {
     marginRight: spacing.md,

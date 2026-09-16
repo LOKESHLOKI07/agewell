@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy import func
+from sqlalchemy import func, or_
 
 from app.modules.access.models import FamilySeniorAccess
 from app.modules.care.models import CareManager
@@ -35,7 +35,15 @@ class AccessRepository:
         from app.modules.seniors.models import Senior
 
         standing = await self.session.execute(
-            select(Senior.id).where(Senior.id == senior_id, Senior.care_manager_id == care_manager_id).limit(1)
+            select(Senior.id)
+            .where(
+                Senior.id == senior_id,
+                or_(
+                    Senior.care_manager_id == care_manager_id,
+                    Senior.companion_id == care_manager_id,
+                ),
+            )
+            .limit(1)
         )
         if standing.scalar_one_or_none() is not None:
             return True
@@ -50,12 +58,30 @@ class AccessRepository:
         return result.scalar_one_or_none() is not None
 
     async def list_assigned_senior_ids(self, care_manager_id) -> list:
-        result = await self.session.execute(
-            select(Visit.senior_id)
-            .where(Visit.care_manager_id == care_manager_id, Visit.senior_id.is_not(None))
-            .distinct()
-        )
-        return [senior_id for senior_id in result.scalars().all()]
+        from app.modules.seniors.models import Senior
+
+        visit_ids = (
+            await self.session.execute(
+                select(Visit.senior_id)
+                .where(Visit.care_manager_id == care_manager_id, Visit.senior_id.is_not(None))
+                .distinct()
+            )
+        ).scalars().all()
+        standing_ids = (
+            await self.session.execute(
+                select(Senior.id).where(
+                    or_(
+                        Senior.care_manager_id == care_manager_id,
+                        Senior.companion_id == care_manager_id,
+                    )
+                )
+            )
+        ).scalars().all()
+        ordered: list = []
+        for senior_id in [*standing_ids, *visit_ids]:
+            if senior_id is not None and senior_id not in ordered:
+                ordered.append(senior_id)
+        return ordered
 
     async def list_family_user_ids_for_senior(self, senior_id) -> list:
         result = await self.session.execute(
@@ -87,26 +113,24 @@ class AccessRepository:
         user_ids = [user_id for user_id in result.scalars().all() if user_id is not None]
         from app.modules.seniors.models import Senior
 
-        standing = (
+        standing_rows = (
             await self.session.execute(
-                select(CareManager.user_id)
-                .join(Senior, Senior.care_manager_id == CareManager.id)
+                select(CareManager.user_id, CareManager.staff_kind)
+                .join(
+                    Senior,
+                    or_(
+                        Senior.care_manager_id == CareManager.id,
+                        Senior.companion_id == CareManager.id,
+                    ),
+                )
                 .where(Senior.id == senior_id, CareManager.user_id.is_not(None))
             )
-        ).scalars().first()
-        if standing and standing not in user_ids:
-            if staff_kind is None:
-                user_ids.append(standing)
-            else:
-                kind_row = (
-                    await self.session.execute(
-                        select(CareManager.staff_kind)
-                        .join(Senior, Senior.care_manager_id == CareManager.id)
-                        .where(Senior.id == senior_id)
-                    )
-                ).scalars().first()
-                if (kind_row or "CARE_MANAGER") == staff_kind:
-                    user_ids.append(standing)
+        ).all()
+        for standing_user_id, standing_kind in standing_rows:
+            if standing_user_id in user_ids:
+                continue
+            if staff_kind is None or (standing_kind or "CARE_MANAGER") == staff_kind:
+                user_ids.append(standing_user_id)
         return user_ids
 
     async def list_family_senior_ids(self, family_id) -> list:

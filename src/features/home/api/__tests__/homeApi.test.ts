@@ -174,7 +174,7 @@ describe('homeApi', () => {
     const result = await fetchServiceRequests();
     expect(result.items[0].serviceName).toBe('Physiotherapy');
     expect(result.items[0]).not.toHaveProperty('scheduledAt');
-    expect(result.items[0]).not.toHaveProperty('createdAt');
+    expect(result.items[0].createdAt).toBeNull();
     expect(mockedGet).toHaveBeenCalledWith('/services/requests', { params: undefined });
   });
 
@@ -195,6 +195,8 @@ describe('homeApi', () => {
         category: 'HEALTH',
         description: 'Test',
         slug: null,
+        callHoursText: null,
+        supportPhone: null,
       },
     ]);
     expect(mockedGet).toHaveBeenCalledWith('/services/', { params: undefined });

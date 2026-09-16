@@ -32,7 +32,7 @@ import { membershipPurchaseHref } from './planCatalog';
 import { SERVICE_HERO_IMAGES } from './serviceHeroes';
 import { useMembershipServicePageVariant } from './useMembershipServicePageVariant';
 import { useMembershipSubmit } from './useMembershipSubmit';
-import { useTabScreenBottomPad } from '@/utils/safeBottom';
+import { useSystemBottomInset } from '@/utils/safeBottom';
 
 const GATE_BENEFITS: { icon: IconName; title: string; line: string }[] = [
   {
@@ -99,7 +99,7 @@ const ACTIVITY_TONE: Record<CompanionActivityView['tone'], { color: string; soft
  */
 export function CompanionVisitScreen() {
   const insets = useSafeAreaInsets();
-  const bottomPad = useTabScreenBottomPad(spacing.xxl);
+  const bottomPad = useSystemBottomInset(12) + spacing.xxl;
   const variant = useMembershipServicePageVariant(true);
   const { submitting, submit } = useMembershipSubmit('companion');
   const assignedQuery = useAssignedCompanion();
@@ -186,7 +186,7 @@ export function CompanionVisitScreen() {
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
-      <AgeWellHeader title="AgeWell" showBack showProfile={false} showBell showTagline />
+      <AgeWellHeader title="AgeWell" showBack showProfile={false} showBell showTagline centerTitle />
       <KeyboardAwareScrollView
         contentContainerStyle={[styles.content, { paddingBottom: bottomPad }]}
         showsVerticalScrollIndicator={false}
@@ -201,7 +201,6 @@ export function CompanionVisitScreen() {
             <MarketingBanner
               headline={['Trusted ', 'Companionship', ' for ', 'Happier Days']}
               subline="A friend by your side, always."
-              callout="Good Conversations, Brighter Tomorrows"
             />
             <BenefitRow items={GATE_BENEFITS} />
             <ComingSoonFooter />
@@ -214,7 +213,6 @@ export function CompanionVisitScreen() {
             <MarketingBanner
               headline={['Friendly Companionship for ', 'Brighter Days']}
               subline="A friend by your side, always."
-              callout="Good Conversations Brighter Tomorrows"
             />
             <BenefitRow items={GATE_BENEFITS} />
             <MembershipRequiredFooter />
@@ -241,16 +239,20 @@ export function CompanionVisitScreen() {
 function ServiceTitleBlock() {
   return (
     <View style={styles.titleBlock}>
-      <View style={styles.titleWell}>
-        <Icon name="people" size={22} color={familyHome.green} />
+      <View style={styles.titleLine}>
+        <View style={styles.titleWell}>
+          <Icon name="people" size={22} color={familyHome.green} />
+        </View>
+        <View style={styles.titleTextWrap}>
+          <Text style={styles.title} numberOfLines={2}>
+            Companion Visit
+          </Text>
+        </View>
       </View>
-      <View style={styles.flex}>
-        <Text style={styles.title}>Companion Visit</Text>
-        <Text style={styles.lead}>
-          Monthly 20 companion visits for assistance or general meetup. Max. 30 mins depending on need. (Always
-          available for emergency)
-        </Text>
-      </View>
+      <Text style={styles.lead}>
+        Monthly 20 companion visits for assistance or general meetup. Max. 30 mins depending on need. (Always
+        available for emergency)
+      </Text>
     </View>
   );
 }
@@ -258,11 +260,9 @@ function ServiceTitleBlock() {
 function MarketingBanner({
   headline,
   subline,
-  callout,
 }: {
   headline: string[];
   subline: string;
-  callout: string;
 }) {
   return (
     <View style={styles.bannerCard} accessibilityRole="summary">
@@ -286,9 +286,6 @@ function MarketingBanner({
         </Text>
         <View style={styles.bannerUnderline} />
         <Text style={styles.bannerSubline}>{subline}</Text>
-      </View>
-      <View style={styles.bannerCallout} pointerEvents="none">
-        <Text style={styles.bannerCalloutText}>{callout}</Text>
       </View>
     </View>
   );
@@ -493,12 +490,16 @@ function MemberBody({
           style={({ pressed }) => [styles.bookBtn, pressed ? styles.pressed : null]}
         >
           <Icon name="calendar-outline" size={16} color={familyHome.blue} />
-          <Text style={styles.bookLabel}>{submitting ? 'Sending…' : 'Book a Visit'}</Text>
+          <Text style={styles.bookLabel} numberOfLines={1}>
+            {submitting ? 'Sending…' : 'Book a Visit'}
+          </Text>
         </Pressable>
       </View>
 
       <View style={styles.activityHead}>
-        <Text style={styles.sectionTitle}>Recent Visits & Activity</Text>
+        <Text style={styles.sectionTitle} numberOfLines={2}>
+          Recent Visits & Activity
+        </Text>
         {hasMore ? (
           <Pressable onPress={onViewAll} accessibilityRole="button" accessibilityLabel="View all companion activity">
             <Text style={styles.viewAll}>View All &gt;</Text>
@@ -522,7 +523,7 @@ function MemberBody({
                 <View style={[styles.activityIcon, { backgroundColor: tone.soft }]}>
                   <Icon name={item.icon} size={16} color={tone.color} />
                 </View>
-                <View style={styles.flex}>
+                <View style={styles.flexMin}>
                   <Text style={styles.activityWhen}>{item.when}</Text>
                   <Text style={styles.activityTitle}>{item.title}</Text>
                   <Text style={styles.activityBody}>{item.body}</Text>
@@ -535,7 +536,7 @@ function MemberBody({
       </View>
 
       <View style={styles.promoCard}>
-        <View style={styles.flex}>
+        <View style={styles.flexMin}>
           <Text style={styles.promoTitle}>Your Companion, Always There</Text>
           <Text style={styles.promoBody}>
             A trusted companion for everyday support, friendly conversation and help when you need it most — including
@@ -545,7 +546,9 @@ function MemberBody({
         <View style={styles.promoImageWrap}>
           <Image source={SERVICE_HERO_IMAGES.companion} style={styles.promoImage} resizeMode="cover" />
           <View style={styles.promoBadge}>
-            <Text style={styles.promoBadgeText}>More Smiles Brighter Days.</Text>
+            <Text style={styles.promoBadgeText} numberOfLines={2}>
+              More Smiles Brighter Days.
+            </Text>
           </View>
         </View>
       </View>
@@ -563,12 +566,14 @@ function MemberBody({
       </View>
 
       <View style={styles.emergencyBanner}>
-        <View style={styles.emergencyIcon}>
-          <Icon name="call-outline" size={16} color={familyHome.white} />
-        </View>
-        <View style={styles.flex}>
-          <Text style={styles.emergencyTitle}>Need immediate assistance?</Text>
-          <Text style={styles.emergencyBody}>Call us or use the Emergency button on the home screen.</Text>
+        <View style={styles.emergencyTop}>
+          <View style={styles.emergencyIcon}>
+            <Icon name="call-outline" size={16} color={familyHome.white} />
+          </View>
+          <View style={styles.flexMin}>
+            <Text style={styles.emergencyTitle}>Need immediate assistance?</Text>
+            <Text style={styles.emergencyBody}>Call us or use the Emergency button on the home screen.</Text>
+          </View>
         </View>
         <Pressable
           onPress={() => router.push('/(tabs)/sos' as Href)}
@@ -576,7 +581,9 @@ function MemberBody({
           accessibilityLabel="Go to Emergency"
           style={({ pressed }) => [styles.emergencyCta, pressed ? styles.pressed : null]}
         >
-          <Text style={styles.emergencyCtaLabel}>Go to Emergency &gt;</Text>
+          <Text style={styles.emergencyCtaLabel} numberOfLines={1}>
+            Go to Emergency &gt;
+          </Text>
         </Pressable>
       </View>
     </View>
@@ -585,12 +592,22 @@ function MemberBody({
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: familyHome.white },
-  content: { paddingHorizontal: spacing.xl, paddingTop: spacing.md, gap: spacing.lg },
+  content: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.md,
+    gap: spacing.lg,
+    width: '100%',
+    maxWidth: 720,
+    alignSelf: 'center',
+  },
   stack: { gap: spacing.lg },
   flex: { flex: 1 },
+  flexMin: { flex: 1, minWidth: 0 },
   pressed: { opacity: 0.88 },
 
-  titleBlock: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
+  titleBlock: { gap: spacing.sm },
+  titleLine: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  titleTextWrap: { flex: 1, minWidth: 0 },
   titleWell: {
     width: 48,
     height: 48,
@@ -598,15 +615,16 @@ const styles = StyleSheet.create({
     backgroundColor: familyHome.greenSoft,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
-  title: { ...typography.title, color: '#123B7A' },
-  lead: { ...typography.caption, color: familyHome.muted, marginTop: 4, lineHeight: 18 },
+  title: { ...typography.title, color: '#123B7A', flexShrink: 1 },
+  lead: { ...typography.caption, color: familyHome.muted, lineHeight: 18 },
 
   bannerCard: {
     borderRadius: 18,
     overflow: 'hidden',
     backgroundColor: familyHome.greenSoft,
-    minHeight: 168,
+    minHeight: 180,
   },
   bannerImage: { ...StyleSheet.absoluteFill, width: '100%', height: '100%' },
   bannerScrim: {
@@ -615,15 +633,18 @@ const styles = StyleSheet.create({
   },
   bannerCopy: {
     padding: spacing.lg,
-    paddingRight: 120,
+    paddingRight: '38%',
+    paddingBottom: spacing.xl,
     gap: spacing.xs,
-    minHeight: 168,
+    minHeight: 180,
     justifyContent: 'flex-end',
+    maxWidth: '100%',
   },
   bannerHeadline: {
     ...typography.subtitle,
     color: familyHome.white,
     lineHeight: 24,
+    flexShrink: 1,
   },
   bannerAccent: { color: '#B8F0C0', fontWeight: '700' },
   bannerUnderline: {
@@ -634,33 +655,19 @@ const styles = StyleSheet.create({
     marginVertical: 4,
   },
   bannerSubline: { ...typography.caption, color: familyHome.white, opacity: 0.95 },
-  bannerCallout: {
-    position: 'absolute',
-    right: spacing.md,
-    bottom: spacing.md,
-    backgroundColor: '#DFF5E2',
-    borderRadius: 10,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 6,
-    maxWidth: 120,
-  },
-  bannerCalloutText: {
-    ...typography.caption,
-    color: familyHome.greenDark,
-    fontWeight: '600',
-    fontSize: 11,
-    lineHeight: 14,
-  },
 
   benefitGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   benefitCard: {
-    width: '48%',
+    width: '47%',
+    maxWidth: '48%',
     flexGrow: 1,
+    flexBasis: '47%',
     backgroundColor: familyHome.greenSoft,
     borderRadius: 14,
     padding: spacing.md,
     gap: 4,
     minHeight: 96,
+    minWidth: 140,
   },
   benefitIcon: {
     width: 28,
@@ -789,9 +796,11 @@ const styles = StyleSheet.create({
   assignedDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: familyHome.green },
   assignedText: { ...typography.captionStrong, color: familyHome.greenDark },
 
-  actionRow: { flexDirection: 'row', gap: spacing.sm },
+  actionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   callBtn: {
-    flex: 1,
+    flexGrow: 1,
+    flexBasis: 96,
+    minWidth: 0,
     minHeight: 48,
     borderRadius: 12,
     backgroundColor: familyHome.green,
@@ -799,10 +808,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
+    paddingHorizontal: spacing.sm,
   },
-  callLabel: { ...typography.captionStrong, color: familyHome.white },
+  callLabel: { ...typography.captionStrong, color: familyHome.white, flexShrink: 1 },
   messageBtn: {
-    flex: 1,
+    flexGrow: 1,
+    flexBasis: 96,
+    minWidth: 0,
     minHeight: 48,
     borderRadius: 12,
     borderWidth: 1.5,
@@ -812,10 +824,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
+    paddingHorizontal: spacing.sm,
   },
-  messageLabel: { ...typography.captionStrong, color: familyHome.green },
+  messageLabel: { ...typography.captionStrong, color: familyHome.green, flexShrink: 1 },
   bookBtn: {
-    flex: 1.2,
+    flexGrow: 1.2,
+    flexBasis: 120,
+    minWidth: 0,
     minHeight: 48,
     borderRadius: 12,
     backgroundColor: familyHome.blueSoft,
@@ -823,12 +838,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
+    paddingHorizontal: spacing.sm,
   },
-  bookLabel: { ...typography.captionStrong, color: familyHome.blue },
+  bookLabel: { ...typography.captionStrong, color: familyHome.blue, flexShrink: 1 },
 
-  activityHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  sectionTitle: { ...typography.subtitle, color: familyHome.text },
-  viewAll: { ...typography.captionStrong, color: familyHome.green },
+  activityHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: spacing.sm },
+  sectionTitle: { ...typography.subtitle, color: familyHome.text, flex: 1, minWidth: 0, paddingRight: spacing.sm },
+  viewAll: { ...typography.captionStrong, color: familyHome.green, flexShrink: 0 },
   activityList: { gap: spacing.sm },
   activityRow: {
     flexDirection: 'row',
@@ -859,18 +875,18 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     alignItems: 'center',
   },
-  promoTitle: { ...typography.subtitle, color: '#123B7A' },
+  promoTitle: { ...typography.subtitle, color: '#123B7A', flexShrink: 1 },
   promoBody: { ...typography.caption, color: familyHome.text, marginTop: 6, lineHeight: 18 },
-  promoImageWrap: { width: 110, positionRadius: 14, overflow: 'hidden' },
-  promoImage: { width: 110, height: 110 },
+  promoImageWrap: { width: 96, borderRadius: 14, overflow: 'hidden', flexShrink: 0 },
+  promoImage: { width: 96, height: 96 },
   promoBadge: {
     position: 'absolute',
-    left: 6,
-    right: 6,
-    bottom: 6,
+    left: 4,
+    right: 4,
+    bottom: 4,
     backgroundColor: '#DFF5E2',
     borderRadius: 8,
-    paddingHorizontal: 6,
+    paddingHorizontal: 4,
     paddingVertical: 4,
   },
   promoBadgeText: {
@@ -884,8 +900,11 @@ const styles = StyleSheet.create({
 
   featureRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   featureCard: {
-    width: '48%',
+    width: '47%',
+    maxWidth: '48%',
     flexGrow: 1,
+    flexBasis: '47%',
+    minWidth: 140,
     borderRadius: 14,
     borderWidth: 1,
     borderColor: familyHome.border,
@@ -905,12 +924,17 @@ const styles = StyleSheet.create({
   featureLine: { ...typography.caption, color: familyHome.muted, lineHeight: 16 },
 
   emergencyBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'column',
+    alignItems: 'stretch',
     gap: spacing.sm,
     backgroundColor: familyHome.redSoft,
     borderRadius: 16,
     padding: spacing.md,
+  },
+  emergencyTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
   },
   emergencyIcon: {
     width: 32,
@@ -919,14 +943,17 @@ const styles = StyleSheet.create({
     backgroundColor: familyHome.red,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
   emergencyTitle: { ...typography.captionStrong, color: familyHome.red },
   emergencyBody: { ...typography.caption, color: familyHome.text, marginTop: 2, lineHeight: 16 },
   emergencyCta: {
+    alignSelf: 'flex-start',
     backgroundColor: familyHome.red,
     borderRadius: 10,
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: spacing.md,
     paddingVertical: 8,
+    flexShrink: 0,
   },
   emergencyCtaLabel: { ...typography.captionStrong, color: familyHome.white, fontSize: 11 },
 });

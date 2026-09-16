@@ -30,7 +30,7 @@ import { membershipPurchaseHref } from './planCatalog';
 import { SERVICE_HERO_IMAGES } from './serviceHeroes';
 import { useMembershipServicePageVariant } from './useMembershipServicePageVariant';
 import { useMembershipSubmit } from './useMembershipSubmit';
-import { useTabScreenBottomPad } from '@/utils/safeBottom';
+import { useSystemBottomInset } from '@/utils/safeBottom';
 
 const GATE_BENEFITS: { icon: IconName; title: string; line: string }[] = [
   {
@@ -66,7 +66,7 @@ const MEMBER_PROMO_FEATURES: { icon: IconName; label: string }[] = [
  */
 export function MedicineDeliveryScreen() {
   const insets = useSafeAreaInsets();
-  const bottomPad = useTabScreenBottomPad(spacing.xxl);
+  const bottomPad = useSystemBottomInset(12) + spacing.xxl;
   const variant = useMembershipServicePageVariant(true);
   const { submitting, submit } = useMembershipSubmit('medicine');
   const requestsQuery = useServiceRequests();
@@ -137,7 +137,7 @@ export function MedicineDeliveryScreen() {
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
-      <AgeWellHeader title="AgeWell" showBack showProfile={false} showBell showTagline />
+      <AgeWellHeader title="AgeWell" showBack showProfile={false} showBell showTagline centerTitle />
       <KeyboardAwareScrollView
         contentContainerStyle={[styles.content, { paddingBottom: bottomPad }]}
         showsVerticalScrollIndicator={false}
@@ -195,16 +195,18 @@ export function MedicineDeliveryScreen() {
 function ServiceTitleBlock() {
   return (
     <View style={styles.titleBlock}>
-      <View style={styles.titleWell}>
-        <Icon name="pill" size={22} color={familyHome.green} />
+      <View style={styles.titleLine}>
+        <View style={styles.titleWell}>
+          <Icon name="pill" size={22} color={familyHome.green} />
+        </View>
+        <View style={styles.titleTextWrap}>
+          <Text style={styles.title} numberOfLines={2}>Medicine Delivery</Text>
+        </View>
       </View>
-      <View style={styles.flex}>
-        <Text style={styles.title}>Medicine Delivery</Text>
-        <Text style={styles.lead}>
-          Medicines delivered to your doorstep. Upload prescriptions on the app and receive medicine delivery. (Keep
-          at least 1 day before delivery)
-        </Text>
-      </View>
+      <Text style={styles.lead}>
+        Medicines delivered to your doorstep. Upload prescriptions on the app and receive medicine delivery. (Keep at
+        least 1 day before delivery)
+      </Text>
     </View>
   );
 }
@@ -256,13 +258,12 @@ function MarketingBanner({
           resizeMode="contain"
           accessibilityLabel="Medicine delivery illustration"
         />
-        {callout ? (
-          <View style={styles.bannerCallout}>
-            <Text style={styles.bannerCalloutText}>{callout}</Text>
-            <View style={styles.bannerCalloutLine} />
-          </View>
-        ) : null}
       </View>
+      {callout ? (
+        <Text style={styles.bannerCalloutFull} numberOfLines={2}>
+          {callout}
+        </Text>
+      ) : null}
     </View>
   );
 }
@@ -496,31 +497,35 @@ function MemberBody({
       </View>
 
       <View style={styles.memberPromo}>
-        <View style={styles.flex}>
-          <Text style={styles.memberPromoHeadline}>
-            Your Medicines, <Text style={styles.bannerAccent}>Our Responsibility</Text>
-          </Text>
-          <Text style={styles.memberPromoBody}>
-            Safe, timely and reliable delivery of your medicines at your home.
-          </Text>
-          <View style={styles.memberPromoFeatures}>
-            {MEMBER_PROMO_FEATURES.map((item) => (
-              <View key={item.label} style={styles.memberPromoFeature}>
-                <View style={styles.memberPromoFeatureIcon}>
-                  <Icon name={item.icon} size={14} color={familyHome.green} />
-                </View>
-                <Text style={styles.memberPromoFeatureLabel}>{item.label}</Text>
-              </View>
-            ))}
+        <View style={styles.memberPromoTop}>
+          <View style={styles.flex}>
+            <Text style={styles.memberPromoHeadline}>
+              Your Medicines, <Text style={styles.bannerAccent}>Our Responsibility</Text>
+            </Text>
+            <Text style={styles.memberPromoBody}>
+              Safe, timely and reliable delivery of your medicines at your home.
+            </Text>
+          </View>
+          <View style={styles.memberPromoMedia}>
+            <Image
+              source={SERVICE_HERO_IMAGES.medicine}
+              style={styles.memberPromoImage}
+              resizeMode="contain"
+            />
+            <Text style={styles.memberPromoBadge}>Better Health Brighter Days</Text>
           </View>
         </View>
-        <View style={styles.memberPromoMedia}>
-          <Image
-            source={SERVICE_HERO_IMAGES.medicine}
-            style={styles.memberPromoImage}
-            resizeMode="contain"
-          />
-          <Text style={styles.memberPromoBadge}>Better Health Brighter Days</Text>
+        <View style={styles.memberPromoFeatures}>
+          {MEMBER_PROMO_FEATURES.map((item) => (
+            <View key={item.label} style={styles.memberPromoFeature}>
+              <View style={styles.memberPromoFeatureIcon}>
+                <Icon name={item.icon} size={14} color={familyHome.green} />
+              </View>
+              <Text style={styles.memberPromoFeatureLabel} numberOfLines={2}>
+                {item.label}
+              </Text>
+            </View>
+          ))}
         </View>
       </View>
     </View>
@@ -529,12 +534,22 @@ function MemberBody({
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: familyHome.white },
-  content: { paddingHorizontal: spacing.xl, paddingTop: spacing.md, gap: spacing.lg },
+  content: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.md,
+    gap: spacing.lg,
+    width: '100%',
+    maxWidth: 720,
+    alignSelf: 'center',
+  },
   stack: { gap: spacing.lg },
   flex: { flex: 1 },
+  flexMin: { flex: 1, minWidth: 0 },
   pressed: { opacity: 0.88 },
 
-  titleBlock: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
+  titleBlock: { gap: spacing.sm },
+  titleLine: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  titleTextWrap: { flex: 1, minWidth: 0 },
   titleWell: {
     width: 48,
     height: 48,
@@ -542,14 +557,16 @@ const styles = StyleSheet.create({
     backgroundColor: familyHome.greenSoft,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
-  title: { ...typography.title, color: '#123B7A' },
-  lead: { ...typography.caption, color: familyHome.muted, marginTop: 4, lineHeight: 18 },
+  title: { ...typography.title, color: '#123B7A', flexShrink: 1 },
+  lead: { ...typography.caption, color: familyHome.muted, lineHeight: 18 },
 
   bannerCard: {
     borderRadius: 18,
     overflow: 'hidden',
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     minHeight: 148,
     padding: spacing.lg,
@@ -557,42 +574,30 @@ const styles = StyleSheet.create({
   },
   bannerCardGreen: { backgroundColor: familyHome.greenSoft },
   bannerCardNavy: { backgroundColor: '#123B7A' },
-  bannerCopy: { flex: 1, gap: spacing.xs },
+  bannerCopy: { flex: 1, minWidth: 140, gap: spacing.xs },
   bannerHeadline: { ...typography.subtitle, color: '#123B7A', lineHeight: 24 },
   bannerHeadlineOnDark: { color: familyHome.white },
   bannerAccent: { color: familyHome.green, fontWeight: '700' },
   bannerAccentOnDark: { color: '#B8F0C0', fontWeight: '700' },
   bannerSubline: { ...typography.caption, color: '#123B7A', lineHeight: 17 },
   bannerSublineOnDark: { color: 'rgba(255,255,255,0.9)' },
-  bannerMedia: { width: 120, alignItems: 'center' },
-  bannerImage: { width: 110, height: 110 },
-  bannerCallout: {
-    marginTop: 4,
-    backgroundColor: '#DFF5E2',
-    borderRadius: 10,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 6,
-    maxWidth: 120,
-  },
-  bannerCalloutText: {
-    ...typography.caption,
+  bannerMedia: { width: 96, alignItems: 'center', flexShrink: 0 },
+  bannerImage: { width: 96, height: 96 },
+  bannerCalloutFull: {
+    width: '100%',
+    ...typography.captionStrong,
     color: familyHome.greenDark,
-    fontWeight: '600',
-    fontSize: 10,
-    lineHeight: 13,
-  },
-  bannerCalloutLine: {
-    marginTop: 4,
-    width: 36,
-    height: 2,
-    borderRadius: 1,
-    backgroundColor: familyHome.green,
+    fontSize: 12,
+    lineHeight: 16,
   },
 
   benefitGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   benefitCard: {
-    width: '48%',
+    width: '47%',
+    maxWidth: '48%',
     flexGrow: 1,
+    flexBasis: '47%',
+    minWidth: 140,
     backgroundColor: familyHome.greenSoft,
     borderRadius: 14,
     padding: spacing.md,
@@ -686,9 +691,11 @@ const styles = StyleSheet.create({
   },
   memberSubtitle: { ...typography.body, color: familyHome.muted },
 
-  actionCards: { flexDirection: 'row', gap: spacing.sm },
+  actionCards: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   uploadCard: {
-    flex: 1,
+    flexGrow: 1,
+    flexBasis: 140,
+    minWidth: 140,
     backgroundColor: familyHome.greenSoft,
     borderRadius: 16,
     padding: spacing.md,
@@ -696,7 +703,9 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   pastCard: {
-    flex: 1,
+    flexGrow: 1,
+    flexBasis: 140,
+    minWidth: 140,
     backgroundColor: familyHome.blueSoft,
     borderRadius: 16,
     padding: spacing.md,
@@ -757,7 +766,7 @@ const styles = StyleSheet.create({
     backgroundColor: familyHome.border,
     marginTop: 4,
   },
-  orderBody: { flex: 1, gap: 2 },
+  orderBody: { flex: 1, minWidth: 0, gap: 2 },
   orderCode: { ...typography.bodyStrong, color: '#123B7A' },
   orderMeta: { ...typography.caption, color: familyHome.muted },
   statusPill: {
@@ -772,28 +781,52 @@ const styles = StyleSheet.create({
   statusSubDetail: { ...typography.caption, color: familyHome.blue, marginTop: 2 },
 
   memberPromo: {
-    flexDirection: 'row',
     gap: spacing.md,
     backgroundColor: familyHome.greenSoft,
     borderRadius: 18,
     padding: spacing.lg,
+  },
+  memberPromoTop: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.md,
     alignItems: 'center',
   },
   memberPromoHeadline: { ...typography.subtitle, color: '#123B7A', lineHeight: 24 },
   memberPromoBody: { ...typography.caption, color: familyHome.text, marginTop: 6, lineHeight: 18 },
-  memberPromoFeatures: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.md },
-  memberPromoFeature: { width: '48%', flexDirection: 'row', alignItems: 'center', gap: 6 },
-  memberPromoFeatureIcon: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+  memberPromoFeatures: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  memberPromoFeature: {
+    flexGrow: 1,
+    flexBasis: '30%',
+    minWidth: 96,
+    alignItems: 'center',
+    gap: 6,
     backgroundColor: familyHome.white,
+    borderRadius: 12,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.sm,
+  },
+  memberPromoFeatureIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: familyHome.greenSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  memberPromoFeatureLabel: { ...typography.caption, color: familyHome.greenDark, flex: 1 },
-  memberPromoMedia: { width: 110, alignItems: 'center' },
-  memberPromoImage: { width: 100, height: 100 },
+  memberPromoFeatureLabel: {
+    ...typography.captionStrong,
+    color: familyHome.greenDark,
+    textAlign: 'center',
+    fontSize: 11,
+    lineHeight: 14,
+  },
+  memberPromoMedia: { width: 96, alignItems: 'center', flexShrink: 0 },
+  memberPromoImage: { width: 90, height: 90 },
   memberPromoBadge: {
     ...typography.caption,
     color: familyHome.greenDark,

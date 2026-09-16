@@ -1,1 +1,1 @@
-export { LegalAssistanceScreen as default } from '@/features/membership/SupportConsultationScreens';
+export { LegalAssistanceScreen as default } from '@/features/membership/LegalAssistanceScreen';

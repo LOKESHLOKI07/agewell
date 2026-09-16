@@ -156,3 +156,43 @@ export function parseOfferingMeta(metaJson: string | null | undefined): Record<s
     return {};
   }
 }
+
+export function filterOfferingsByKind(
+  offerings: ServiceOffering[],
+  kind: string,
+): ServiceOffering[] {
+  const key = kind.toLowerCase();
+  return offerings.filter(
+    (item) => parseOfferingMeta(item.metaJson).kind?.toLowerCase() === key,
+  );
+}
+
+export type InspectionAreaView = {
+  name: string;
+  status: 'OK' | 'Attention';
+  note: string;
+};
+
+export function parseInspectionAreas(metaJson: string | null | undefined): InspectionAreaView[] {
+  if (!metaJson) return [];
+  try {
+    const parsed = JSON.parse(metaJson) as { areasJson?: string };
+    if (!parsed.areasJson) return [];
+    const areas = JSON.parse(parsed.areasJson) as unknown;
+    if (!Array.isArray(areas)) return [];
+    return areas
+      .filter(
+        (item): item is InspectionAreaView =>
+          !!item &&
+          typeof item === 'object' &&
+          typeof (item as InspectionAreaView).name === 'string',
+      )
+      .map((item) => ({
+        name: item.name,
+        status: item.status === 'Attention' ? 'Attention' : 'OK',
+        note: typeof item.note === 'string' ? item.note : '',
+      }));
+  } catch {
+    return [];
+  }
+}

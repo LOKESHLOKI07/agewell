@@ -11,7 +11,13 @@ interface MenuRowProps {
   destructive?: boolean;
 }
 
-export function MenuRow({ icon, title, subtitle, onPress, destructive = false }: MenuRowProps) {
+export function MenuRow({
+  icon,
+  title,
+  subtitle,
+  onPress,
+  destructive = false,
+}: MenuRowProps) {
   const color = destructive ? colors.emergency : colors.primary;
   return (
     <Pressable
@@ -24,8 +30,14 @@ export function MenuRow({ icon, title, subtitle, onPress, destructive = false }:
         <Icon name={icon} size={20} color={color} />
       </IconWell>
       <View style={styles.text}>
-        <Text style={[styles.title, destructive ? styles.destructive : null]}>{title}</Text>
-        {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+        <Text style={[styles.title, destructive ? styles.destructive : null]} numberOfLines={1}>
+          {title}
+        </Text>
+        {subtitle ? (
+          <Text style={styles.subtitle} numberOfLines={2}>
+            {subtitle}
+          </Text>
+        ) : null}
       </View>
       <Icon name="chevron-forward" size={18} color={colors.textMuted} />
     </Pressable>
@@ -41,18 +53,22 @@ const styles = StyleSheet.create({
     ...cardSurface,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
+    width: '100%',
   },
   text: {
     flex: 1,
+    minWidth: 0,
   },
   title: {
     ...typography.subtitle,
     color: colors.text,
+    flexShrink: 1,
   },
   subtitle: {
     ...typography.caption,
     color: colors.textSecondary,
     marginTop: 2,
+    flexShrink: 1,
   },
   destructive: {
     color: colors.emergency,

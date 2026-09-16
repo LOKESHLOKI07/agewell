@@ -52,6 +52,7 @@ export interface AdminSenior {
   locationSource: 'gps' | 'manual' | null;
   hasMembership: boolean;
   careManagerId: string | null;
+  companionId: string | null;
 }
 
 /** Admin seniors list filter segments. */
@@ -82,6 +83,7 @@ export interface AdminSeniorUpdate {
   email?: string;
   phone?: string;
   careManagerId?: string | null;
+  companionId?: string | null;
 }
 
 export interface AdminCareManager {
@@ -146,6 +148,8 @@ export interface AdminService {
   description: string;
   slug: string | null;
   coverImage: string | null;
+  callHoursText: string | null;
+  supportPhone: string | null;
 }
 
 export interface AdminMembershipPlan {

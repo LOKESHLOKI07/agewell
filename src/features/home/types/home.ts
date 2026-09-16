@@ -314,6 +314,7 @@ export interface ServiceRequest {
   serviceSlug: string | null;
   status: ServiceRequestStatus;
   notes: string | null;
+  createdAt?: string | null;
 }
 
 export interface CreatedServiceRequest {
@@ -322,6 +323,7 @@ export interface CreatedServiceRequest {
   serviceId: string;
   status: ServiceRequestStatus;
   notes: string | null;
+  createdAt?: string | null;
 }
 
 export interface CatalogService {
@@ -330,6 +332,8 @@ export interface CatalogService {
   category: ServiceCategory;
   description: string;
   slug?: string | null;
+  callHoursText?: string | null;
+  supportPhone?: string | null;
 }
 
 export interface CurrentMembership {

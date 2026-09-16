@@ -48,5 +48,8 @@ const styles = StyleSheet.create({
   padded: {
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.lg,
+    width: '100%',
+    maxWidth: 720,
+    alignSelf: 'center',
   },
 });

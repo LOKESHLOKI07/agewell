@@ -22,35 +22,24 @@ struct AgeWellEmergencyProvider: TimelineProvider {
 
 struct AgeWellEmergencyView: View {
   private let red = Color(red: 0.898, green: 0.224, blue: 0.208)
-  private let muted = Color(red: 0.42, green: 0.42, blue: 0.42)
 
   var body: some View {
-    VStack(spacing: 10) {
-      Text("AgeWell")
-        .font(.headline)
-        .fontWeight(.bold)
-        .foregroundColor(Color(red: 0.24, green: 0.545, blue: 0.251))
-      ZStack {
-        Circle()
-          .fill(red)
-          .frame(width: 88, height: 88)
-        VStack(spacing: 2) {
-          Image(systemName: "phone.fill")
-            .font(.system(size: 18, weight: .semibold))
-            .foregroundColor(.white)
-          Text("SOS")
-            .font(.system(size: 18, weight: .bold))
-            .foregroundColor(.white)
-        }
+    ZStack {
+      Circle()
+        .fill(red)
+      VStack(spacing: 0) {
+        Image(systemName: "phone.fill")
+          .font(.system(size: 14, weight: .semibold))
+          .foregroundColor(.white)
+        Text("SOS")
+          .font(.system(size: 12, weight: .bold))
+          .foregroundColor(.white)
       }
-      Text("Tap for Help")
-        .font(.subheadline)
-        .fontWeight(.semibold)
-        .foregroundColor(muted)
     }
+    .padding(4)
     .frame(maxWidth: .infinity, maxHeight: .infinity)
     .containerBackground(for: .widget) {
-      Color.white
+      Color.clear
     }
   }
 }
@@ -65,7 +54,7 @@ struct AgeWellEmergencyWidget: Widget {
     }
     .configurationDisplayName("AgeWell Emergency")
     .description("Get AgeWell emergency help from your Home Screen. This does not call 911.")
-    .supportedFamilies([.systemSmall, .systemMedium])
+    .supportedFamilies([.systemSmall])
   }
 }
 

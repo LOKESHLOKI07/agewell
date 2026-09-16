@@ -1,1 +1,1 @@
-export { BankingCompanionScreen as default } from '@/features/membership/SupportConsultationScreens';
+export { BankingCompanionScreen as default } from '@/features/membership/BankingCompanionScreen';

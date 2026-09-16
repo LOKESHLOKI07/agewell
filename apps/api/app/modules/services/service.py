@@ -74,6 +74,7 @@ class ServiceManager:
                 service_slug=service_slug,
                 status=request.status,
                 notes=request.notes,
+                created_at=getattr(request, "created_at", None),
             )
             for request, service_name, service_slug in rows
         ]
@@ -106,4 +107,5 @@ class ServiceManager:
             service_slug=service.slug if service else None,
             status=request.status,
             notes=request.notes,
+            created_at=getattr(request, "created_at", None),
         )

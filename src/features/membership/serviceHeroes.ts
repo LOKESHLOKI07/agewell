@@ -25,6 +25,10 @@ export const SERVICE_HERO_IMAGES: Record<string, ImageSourcePropType> = {
   'home-inspection': require('../../../assets/services/hero-home-inspection.png'),
   cctv: require('../../../assets/services/hero-cctv.png'),
   // Add-on / legacy extras
+  'emergency-companion': require('../../../assets/services/hero-companion.png'),
+  'stool-cleaning': require('../../../assets/services/hero-home-inspection.png'),
+  'maid-assistance': require('../../../assets/services/hero-home-repair.png'),
+  'ayurvedic-massage': require('../../../assets/services/hero-companion.png'),
   food: require('../../../assets/services/hero-food.png'),
   'lab-testing': require('../../../assets/services/hero-lab-testing.png'),
   'medical-history': require('../../../assets/services/hero-medical-history.png'),
@@ -38,43 +42,47 @@ export const SERVICE_HERO_COPY: Record<string, { headline: string; subtitle: str
   },
   'small-errands': {
     headline: 'Small Errands Assistance',
-    subtitle: 'Companion helps with manageable visit errands.',
+    subtitle: 'Our companion will call before the visit and assist with small errands.',
   },
   'errand-coordination': {
-    headline: 'Errand Coordination',
-    subtitle: 'Ironing · Haircut · Personal services',
+    headline: 'Coordination for Other Errands',
+    subtitle: 'Ironing · Haircut · Personal services coordination',
   },
   'cyber-security': {
     headline: 'Cyber Security Guidance',
-    subtitle: 'Scams · OTP safety · Fraud follow-up',
+    subtitle: 'Stay aware. Stay safe. We are with you.',
+  },
+  ca: {
+    headline: 'CA Assistance',
+    subtitle: 'ITR filing · Financial guidance · Trusted CA partners',
   },
   'banking-companion': {
-    headline: 'Banking Companion',
-    subtitle: 'Pension · Cheque · Passbook · Bank visits',
+    headline: 'Your Banking Needs, Our Support',
+    subtitle: 'A trusted companion to make your banking errands easier and hassle-free.',
   },
   'local-transport': {
-    headline: 'Local Area Transportation',
-    subtitle: 'Cabs and rickshaws with companion coordination.',
+    headline: 'Getting You Where You Need to Be',
+    subtitle: 'Companion supported coordination between cabs and rikshaws.',
   },
   transport: {
-    headline: 'Safe & Comfortable Outstation Travel.',
-    subtitle: 'One way / Round trip · Local / Station',
+    headline: 'Travel Further with Peace of Mind',
+    subtitle: 'Well-trained driver assistance for outstation trips. Cost as per trip need.',
   },
   'home-repair': {
-    headline: 'Home Maintenance',
-    subtitle: 'Plumbing · Electrical · Carpentry · AC Service',
+    headline: 'Your Home, Our Support',
+    subtitle: 'Reliable home maintenance for a safer, more comfortable home.',
   },
   pooja: {
-    headline: 'Pooja Cart',
-    subtitle: 'All items for pooja available.',
+    headline: 'House Pooja Assistance',
+    subtitle: 'Spiritual care, with complete support.',
   },
   'home-inspection': {
     headline: 'Monthly Home Inspection',
     subtitle: 'Safety check of your home.',
   },
   cctv: {
-    headline: 'CCTV Dashboard',
-    subtitle: 'Live entrance camera coverage.',
+    headline: 'Your Safety Our Priority',
+    subtitle: 'Entrance CCTV camera coverage available on-app activity.',
   },
   companion: {
     headline: 'Companion Visit',
@@ -89,8 +97,12 @@ export const SERVICE_HERO_COPY: Record<string, { headline: string; subtitle: str
     subtitle: 'CBC included · LFT, KFT, lipid, thyroid, urine extra',
   },
   'events-trips': {
-    headline: 'Local Events & Trips',
-    subtitle: 'Nearby events · one supported tour a year (tours extra)',
+    headline: 'Explore Together, Live Brighter',
+    subtitle: 'Local events, AgeWell tours and companion support (tours extra)',
+  },
+  legal: {
+    headline: 'Trusted Legal Support for a Secure Tomorrow',
+    subtitle: 'Get expert legal advice and support for your important matters, with confidence and peace of mind.',
   },
   grocery: {
     headline: 'Grocery Delivery',
@@ -107,5 +119,21 @@ export const SERVICE_HERO_COPY: Record<string, { headline: string; subtitle: str
   'emergency-sos': {
     headline: 'Emergency Support',
     subtitle: '24×7 alert to family, Care Manager and companion.',
+  },
+  'emergency-companion': {
+    headline: 'Support When You Need It Most',
+    subtitle: 'Hospital companion during hospitalization · 8–10 hours.',
+  },
+  'stool-cleaning': {
+    headline: 'Hygiene Today A Healthier Tomorrow',
+    subtitle: 'Morning + evening stool cleaning & servicing.',
+  },
+  'maid-assistance': {
+    headline: 'A Cleaner Home A Happier You',
+    subtitle: 'Trained maid for house & utensil cleaning, stock drying.',
+  },
+  'ayurvedic-massage': {
+    headline: 'Ancient Care for a Healthier Tomorrow',
+    subtitle: 'Ayurvedic massage at home by certified therapist.',
   },
 };

@@ -54,6 +54,7 @@ const serviceRequest: ServiceRequest = {
   serviceSlug: null,
   notes: null,
   status: 'REQUESTED',
+  createdAt: null,
 };
 
 describe('today care view model', () => {

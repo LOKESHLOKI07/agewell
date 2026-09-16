@@ -13,28 +13,32 @@ ADDON_BOOKING_SERVICES: list[MembershipServiceDef] = [
         "slug": "emergency-companion",
         "name": "Emergency Companion",
         "category": ServiceCategory.ADD_ON,
-        "description": "Hospital companion for 8–10 hours during hospitalization. Extra cost based on availability.",
+        "description": (
+            "Hospital companion provided during your hospitalization. Handles all hospital procedures. "
+            "Stays at hospital for 8-10 hours. Updates family about health condition & Discharge. "
+            "(Extra Cost based on availability)"
+        ),
         "admin_inbox": "requests",
     },
     {
         "slug": "stool-cleaning",
         "name": "Stool Cleaning",
         "category": ServiceCategory.ADD_ON,
-        "description": "Morning and evening cleaning and sponging.",
+        "description": "Monthly (Morning + evening) stool cleaning & servicing.",
         "admin_inbox": "requests",
     },
     {
         "slug": "maid-assistance",
-        "name": "Maid Service",
+        "name": "House Cleaning",
         "category": ServiceCategory.ADD_ON,
-        "description": "House and utensil cleaning, stock drying. Rs 6,500 / month.",
+        "description": "Trained maid for house & utensil cleaning, stock drying.",
         "admin_inbox": "requests",
     },
     {
         "slug": "ayurvedic-massage",
         "name": "Ayurvedic Massage",
         "category": ServiceCategory.ADD_ON,
-        "description": "Ayurvedic massage at home by a certified therapist. Rs 1,500 / 45 mins, Rs 2,000 / 60 mins.",
+        "description": "Ayurvedic massage at home by certified therapist.",
         "admin_inbox": "requests",
     },
     {

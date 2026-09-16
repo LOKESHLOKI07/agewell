@@ -417,6 +417,8 @@ export function AdminServiceEditScreen() {
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState<ServiceCategory>('CARE');
   const [coverImage, setCoverImage] = useState<string | null>(null);
+  const [callHoursText, setCallHoursText] = useState('');
+  const [supportPhone, setSupportPhone] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
   const ops = findMembershipOps(service?.slug);
   const hasOfferings =
@@ -429,6 +431,8 @@ export function AdminServiceEditScreen() {
       setDescription(service.description);
       setCategory(service.category as ServiceCategory);
       setCoverImage(service.coverImage);
+      setCallHoursText(service.callHoursText ?? '');
+      setSupportPhone(service.supportPhone ?? '');
     }
   }, [service]);
 
@@ -512,7 +516,20 @@ export function AdminServiceEditScreen() {
           ) : null}
           <TextField label="Name" value={name} onChangeText={setName} />
           <AdminFilterChips label="Category" value={category} options={CATEGORIES} onChange={(next) => next && setCategory(next)} allowAll={false} />
-          <TextField label="Description" value={description} onChangeText={setDescription} multiline />
+          <TextField label="Description / About this service" value={description} onChangeText={setDescription} multiline />
+          <TextField
+            label="Call hours (member app)"
+            value={callHoursText}
+            onChangeText={setCallHoursText}
+            placeholder="e.g. 10:00 AM – 6:00 PM"
+          />
+          <TextField
+            label="Support phone (optional)"
+            value={supportPhone}
+            onChangeText={setSupportPhone}
+            placeholder="e.g. 9876543210"
+            keyboardType="phone-pad"
+          />
           <Text style={styles.slugLabel}>Cover image</Text>
           <View style={styles.coverRow}>
             {coverImage ? (
@@ -536,7 +553,14 @@ export function AdminServiceEditScreen() {
             onPress={() => {
               setFormError(null);
               update.mutate(
-                { name, category, description, coverImage },
+                {
+                  name,
+                  category,
+                  description,
+                  coverImage,
+                  callHoursText: callHoursText.trim() || null,
+                  supportPhone: supportPhone.trim() || null,
+                },
                 { onError: (error) => setFormError(getAdminErrorMessage(error)) },
               );
             }}

@@ -1,1 +1,1 @@
-export { ErrandCoordinationScreen as default } from '@/features/membership/SupportConsultationScreens';
+export { ErrandCoordinationScreen as default } from '@/features/membership/ErrandCoordinationScreen';

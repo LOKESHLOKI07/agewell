@@ -3,8 +3,10 @@ import { router, useLocalSearchParams, useNavigation, type Href } from 'expo-rou
 import { colors, typography, spacing, minTouchSize, cardSurface } from '@/constants/theme';
 import { AgeWellHeader } from '@/features/home/components/AgeWellHeader';
 import { EmptyState, LoadingState, PrimaryButton } from '@/components';
-import { AddonBookNowScreen } from '@/features/addons/AddonBookNowScreen';
-import { findAddonBookNow } from '@/features/addons/addonBookCatalog';
+import { AyurvedicMassageScreen } from '@/features/addons/AyurvedicMassageScreen';
+import { EmergencyCompanionScreen } from '@/features/addons/EmergencyCompanionScreen';
+import { HouseCleaningScreen } from '@/features/addons/HouseCleaningScreen';
+import { StoolCleaningScreen } from '@/features/addons/StoolCleaningScreen';
 import { MembershipServiceGate } from '@/features/membership/MembershipServiceGate';
 import { useService } from '@/features/services/hooks';
 import { serviceRequestHref } from '@/features/services/selectors';
@@ -17,16 +19,23 @@ function firstParam(value: string | string[] | undefined): string | undefined {
 }
 
 /**
- * Known home add-ons open a dedicated Book Now card.
- * Other ids still use the generic catalogue request flow.
+ * Dedicated mockup screens for home add-ons; other ids use the generic catalogue request flow.
  */
 export default function AddonDetailScreen() {
   const rawId = useLocalSearchParams<{ id: string | string[] }>().id;
   const id = firstParam(rawId);
-  const bookNow = findAddonBookNow(id);
 
-  if (bookNow) {
-    return <AddonBookNowScreen addon={bookNow} />;
+  if (id === 'emergency-companion') {
+    return <EmergencyCompanionScreen />;
+  }
+  if (id === 'stool-cleaning') {
+    return <StoolCleaningScreen />;
+  }
+  if (id === 'maid-assistance') {
+    return <HouseCleaningScreen />;
+  }
+  if (id === 'ayurvedic-massage') {
+    return <AyurvedicMassageScreen />;
   }
 
   return <GenericAddonRequest id={id} />;

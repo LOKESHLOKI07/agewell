@@ -1,1 +1,1 @@
-export { CaAssistanceScreen as default } from '@/features/membership/SupportConsultationScreens';
+export { CaAssistanceScreen as default } from '@/features/membership/CaAssistanceScreen';

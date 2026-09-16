@@ -101,6 +101,7 @@ export function toAdminSenior(payload: unknown): AdminSenior {
         : null,
     hasMembership: Boolean(data.has_membership),
     careManagerId: asOptionalString(data.care_manager_id),
+    companionId: asOptionalString(data.companion_id),
   };
 }
 
@@ -146,6 +147,8 @@ export function toAdminService(payload: unknown): AdminService {
     description: asString(data.description, 'service.description'),
     slug: asOptionalString(data.slug),
     coverImage: asOptionalString(data.cover_image),
+    callHoursText: asOptionalString(data.call_hours_text),
+    supportPhone: asOptionalString(data.support_phone),
   };
 }
 

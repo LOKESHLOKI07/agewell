@@ -251,6 +251,8 @@ export function useUpdateAdminService(id: string) {
       category?: string;
       description?: string;
       coverImage?: string | null;
+      callHoursText?: string | null;
+      supportPhone?: string | null;
     }) => updateAdminService(id, input),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: adminQueryKeys.services });

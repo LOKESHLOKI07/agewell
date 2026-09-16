@@ -140,8 +140,24 @@ export function AdminSeniorDetailScreen() {
     if (standing) {
       return adminCareManagerDisplay(standing);
     }
-    return visitItems.find((item) => item.careManagerName)?.careManagerName ?? null;
+    const fromVisit = visitItems.find((item) => {
+      const staff = (managers.data ?? []).find((manager) => manager.id === item.careManagerId);
+      return staff && (!staff.staffKind || staff.staffKind === 'CARE_MANAGER');
+    });
+    return fromVisit?.careManagerName ?? null;
   }, [managers.data, query.data?.careManagerId, visitItems]);
+  const assignedCompanion = useMemo(() => {
+    const standing = (managers.data ?? []).find((item) => item.id === query.data?.companionId);
+    if (standing) {
+      return adminCareManagerDisplay(standing);
+    }
+    const fromVisit = visitItems.find((item) => {
+      const staff = (managers.data ?? []).find((manager) => manager.id === item.careManagerId);
+      return staff?.staffKind === 'COMPANION';
+    });
+    return fromVisit?.careManagerName ?? null;
+  }, [managers.data, query.data?.companionId, visitItems]);
+  const careTeamAssigned = Boolean(assignedCare || assignedCompanion);
   const healthCount = health.data?.items.length ?? 0;
   const activity = useMemo(() => {
     const rows = (audit.data?.items ?? []).filter((item) => item.entityId === id);
@@ -350,7 +366,14 @@ export function AdminSeniorDetailScreen() {
               <SummaryStat
                 label="Care manager"
                 value={assignedCare ?? 'Not assigned'}
-                action={assignedCare ? 'View visits' : 'Assign'}
+                action={assignedCare ? 'Edit' : 'Assign'}
+                tone="safe"
+                onPress={() => setTab('visits')}
+              />
+              <SummaryStat
+                label="Companion"
+                value={assignedCompanion ?? 'Not assigned'}
+                action={assignedCompanion ? 'Edit' : 'Assign'}
                 tone="safe"
                 onPress={() => setTab('visits')}
               />
@@ -460,13 +483,16 @@ export function AdminSeniorDetailScreen() {
                   </EmptyOrList>
                   <EmptyOrList
                     title="Care team"
-                    empty={!assignedCare}
-                    emptyTitle="No care manager assigned"
+                    empty={!careTeamAssigned}
+                    emptyTitle="No care team assigned"
                     emptyIcon="medkit-outline"
-                    action={assignedCare ? undefined : 'Assign Care Manager'}
+                    action={careTeamAssigned ? 'Edit' : 'Assign Care Team'}
                     onAction={() => setTab('visits')}
                   >
-                    {assignedCare ? <Text style={styles.sideTitle}>{assignedCare}</Text> : null}
+                    {assignedCare ? <Text style={styles.sideTitle}>Care manager · {assignedCare}</Text> : null}
+                    {assignedCompanion ? <Text style={styles.sideTitle}>Companion · {assignedCompanion}</Text> : null}
+                    {!assignedCare ? <Text style={styles.sideMeta}>Care manager not assigned</Text> : null}
+                    {!assignedCompanion ? <Text style={styles.sideMeta}>Companion not assigned</Text> : null}
                   </EmptyOrList>
                   <EmptyOrList
                     title="Membership"
@@ -638,11 +664,16 @@ export function AdminSeniorDetailScreen() {
 
             {tab === 'visits' ? (
               <Panel title="Care / Visits" action="+ Create Visit" onAction={() => router.push(scheduleHref)}>
+                <Text style={styles.formHint}>Tap a field to change or clear the standing assignment.</Text>
                 <AdminSearchPicker
                   label="Assigned Care Manager"
                   options={(managers.data ?? [])
-                    .filter((item) => !item.staffKind || item.staffKind === 'CARE_MANAGER')
-                    .filter((item) => !item.status || item.status.toUpperCase() === 'ACTIVE')
+                    .filter(
+                      (item) =>
+                        (!item.staffKind || item.staffKind === 'CARE_MANAGER') &&
+                        ((!item.status || item.status.toUpperCase() === 'ACTIVE') ||
+                          item.id === query.data?.careManagerId),
+                    )
                     .map((item) => ({
                       id: item.id,
                       title: adminCareManagerDisplay(item),
@@ -651,10 +682,37 @@ export function AdminSeniorDetailScreen() {
                   value={query.data?.careManagerId}
                   loading={managers.isPending}
                   emptyMessage="No ACTIVE care managers."
+                  confirmLabel="Save care manager"
                   onChange={(next) => {
                     if (!id) return;
                     update.mutate(
                       { careManagerId: next },
+                      { onError: (error) => setFormError(getAdminErrorMessage(error)) },
+                    );
+                  }}
+                />
+                <AdminSearchPicker
+                  label="Assigned Companion"
+                  options={(managers.data ?? [])
+                    .filter(
+                      (item) =>
+                        item.staffKind === 'COMPANION' &&
+                        ((!item.status || item.status.toUpperCase() === 'ACTIVE') ||
+                          item.id === query.data?.companionId),
+                    )
+                    .map((item) => ({
+                      id: item.id,
+                      title: adminCareManagerDisplay(item),
+                      subtitle: item.employeeId ?? undefined,
+                    }))}
+                  value={query.data?.companionId}
+                  loading={managers.isPending}
+                  emptyMessage="No ACTIVE companions."
+                  confirmLabel="Save companion"
+                  onChange={(next) => {
+                    if (!id) return;
+                    update.mutate(
+                      { companionId: next },
                       { onError: (error) => setFormError(getAdminErrorMessage(error)) },
                     );
                   }}

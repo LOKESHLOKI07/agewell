@@ -9,9 +9,9 @@ describe('member home helpers', () => {
 
   it('keeps only grocery, food, and medicine requests as deliveries', () => {
     const items = upcomingDeliveries([
-      { id: '1', seniorId: 's', serviceId: 'a', serviceName: 'Grocery Delivery', serviceSlug: 'grocery', status: 'REQUESTED', notes: null },
-      { id: '2', seniorId: 's', serviceId: 'b', serviceName: 'Companion Visit', serviceSlug: 'companion', status: 'REQUESTED', notes: null },
-      { id: '3', seniorId: 's', serviceId: 'c', serviceName: 'Food Delivery', serviceSlug: 'food', status: 'CONFIRMED', notes: null },
+      { id: '1', seniorId: 's', serviceId: 'a', serviceName: 'Grocery Delivery', serviceSlug: 'grocery', status: 'REQUESTED', notes: null, createdAt: null },
+      { id: '2', seniorId: 's', serviceId: 'b', serviceName: 'Companion Visit', serviceSlug: 'companion', status: 'REQUESTED', notes: null, createdAt: null },
+      { id: '3', seniorId: 's', serviceId: 'c', serviceName: 'Food Delivery', serviceSlug: 'food', status: 'CONFIRMED', notes: null, createdAt: null },
     ]);
     expect(items.map((item) => item.serviceSlug)).toEqual(['grocery', 'food']);
   });

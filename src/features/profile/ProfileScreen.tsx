@@ -111,11 +111,11 @@ export function ProfileScreen() {
           onPress={onChangePhoto}
         />
         <Text style={styles.hint}>{updatingPhoto ? 'Saving photo…' : 'Tap to add a photo'}</Text>
-        <Text style={styles.name}>{displayName}</Text>
+        <Text style={styles.name} numberOfLines={2}>{displayName}</Text>
         <View style={styles.rolePill}>
           <Text style={styles.rolePillText}>{roleLabel}</Text>
         </View>
-        {user?.email ? <Text style={styles.meta}>{user.email}</Text> : null}
+        {user?.email ? <Text style={styles.meta} numberOfLines={2}>{user.email}</Text> : null}
         {user?.phone ? <Text style={styles.meta}>{user.phone}</Text> : null}
       </View>
 
@@ -144,12 +144,14 @@ export function ProfileScreen() {
           onPress={() => router.push('/account/notification-settings')}
         />
         <MenuRow icon="help-circle-outline" title="Help & Support" onPress={() => router.push('/account/help')} />
-        <MenuRow
-          icon="log-out-outline"
-          title={signingOut ? 'Signing out…' : 'Logout'}
-          destructive
+        <Pressable
+          style={({ pressed }) => [styles.logout, pressed ? styles.logoutPressed : null]}
           onPress={() => setConfirmVisible(true)}
-        />
+          accessibilityRole="button"
+          accessibilityLabel="Logout"
+        >
+          <Text style={styles.logoutLabel}>{signingOut ? 'Signing out…' : 'Logout'}</Text>
+        </Pressable>
       </View>
 
       <Modal
@@ -236,6 +238,7 @@ const styles = StyleSheet.create({
     ...typography.heading,
     color: familyHome.text,
     textAlign: 'center',
+    paddingHorizontal: spacing.md,
   },
   rolePill: {
     marginTop: spacing.xs,
@@ -252,9 +255,28 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: familyHome.muted,
     textAlign: 'center',
+    paddingHorizontal: spacing.md,
   },
   menu: {
     gap: spacing.sm,
+    width: '100%',
+    maxWidth: 720,
+    alignSelf: 'center',
+  },
+  logout: {
+    minHeight: minTouchSize,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: spacing.md,
+    paddingVertical: spacing.md,
+  },
+  logoutPressed: {
+    opacity: 0.85,
+  },
+  logoutLabel: {
+    ...typography.bodyStrong,
+    color: familyHome.red,
+    textAlign: 'center',
   },
   sheetOverlay: {
     flex: 1,
@@ -272,6 +294,9 @@ const styles = StyleSheet.create({
     paddingTop: spacing.xl,
     paddingBottom: spacing.xxl,
     gap: spacing.xs,
+    width: '100%',
+    maxWidth: 480,
+    alignSelf: 'center',
   },
   sheetTitle: {
     ...typography.heading,
