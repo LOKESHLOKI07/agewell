@@ -81,6 +81,13 @@
           "microphonePermission": false
         }
       ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Allow AgeWell to use the microphone so seniors can talk to AgeWell Bot.",
+          "speechRecognitionPermission": "Allow AgeWell to turn speech into text for AgeWell Bot."
+        }
+      ],
       "@react-native-google-signin/google-signin",
       "expo-video"
     ],

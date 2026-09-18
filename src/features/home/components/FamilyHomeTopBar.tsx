@@ -40,8 +40,8 @@ export function FamilyHomeTopBar({
         {showChat ? (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Chat with AgeWell"
-            onPress={() => router.push('/account/help' as Href)}
+            accessibilityLabel="Ask AgeWell assistant"
+            onPress={() => router.push('/concierge' as Href)}
             style={styles.avatarBtn}
           >
             <Icon name="chatbubble-outline" size={22} color={familyHome.text} />

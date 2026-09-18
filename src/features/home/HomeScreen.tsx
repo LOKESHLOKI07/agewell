@@ -20,6 +20,7 @@ import { FamilyUpcomingSplit } from '@/features/home/components/FamilyUpcomingSp
 import { FamilyAddOnServices, FamilyOurServicesGrid } from '@/features/home/components/FamilyServicesSections';
 import { FamilyWhyChooseAgeWell } from '@/features/home/components/FamilyWhyChooseAgeWell';
 import { familyHome } from '@/features/home/components/familyHomeTheme';
+import { AskAgeWellBar } from '@/features/concierge/AskAgeWellBar';
 import { resolveHomeScreenVariant } from '@/features/home/homeVariant';
 import { invalidateTrackingQueries } from '@/features/tracking/queryKeys';
 import { useTabScreenBottomPad } from '@/utils/safeBottom';
@@ -111,6 +112,7 @@ export function HomeScreen() {
               senior={home.senior.data ?? null}
               membership={membership}
             />
+            <AskAgeWellBar />
             <FamilyMembersStatus youName={greetingName} youPhotoUri={home.senior.data?.photo} />
             <FamilyUpcomingSplit requests={home.serviceRequests.data?.items ?? []} />
             <FamilyOurServicesGrid title="Our Membership Services" showViewAll />

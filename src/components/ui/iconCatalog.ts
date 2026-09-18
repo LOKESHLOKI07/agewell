@@ -64,6 +64,7 @@ import {
   MapPin,
   Menu,
   MessageCircle,
+  Mic,
   Music,
   Navigation,
   Newspaper,
@@ -93,6 +94,8 @@ import {
   UserPlus,
   Users,
   Utensils,
+  Volume2,
+  VolumeX,
   Wrench,
 } from 'lucide-react-native';
 
@@ -201,6 +204,9 @@ export const ICONS = {
   location: MapPin,
   siren: Siren,
   sparkles: Sparkles,
+  mic: Mic,
+  'volume-high': Volume2,
+  'volume-mute': VolumeX,
   'chatbubble-outline': MessageCircle,
   landmark: Landmark,
   calculator: Calculator,

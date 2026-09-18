@@ -1,6 +1,7 @@
 import { Image, StyleSheet } from 'react-native';
 
-const logo = require('../../assets/logo_splash.png');
+const logoDefault = require('../../assets/logo_splash.png');
+const logoOnDark = require('../../assets/logo_sidebar.png');
 
 export const brandGreen = '#3D8B40';
 
@@ -8,15 +9,18 @@ export function AgeWellLogo({
   compact = false,
   width,
   height,
+  variant = 'default',
 }: {
   compact?: boolean;
   width?: number;
   height?: number;
+  /** `onDark` uses a transparent mark tuned for purple/dark chrome (admin sidebar). */
+  variant?: 'default' | 'onDark';
 }) {
   const style = width != null && height != null ? { width, height } : compact ? styles.compact : styles.full;
   return (
     <Image
-      source={logo}
+      source={variant === 'onDark' ? logoOnDark : logoDefault}
       style={style}
       resizeMode="contain"
       accessibilityRole="image"

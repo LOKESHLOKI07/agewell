@@ -36,9 +36,7 @@ export function AdminShell({ children }: AdminShellProps) {
       <View style={[styles.desktop, { paddingTop: insets.top }]}>
         <View style={styles.sidebar} accessibilityRole="menu" accessibilityLabel="Admin navigation">
           <View style={styles.brandBlock}>
-            <View style={styles.logoCard}>
-              <AgeWellLogo width={176} height={96} />
-            </View>
+            <AgeWellLogo variant="onDark" width={168} height={92} />
           </View>
           <ScrollView contentContainerStyle={styles.sidebarList} showsVerticalScrollIndicator={false}>
             {ADMIN_NAV_GROUPS.map((group) => {
@@ -253,16 +251,10 @@ const styles = StyleSheet.create({
     paddingTop: spacing.lg,
   },
   brandBlock: {
-    paddingHorizontal: spacing.sm,
-    marginBottom: spacing.lg,
-  },
-  logoCard: {
-    backgroundColor: colors.white,
-    borderRadius: radius.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
+    paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.sm,
+    marginBottom: spacing.md,
+    alignItems: 'center',
   },
   sidebarList: {
     paddingBottom: spacing.xl,

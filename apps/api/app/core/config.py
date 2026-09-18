@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     # Expo Push Service delivers to FCM (Android) and APNs (iOS) when EAS credentials are configured.
     EXPO_PUSH_ENABLED: bool = True
     EXPO_PUSH_URL: str = "https://exp.host/--/api/v2/push/send"
+    # Care Concierge (optional). When empty, keyword fallback intents are used.
+    GEMINI_API_KEY: str = ""
+    GEMINI_MODEL: str = "gemini-flash-lite-latest"
 
 
     class Config:

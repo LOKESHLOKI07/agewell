@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams, type Href } from 'expo-router';
 import {
   ConfirmDialog,
@@ -10,10 +10,18 @@ import {
   statusToneFromLabel,
 } from '@/components';
 import { KeyboardAwareScrollView } from '@/components/KeyboardAwareScrollView';
-import { Avatar, Icon, IconWell, type IconName } from '@/components/ui';
+import { Avatar, Icon } from '@/components/ui';
 import { colors, minTouchSize, radius, shadows, spacing, typography } from '@/constants/theme';
 import { parseStaffKind, STAFF_KIND_LABELS, STAFF_KINDS, type StaffKind } from '@/features/care/staffKind';
 import { formatLongDate, formatRelativeDay, formatRelativeTimestamp, formatTime } from '@/utils/date';
+import {
+  DetailBackLink,
+  DetailEmptyBlock,
+  DetailInfoField,
+  DetailPanel,
+  DetailStatCard,
+  DetailTabBar,
+} from './components/AdminDetailChrome';
 import { AdminFilterChips } from './components/AdminFilterChips';
 import { AdminQueryView } from './components/AdminQueryView';
 import { deleteAdminCareManager, updateAdminUser } from './api';
@@ -37,27 +45,14 @@ import {
 } from './selectors';
 import { useAdminLayout } from './useAdminLayout';
 
-type CareTab =
-  | 'overview'
-  | 'personal'
-  | 'professional'
-  | 'skills'
-  | 'assignments'
-  | 'availability'
-  | 'documents'
-  | 'reviews'
-  | 'activity';
+type CareTab = 'overview' | 'personal' | 'professional' | 'assignments' | 'activity';
 
-const TABS: { key: CareTab; label: string; icon: IconName }[] = [
-  { key: 'overview', label: 'Overview', icon: 'grid-outline' },
-  { key: 'personal', label: 'Personal Info', icon: 'person-outline' },
-  { key: 'professional', label: 'Professional', icon: 'business-outline' },
-  { key: 'skills', label: 'Skills', icon: 'ribbon-outline' },
-  { key: 'assignments', label: 'Assignments', icon: 'people-outline' },
-  { key: 'availability', label: 'Availability', icon: 'time-outline' },
-  { key: 'documents', label: 'Documents', icon: 'document-text-outline' },
-  { key: 'reviews', label: 'Reviews', icon: 'sparkles' },
-  { key: 'activity', label: 'Activity', icon: 'clipboard-outline' },
+const TABS: { key: CareTab; label: string }[] = [
+  { key: 'overview', label: 'Overview' },
+  { key: 'personal', label: 'Profile' },
+  { key: 'professional', label: 'Professional' },
+  { key: 'assignments', label: 'Assignments' },
+  { key: 'activity', label: 'Activity' },
 ];
 
 export function AdminCareManagerDetailScreen() {
@@ -194,15 +189,7 @@ export function AdminCareManagerDetailScreen() {
       style={styles.container}
       contentContainerStyle={[styles.content, isDesktop ? styles.contentDesktop : null]}
     >
-      <Pressable
-        onPress={() => router.replace('/(admin)/care-managers' as Href)}
-        accessibilityRole="button"
-        accessibilityLabel="Back to Care Team"
-        style={({ pressed }) => [styles.back, pressed ? styles.pressed : null]}
-      >
-        <Icon name="chevron-back" size={16} color={colors.sidebarActive} />
-        <Text style={styles.backLabel}>Back to Care Team</Text>
-      </Pressable>
+      <DetailBackLink label="Back to Care Team" onPress={() => router.replace('/(admin)/care-managers' as Href)} />
 
       <AdminQueryView
         state={state}
@@ -228,8 +215,9 @@ export function AdminCareManagerDetailScreen() {
                 </View>
                 <Text style={styles.meta}>
                   {[
-                    `Employee ID: ${staff.employeeId ?? 'Not on file'}`,
+                    staff.employeeId ? `Emp ${staff.employeeId}` : null,
                     roleLabel,
+                    languageTags.length ? languageTags.join(', ') : null,
                     user.data?.phone ?? null,
                     user.data?.email ?? null,
                   ]
@@ -239,15 +227,7 @@ export function AdminCareManagerDetailScreen() {
               </View>
               <View style={styles.actions}>
                 <PrimaryButton label="Edit Profile" fullWidth={false} onPress={startEdit} />
-                <Pressable
-                  onPress={() => router.push(assignHref)}
-                  accessibilityRole="button"
-                  accessibilityLabel="Assign Visit"
-                  style={({ pressed }) => [styles.assignBtn, pressed ? styles.pressed : null]}
-                >
-                  <Icon name="calendar-outline" size={16} color={colors.sidebarActive} />
-                  <Text style={styles.assignLabel}>Assign Visit</Text>
-                </Pressable>
+                <SecondaryButton label="Assign Visit" fullWidth={false} onPress={() => router.push(assignHref)} />
                 <View>
                   <Pressable
                     onPress={() => setMoreOpen((open) => !open)}
@@ -255,8 +235,8 @@ export function AdminCareManagerDetailScreen() {
                     accessibilityLabel="More actions"
                     style={({ pressed }) => [styles.moreBtn, pressed ? styles.pressed : null]}
                   >
-                    <Icon name="ellipsis-horizontal" size={16} color={colors.text} />
                     <Text style={styles.moreLabel}>More</Text>
+                    <Icon name="chevron-down" size={14} color={colors.text} />
                   </Pressable>
                   {moreOpen ? (
                     <View style={styles.moreMenu}>
@@ -278,117 +258,69 @@ export function AdminCareManagerDetailScreen() {
             </View>
 
             <View style={[styles.summaryRow, isDesktop ? styles.summaryDesktop : null]}>
-              <View style={[styles.summaryCard, styles.snippetCard]}>
-                <Avatar name={displayName} size={56} />
-                <View style={styles.snippetCopy}>
-                  <Text style={styles.snippetText}>
-                    {roleLabel}
-                    {languageTags.length ? ` · ${languageTags.join(', ')}` : ''}
-                    {staff.experience ? ` · ${staff.experience}` : ''}
-                  </Text>
-                </View>
-              </View>
-              <KpiCard
+              <DetailStatCard
                 label="Total visits"
                 value={String(visits.data?.total ?? visitItems.length)}
                 hint={`This month: ${thisMonthVisits}`}
-                tone="info"
-                icon="calendar-outline"
               />
-              <KpiCard
-                label="Seniors assigned"
-                value={String(seniorIds.size)}
-                hint="Through visits"
-                tone="safe"
-                icon="people-outline"
-              />
-              <KpiCard
+              <DetailStatCard label="Seniors assigned" value={String(seniorIds.size)} hint="Through visits" />
+              <DetailStatCard
                 label="Completed"
                 value={String(completedVisits)}
-                hint="Completed or checked out"
-                tone="warning"
-                icon="checkmark-circle-outline"
-              />
-              <KpiCard
-                label="Joined on"
-                value={user.data?.createdAt ? formatLongDate(user.data.createdAt) : 'Not on file'}
-                hint={tenure != null ? `${tenure} month${tenure === 1 ? '' : 's'}` : 'Account date'}
-                tone="accent"
-                icon="time-outline"
+                hint={
+                  user.data?.createdAt
+                    ? `Joined ${formatLongDate(user.data.createdAt)}${tenure != null ? ` · ${tenure} mo` : ''}`
+                    : 'Completed or checked out'
+                }
               />
             </View>
 
-            <View style={styles.tabBar} accessibilityRole="tablist" accessibilityLabel="Care team sections">
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabRow}>
-                {TABS.map((item) => {
-                  const selected = tab === item.key;
-                  return (
-                    <Pressable
-                      key={item.key}
-                      onPress={() => setTab(item.key)}
-                      accessibilityRole="tab"
-                      accessibilityState={{ selected }}
-                      accessibilityLabel={item.label}
-                      style={({ pressed }) => [styles.tab, selected ? styles.tabActive : null, pressed ? styles.pressed : null]}
-                    >
-                      <Icon
-                        name={item.icon}
-                        size={15}
-                        color={selected ? colors.sidebarActive : colors.textMuted}
-                      />
-                      <Text style={[styles.tabLabel, selected ? styles.tabLabelActive : null]}>{item.label}</Text>
-                    </Pressable>
-                  );
-                })}
-              </ScrollView>
-            </View>
+            <DetailTabBar tabs={TABS} active={tab} onChange={setTab} accessibilityLabel="Care team sections" />
 
             {tab === 'overview' ? (
               <View style={isDesktop ? styles.overviewGrid : styles.stack}>
                 <View style={styles.mainCol}>
-                  <Panel title="Personal information" action="Edit" onAction={startEdit}>
+                  <DetailPanel title="Personal information" action="Edit" onAction={startEdit}>
                     <View style={styles.fields}>
-                      <InfoField label="Full name" value={displayName} />
-                      <InfoField label="Phone" value={user.data?.phone ?? 'Not on file'} />
-                      <InfoField label="Email" value={user.data?.email ?? 'Not on file'} />
-                      <InfoField label="Languages" value={staff.languages ?? 'Not on file'} />
+                      <DetailInfoField label="Full name" value={displayName} />
+                      <DetailInfoField label="Phone" value={user.data?.phone ?? 'Not on file'} />
+                      <DetailInfoField label="Email" value={user.data?.email ?? 'Not on file'} />
+                      <DetailInfoField label="Languages" value={staff.languages ?? 'Not on file'} />
                     </View>
-                  </Panel>
-                  <Panel title="Emergency contact">
-                    <EmptyBlock icon="call-outline" title="No emergency contact on file" />
-                  </Panel>
-                </View>
-                <View style={styles.sideCol}>
-                  <Panel title="Professional information" action="Edit" onAction={startEdit}>
+                  </DetailPanel>
+                  <DetailPanel title="Professional information" action="Edit" onAction={startEdit}>
                     <View style={styles.fields}>
-                      <InfoField label="Employee ID" value={staff.employeeId ?? 'Not on file'} />
-                      <InfoField label="Role" value={roleLabel} />
-                      <InfoField label="Care status" value={staff.status ? humanizeStatus(staff.status) : 'Not on file'} />
-                      <InfoField
+                      <DetailInfoField label="Employee ID" value={staff.employeeId ?? 'Not on file'} />
+                      <DetailInfoField label="Role" value={roleLabel} />
+                      <DetailInfoField label="Experience" value={staff.experience ?? 'Not on file'} />
+                      <DetailInfoField label="Care status" value={staff.status ? humanizeStatus(staff.status) : 'Not on file'} />
+                      <DetailInfoField
                         label="Account status"
                         value={user.data?.accountStatus ? humanizeStatus(user.data.accountStatus) : 'Not on file'}
                       />
-                      <InfoField
+                      <DetailInfoField
                         label="Joining date"
                         value={user.data?.createdAt ? formatLongDate(user.data.createdAt) : 'Not on file'}
                       />
+                      <DetailInfoField label="Availability" value={staff.availability ?? 'Not on file'} />
                     </View>
-                  </Panel>
-                  <Panel title="Skills & certifications" action="Edit" onAction={startEdit}>
+                  </DetailPanel>
+                </View>
+                <View style={styles.sideCol}>
+                  <DetailPanel title="Skills" action="Edit" onAction={startEdit}>
                     {skillTags.length || languageTags.length ? (
                       <>
                         {skillTags.length ? (
-                          <>
-                            <Text style={styles.tagHeading}>Skills</Text>
-                            <View style={styles.tags}>
-                              {skillTags.map((tag) => (
-                                <View key={tag} style={styles.skillTag}>
-                                  <Text style={styles.skillTagLabel}>{tag}</Text>
-                                </View>
-                              ))}
-                            </View>
-                          </>
-                        ) : null}
+                          <View style={styles.tags}>
+                            {skillTags.map((tag) => (
+                              <View key={tag} style={styles.skillTag}>
+                                <Text style={styles.skillTagLabel}>{tag}</Text>
+                              </View>
+                            ))}
+                          </View>
+                        ) : (
+                          <Text style={styles.sideMeta}>No skills listed</Text>
+                        )}
                         {languageTags.length ? (
                           <>
                             <Text style={styles.tagHeading}>Languages</Text>
@@ -401,14 +333,12 @@ export function AdminCareManagerDetailScreen() {
                             </View>
                           </>
                         ) : null}
-                        <Text style={styles.tagHeading}>Certifications</Text>
-                        <Text style={styles.sideMeta}>None on file</Text>
                       </>
                     ) : (
-                      <EmptyBlock icon="ribbon-outline" title="No skills on file" />
+                      <DetailEmptyBlock icon="ribbon-outline" title="No skills on file" action="Add skills" onAction={startEdit} />
                     )}
-                  </Panel>
-                  <Panel title="Upcoming assignments" action="+ Assign" onAction={() => router.push(assignHref)}>
+                  </DetailPanel>
+                  <DetailPanel title="Upcoming assignments" action="+ Assign" onAction={() => router.push(assignHref)}>
                     {upcoming.length ? (
                       upcoming.slice(0, 4).map((visit) => (
                         <Pressable
@@ -432,32 +362,20 @@ export function AdminCareManagerDetailScreen() {
                         </Pressable>
                       ))
                     ) : (
-                      <EmptyBlock icon="calendar-outline" title="No upcoming assignments" />
+                      <DetailEmptyBlock
+                        icon="calendar-outline"
+                        title="No upcoming assignments"
+                        action="Assign visit"
+                        onAction={() => router.push(assignHref)}
+                      />
                     )}
-                  </Panel>
-                  <Panel title="Recent activity">
-                    {activity.length ? (
-                      activity.map((item) => (
-                        <View key={item.id} style={styles.activityRow}>
-                          <View style={styles.timelineDot} />
-                          <View style={styles.flex}>
-                            <Text style={styles.sideTitle}>{humanizeStatus(item.action ?? 'Updated')}</Text>
-                            <Text style={styles.sideMeta}>
-                              {item.createdAt ? formatRelativeTimestamp(item.createdAt) : 'No date'}
-                            </Text>
-                          </View>
-                        </View>
-                      ))
-                    ) : (
-                      <Text style={styles.sideMeta}>No recent activity for this staff member.</Text>
-                    )}
-                  </Panel>
+                  </DetailPanel>
                 </View>
               </View>
             ) : null}
 
             {tab === 'personal' ? (
-              <Panel title="Personal information">
+              <DetailPanel title="Personal information">
                 {editing ? (
                   <EditForm
                     firstName={firstName}
@@ -526,53 +444,125 @@ export function AdminCareManagerDetailScreen() {
                   />
                 ) : (
                   <View style={styles.fields}>
-                    <InfoField label="Full name" value={displayName} />
-                    <InfoField label="Phone" value={user.data?.phone ?? 'Not on file'} />
-                    <InfoField label="Email" value={user.data?.email ?? 'Not on file'} />
-                    <InfoField label="Languages" value={staff.languages ?? 'Not on file'} />
+                    <DetailInfoField label="Full name" value={displayName} />
+                    <DetailInfoField label="Phone" value={user.data?.phone ?? 'Not on file'} />
+                    <DetailInfoField label="Email" value={user.data?.email ?? 'Not on file'} />
+                    <DetailInfoField label="Languages" value={staff.languages ?? 'Not on file'} />
                   </View>
                 )}
-              </Panel>
+              </DetailPanel>
             ) : null}
 
             {tab === 'professional' ? (
-              <Panel title="Professional information" action="Edit" onAction={startEdit}>
-                <View style={styles.fields}>
-                  <InfoField label="Employee ID" value={staff.employeeId ?? 'Not on file'} />
-                  <InfoField label="Role" value={roleLabel} />
-                  <InfoField label="Experience" value={staff.experience ?? 'Not on file'} />
-                  <InfoField label="Care status" value={staff.status ? humanizeStatus(staff.status) : 'Not on file'} />
-                  <InfoField
-                    label="Account status"
-                    value={user.data?.accountStatus ? humanizeStatus(user.data.accountStatus) : 'Not on file'}
-                  />
-                </View>
-              </Panel>
-            ) : null}
-
-            {tab === 'skills' ? (
-              <Panel title="Skills & certifications" action="Edit" onAction={startEdit}>
-                {skillTags.length ? (
-                  <View style={styles.tags}>
-                    {skillTags.map((tag) => (
-                      <View key={tag} style={styles.skillTag}>
-                        <Text style={styles.skillTagLabel}>{tag}</Text>
+              <View style={styles.stack}>
+                <DetailPanel title="Professional information" action="Edit" onAction={startEdit}>
+                  {editing ? (
+                    <EditForm
+                      firstName={firstName}
+                      lastName={lastName}
+                      email={email}
+                      phone={phone}
+                      employeeId={employeeId}
+                      staffKind={staffKind}
+                      skills={skills}
+                      experience={experience}
+                      languages={languages}
+                      availability={availability}
+                      status={status}
+                      accountStatus={accountStatus}
+                      formError={formError}
+                      saving={saving || update.isPending}
+                      showPersonal={false}
+                      onChange={{
+                        firstName: setFirstName,
+                        lastName: setLastName,
+                        email: setEmail,
+                        phone: setPhone,
+                        employeeId: setEmployeeId,
+                        staffKind: setStaffKind,
+                        skills: setSkills,
+                        experience: setExperience,
+                        languages: setLanguages,
+                        availability: setAvailability,
+                        status: setStatus,
+                        accountStatus: setAccountStatus,
+                      }}
+                      onSave={() => {
+                        setFormError(null);
+                        setSaving(true);
+                        update.mutate(
+                          { employeeId, firstName, lastName, skills, experience, languages, availability, status, staffKind },
+                          {
+                            onError: (error) => {
+                              setSaving(false);
+                              setFormError(getAdminErrorMessage(error, 'care'));
+                            },
+                            onSuccess: async () => {
+                              try {
+                                if (staff.userId) {
+                                  await updateAdminUser(staff.userId, {
+                                    email: email.trim(),
+                                    phone: phone.trim(),
+                                    accountStatus: accountStatus.trim().toUpperCase(),
+                                  });
+                                }
+                                setEditing(false);
+                              } catch (error) {
+                                setFormError(getAdminErrorMessage(error, 'user'));
+                              } finally {
+                                setSaving(false);
+                              }
+                            },
+                          },
+                        );
+                      }}
+                      onCancel={() => {
+                        setEditing(false);
+                        setFormError(null);
+                        resetForm();
+                      }}
+                    />
+                  ) : (
+                    <View style={styles.fields}>
+                      <DetailInfoField label="Employee ID" value={staff.employeeId ?? 'Not on file'} />
+                      <DetailInfoField label="Role" value={roleLabel} />
+                      <DetailInfoField label="Experience" value={staff.experience ?? 'Not on file'} />
+                      <DetailInfoField label="Care status" value={staff.status ? humanizeStatus(staff.status) : 'Not on file'} />
+                      <DetailInfoField
+                        label="Account status"
+                        value={user.data?.accountStatus ? humanizeStatus(user.data.accountStatus) : 'Not on file'}
+                      />
+                      <DetailInfoField label="Availability" value={staff.availability ?? 'Not on file'} />
+                    </View>
+                  )}
+                </DetailPanel>
+                {!editing ? (
+                  <DetailPanel title="Skills" action="Edit" onAction={startEdit}>
+                    {skillTags.length ? (
+                      <View style={styles.tags}>
+                        {skillTags.map((tag) => (
+                          <View key={tag} style={styles.skillTag}>
+                            <Text style={styles.skillTagLabel}>{tag}</Text>
+                          </View>
+                        ))}
                       </View>
-                    ))}
-                  </View>
-                ) : (
-                  <EmptyBlock icon="ribbon-outline" title="No skills on file" />
-                )}
-                {staff.experience ? <InfoField label="Experience" value={staff.experience} /> : null}
-                <Text style={styles.tagHeading}>Certifications</Text>
-                <Text style={styles.sideMeta}>None on file</Text>
-              </Panel>
+                    ) : (
+                      <DetailEmptyBlock icon="ribbon-outline" title="No skills on file" action="Add skills" onAction={startEdit} />
+                    )}
+                  </DetailPanel>
+                ) : null}
+              </View>
             ) : null}
 
             {tab === 'assignments' ? (
-              <Panel title="Assignments" action="+ Assign Visit" onAction={() => router.push(assignHref)}>
+              <DetailPanel title="Assignments" action="+ Assign Visit" onAction={() => router.push(assignHref)}>
                 {!visitItems.length ? (
-                  <EmptyBlock icon="calendar-outline" title="No assigned visits" />
+                  <DetailEmptyBlock
+                    icon="calendar-outline"
+                    title="No assigned visits"
+                    action="Assign visit"
+                    onAction={() => router.push(assignHref)}
+                  />
                 ) : (
                   visitItems.map((visit) => (
                     <View key={visit.id} style={styles.listCard}>
@@ -591,33 +581,11 @@ export function AdminCareManagerDetailScreen() {
                     </View>
                   ))
                 )}
-              </Panel>
-            ) : null}
-
-            {tab === 'availability' ? (
-              <Panel title="Availability" action="Edit" onAction={startEdit}>
-                {staff.availability ? (
-                  <Text style={styles.sideTitle}>{staff.availability}</Text>
-                ) : (
-                  <EmptyBlock icon="time-outline" title="No availability on file" />
-                )}
-              </Panel>
-            ) : null}
-
-            {tab === 'documents' ? (
-              <Panel title="Documents">
-                <EmptyBlock icon="document-text-outline" title="No documents on file" />
-              </Panel>
-            ) : null}
-
-            {tab === 'reviews' ? (
-              <Panel title="Reviews">
-                <EmptyBlock icon="ribbon-outline" title="No reviews in AgeWell yet" />
-              </Panel>
+              </DetailPanel>
             ) : null}
 
             {tab === 'activity' ? (
-              <Panel title="Activity">
+              <DetailPanel title="Activity">
                 {activity.length ? (
                   activity.map((item) => (
                     <View key={item.id} style={styles.activityRow}>
@@ -633,7 +601,7 @@ export function AdminCareManagerDetailScreen() {
                 ) : (
                   <Text style={styles.sideMeta}>No activity recorded for this staff member.</Text>
                 )}
-              </Panel>
+              </DetailPanel>
             ) : null}
           </>
         ) : null}
@@ -666,93 +634,6 @@ function inSameMonth(value: string | null, now: Date): boolean {
     return false;
   }
   return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth();
-}
-
-function KpiCard({
-  label,
-  value,
-  hint,
-  tone,
-  icon,
-}: {
-  label: string;
-  value: string;
-  hint: string;
-  tone: 'info' | 'safe' | 'warning' | 'accent';
-  icon: 'calendar-outline' | 'people-outline' | 'checkmark-circle-outline' | 'time-outline';
-}) {
-  const bg =
-    tone === 'info' ? colors.infoSoft : tone === 'safe' ? colors.safeSoft : tone === 'warning' ? colors.warningSoft : '#F3EEFF';
-  const fg =
-    tone === 'info' ? colors.info : tone === 'safe' ? colors.safe : tone === 'warning' ? colors.warning : colors.sidebarActive;
-  return (
-    <View style={[styles.summaryCard, { backgroundColor: bg }]}>
-      <IconWell tone={tone === 'accent' ? 'primary' : tone} size={36}>
-        <Icon name={icon} size={16} color={fg} />
-      </IconWell>
-      <Text style={styles.summaryLabel}>{label}</Text>
-      <Text style={styles.summaryValue}>{value}</Text>
-      <Text style={styles.summaryHint}>{hint}</Text>
-    </View>
-  );
-}
-
-function Panel({
-  title,
-  action,
-  onAction,
-  children,
-}: {
-  title: string;
-  action?: string;
-  onAction?: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <View style={styles.panel}>
-      <View style={styles.panelHead}>
-        <Text style={styles.panelTitle}>{title}</Text>
-        {action && onAction ? (
-          <Pressable
-            onPress={onAction}
-            accessibilityRole="button"
-            accessibilityLabel={action}
-            style={styles.panelActionBtn}
-          >
-            <Icon name="create-outline" size={13} color={colors.sidebarActive} />
-            <Text style={styles.panelAction}>{action}</Text>
-          </Pressable>
-        ) : null}
-      </View>
-      {children}
-    </View>
-  );
-}
-
-function InfoField({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={styles.field}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      <Text style={styles.fieldValue}>{value}</Text>
-    </View>
-  );
-}
-
-function EmptyBlock({
-  icon,
-  title,
-}: {
-  icon: 'calendar-outline' | 'ribbon-outline' | 'time-outline' | 'document-text-outline' | 'call-outline';
-  title: string;
-}) {
-  return (
-    <View style={styles.emptyBlock}>
-      <IconWell tone="primary" size={44}>
-        <Icon name={icon} size={20} color={colors.primary} />
-      </IconWell>
-      <Text style={styles.emptyTitle}>{title}</Text>
-    </View>
-  );
 }
 
 function EditForm({
@@ -1156,7 +1037,7 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: colors.sidebarActive,
+    backgroundColor: colors.primary,
     marginTop: 6,
   },
   flex: {
