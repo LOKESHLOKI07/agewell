@@ -94,9 +94,10 @@ describe('Grocery Delivery page', () => {
       executiveName: 'Ravi',
     };
     const [view] = toGroceryOrderViews([groceryRequest], [delivery]);
-    expect(view?.statusLabel).toBe('En Route');
+    expect(view?.statusLabel).toBe('In Progress');
     expect(view?.tone).toBe('en_route');
     expect(view?.trackable).toBe(true);
     expect(view?.subtitle).toBe('With Ravi');
+    expect(view?.itemsSummary).toMatch(/^Items:/);
   });
 });

@@ -21,6 +21,13 @@ ADDON_BOOKING_SERVICES: list[MembershipServiceDef] = [
         "admin_inbox": "requests",
     },
     {
+        "slug": "food",
+        "name": "Tiffin Box",
+        "category": ServiceCategory.FOOD_HOME,
+        "description": "Breakfast, lunch and dinner — monthly or daily home-made tiffin service.",
+        "admin_inbox": "orders",
+    },
+    {
         "slug": "stool-cleaning",
         "name": "Stool Cleaning",
         "category": ServiceCategory.ADD_ON,
@@ -29,7 +36,7 @@ ADDON_BOOKING_SERVICES: list[MembershipServiceDef] = [
     },
     {
         "slug": "maid-assistance",
-        "name": "House Cleaning",
+        "name": "House Maid",
         "category": ServiceCategory.ADD_ON,
         "description": "Trained maid for house & utensil cleaning, stock drying.",
         "admin_inbox": "requests",
@@ -40,12 +47,5 @@ ADDON_BOOKING_SERVICES: list[MembershipServiceDef] = [
         "category": ServiceCategory.ADD_ON,
         "description": "Ayurvedic massage at home by certified therapist.",
         "admin_inbox": "requests",
-    },
-    {
-        "slug": "food",
-        "name": "Food Delivery",
-        "category": ServiceCategory.FOOD_HOME,
-        "description": "Breakfast, lunch and dinner — monthly or daily home-made tiffin service.",
-        "admin_inbox": "orders",
     },
 ]

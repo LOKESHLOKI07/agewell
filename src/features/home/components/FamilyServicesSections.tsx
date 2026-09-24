@@ -1,8 +1,8 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { router, type Href } from 'expo-router';
-import { Icon } from '@/components/ui';
 import { spacing, typography } from '@/constants/theme';
 import { homeAddOnServices } from '@/features/services/addOnServiceCatalog';
+import { MarketplaceServiceIcon } from '@/features/services/components/MarketplaceServiceIcon';
 import { homeBasicMembershipServices, type HomeServiceTile } from '@/features/services/serviceCatalog';
 import { FamilyHomeSectionHeader } from './FamilyHomePrimitives';
 import { familyHome } from './familyHomeTheme';
@@ -38,11 +38,15 @@ function FamilyServiceGrid({
               accessibilityLabel={item.title}
               style={({ pressed }) => [
                 styles.gridCard,
-                { backgroundColor: item.background },
                 pressed ? styles.pressed : null,
               ]}
             >
-              <Icon name={item.icon} size={24} color={item.color} />
+              <MarketplaceServiceIcon
+                serviceId={item.id}
+                fallbackIcon={item.icon}
+                fallbackColor={item.color}
+                size={40}
+              />
               <Text style={styles.gridLabel} numberOfLines={2}>
                 {item.title}
               </Text>
@@ -116,8 +120,11 @@ const styles = StyleSheet.create({
   },
   gridCard: {
     flex: 1,
-    minHeight: 88,
+    minHeight: 100,
     borderRadius: 14,
+    borderWidth: 1,
+    borderColor: familyHome.border,
+    backgroundColor: familyHome.white,
     paddingHorizontal: 4,
     paddingVertical: 12,
     alignItems: 'center',

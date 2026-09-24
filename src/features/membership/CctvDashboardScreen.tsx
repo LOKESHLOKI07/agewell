@@ -15,8 +15,10 @@ import { LoadingState, PrimaryButton, SecondaryButton } from '@/components';
 import type { IconName } from '@/components/ui';
 import { Icon } from '@/components/ui';
 import { spacing, typography } from '@/constants/theme';
-import { AgeWellHeader } from '@/features/home/components/AgeWellHeader';
+import { ServicePageHeader } from '@/features/home/components/ServicePageHeader';
 import { familyHome } from '@/features/home/components/familyHomeTheme';
+import { ServiceHelpBanner } from '@/features/membership/ServiceHelpBanner';
+import { MarketplaceServiceIcon } from '@/features/services/components/MarketplaceServiceIcon';
 import { useTabScreenBottomPad } from '@/utils/safeBottom';
 import { MEMBERSHIP_SERVICE_AREA_LINE } from './membershipServicePageVariant';
 import { membershipPurchaseHref } from './planCatalog';
@@ -98,7 +100,7 @@ export function CctvDashboardScreen() {
         <MemberLiveBody />
       ) : (
         <>
-          <AgeWellHeader title="CCTV Dashboard" showBack showProfile={false} showBell />
+          <ServicePageHeader />
           <ScrollView
             contentContainerStyle={[styles.gateContent, { paddingBottom: bottomPad }]}
             showsVerticalScrollIndicator={false}
@@ -116,9 +118,12 @@ export function CctvDashboardScreen() {
 function TitleBlock() {
   return (
     <View style={styles.titleRow}>
-      <View style={styles.titleIcon}>
-        <Icon name="camera-outline" size={22} color={familyHome.greenDark} />
-      </View>
+      <MarketplaceServiceIcon
+        serviceId={SLUG}
+        fallbackIcon="camera-outline"
+        fallbackColor={familyHome.greenDark}
+        size={48}
+      />
       <View style={styles.flex}>
         <Text style={styles.title}>CCTV DASHBOARD</Text>
         <Text style={styles.lead}>{LEAD}</Text>
@@ -221,20 +226,7 @@ function OutsideAreaBody() {
           <Text style={styles.notifyBtnText}>{submitting ? 'Saving…' : 'Notify Me'}</Text>
         </Pressable>
       </View>
-      <Pressable
-        onPress={() => router.push('/account/help' as Href)}
-        style={({ pressed }) => [styles.helpBannerGreen, pressed ? styles.pressed : null]}
-        accessibilityRole="button"
-      >
-        <View style={styles.helpIconGreen}>
-          <Icon name="help-circle-outline" size={16} color={familyHome.white} />
-        </View>
-        <View style={styles.flex}>
-          <Text style={styles.helpTitleGreen}>Have Questions?</Text>
-          <Text style={styles.helpBodyGreen}>Our team is here to help. Reach out to us anytime.</Text>
-        </View>
-        <Icon name="chevron-forward" size={16} color={familyHome.greenDark} />
-      </Pressable>
+      <ServiceHelpBanner tone="green" />
     </View>
   );
 }
@@ -276,20 +268,7 @@ function NoMembershipBody() {
           onPress={() => router.push(membershipPurchaseHref())}
         />
       </View>
-      <Pressable
-        onPress={() => router.push('/account/help' as Href)}
-        style={({ pressed }) => [styles.helpBanner, pressed ? styles.pressed : null]}
-        accessibilityRole="button"
-      >
-        <View style={styles.contactIcon}>
-          <Icon name="help-circle-outline" size={16} color={familyHome.white} />
-        </View>
-        <View style={styles.flex}>
-          <Text style={styles.helpTitle}>Have Questions?</Text>
-          <Text style={styles.helpBody}>Our team is here to help. Reach out to us anytime.</Text>
-        </View>
-        <Icon name="chevron-forward" size={16} color={familyHome.blue} />
-      </Pressable>
+      <ServiceHelpBanner />
     </View>
   );
 }
@@ -331,15 +310,18 @@ function HomePanel({
 
   return (
     <>
-      <AgeWellHeader title="Entrance CCTV" showBack showProfile={false} showBell />
+      <ServicePageHeader />
       <ScrollView
         contentContainerStyle={[styles.liveContent, { paddingBottom: bottomPad }]}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.liveTitleRow}>
-          <View style={styles.liveTitleIcon}>
-            <Icon name="camera-outline" size={22} color={familyHome.white} />
-          </View>
+          <MarketplaceServiceIcon
+            serviceId={SLUG}
+            fallbackIcon="camera-outline"
+            fallbackColor={familyHome.white}
+            size={40}
+          />
           <View style={styles.flex}>
             <Text style={styles.liveTitle}>Entrance CCTV</Text>
             <Text style={styles.subtitle}>{LIVE_SUBTITLE}</Text>
@@ -430,7 +412,7 @@ function LiveViewPanel({ onBack, bottomPad }: { onBack: () => void; bottomPad: n
 
   return (
     <>
-      <AgeWellHeader title="Entrance CCTV" showBack={false} showProfile={false} showBell />
+      <ServicePageHeader />
       <ScrollView
         contentContainerStyle={[styles.liveContent, { paddingBottom: bottomPad }]}
         showsVerticalScrollIndicator={false}
@@ -537,7 +519,7 @@ function RecordingsPanel({ onBack, bottomPad }: { onBack: () => void; bottomPad:
 
   return (
     <>
-      <AgeWellHeader title="Entrance CCTV" showBack={false} showProfile={false} showBell />
+      <ServicePageHeader />
       <ScrollView
         contentContainerStyle={[styles.liveContent, { paddingBottom: bottomPad }]}
         showsVerticalScrollIndicator={false}
@@ -659,7 +641,7 @@ const styles = StyleSheet.create({
   subtitle: { ...typography.body, color: familyHome.muted },
   heroFull: {
     height: 188,
-    borderRadius: 18,
+    borderRadius: 16,
     overflow: 'hidden',
     backgroundColor: familyHome.border,
     position: 'relative',

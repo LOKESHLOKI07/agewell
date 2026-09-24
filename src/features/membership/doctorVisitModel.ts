@@ -177,13 +177,13 @@ export function doctorVisitToneMeta(tone: DoctorVisitTone): { color: string; sof
   switch (tone) {
     case 'confirmed':
     case 'available':
-      return { color: '#3D8B40', soft: '#E8F5E9' };
+      return { color: '#3D8B40', soft: '#F3FAF4' };
     case 'requested':
-      return { color: '#2F80ED', soft: '#E8F1FF' };
+      return { color: '#2F80ED', soft: '#F5F8FE' };
     case 'completed':
       return { color: '#6B6B6B', soft: '#F3F4F6' };
     case 'cancelled':
-      return { color: '#E5484D', soft: '#FDECEC' };
+      return { color: '#E5484D', soft: '#FEF6F6' };
   }
 }
 

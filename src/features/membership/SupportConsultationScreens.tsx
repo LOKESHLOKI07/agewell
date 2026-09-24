@@ -5,7 +5,7 @@ import { KeyboardAwareScrollView } from '@/components/KeyboardAwareScrollView';
 import type { IconName } from '@/components/ui';
 import { spacing, typography } from '@/constants/theme';
 import { useServiceRequests, useServices } from '@/features/home/hooks/queries';
-import { AgeWellHeader } from '@/features/home/components/AgeWellHeader';
+import { ServicePageHeader } from '@/features/home/components/ServicePageHeader';
 import { familyHome } from '@/features/home/components/familyHomeTheme';
 import {
   AboutServiceCard,
@@ -101,7 +101,7 @@ function SupportConsultationBody({
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
-      <AgeWellHeader title={title} showBack showProfile={false} showBell={false} />
+      <ServicePageHeader />
       <KeyboardAwareScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <MembershipServiceHero slug={slug} />
         <Text style={styles.hint}>{subtitle}</Text>

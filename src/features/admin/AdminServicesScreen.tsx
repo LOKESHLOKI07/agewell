@@ -110,7 +110,7 @@ function AdminServiceDirectory({ scope }: { scope: 'membership' | 'addons' }) {
     return (
       <AdminScreen
         title="Add-on Services"
-        subtitle="These five add-ons are not part of the 21 membership services. Food Delivery has its own catalog."
+        subtitle="These five add-ons are not part of the 21 membership services. Tiffin Box has its own catalog."
       >
         <View style={[styles.metrics, isDesktop ? styles.metricsDesktop : null]}>
           <MetricCard
@@ -509,7 +509,7 @@ export function AdminServiceEditScreen() {
                   accessibilityRole="link"
                   style={styles.itemsLinkWrap}
                 >
-                  <Text style={styles.inboxLink}>Manage food catalog →</Text>
+                  <Text style={styles.inboxLink}>Manage tiffin catalog →</Text>
                 </Pressable>
               ) : null}
             </View>

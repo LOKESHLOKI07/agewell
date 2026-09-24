@@ -6,51 +6,51 @@ function addonHref(id: string): Href {
   return { pathname: '/addons/[id]', params: { id } } as Href;
 }
 
-/** Home-screen add-on shortcuts — Food uses the full meal catalog screen. */
+/** Home-screen add-on shortcuts — brochure order (5). Tiffin Box uses the food catalog screen. */
 export const ADD_ON_SERVICES: HomeServiceTile[] = [
   {
     id: 'emergency-companion',
     title: 'Emergency Companion',
-    icon: 'heart-handshake',
+    icon: 'ambulance',
     color: familyHome.purple,
-    background: familyHome.purpleSoft,
+    background: familyHome.white,
     href: addonHref('emergency-companion'),
+    bookable: true,
+  },
+  {
+    id: 'food',
+    title: 'Tiffin Box',
+    icon: 'restaurant-outline',
+    color: familyHome.orange,
+    background: familyHome.white,
+    href: '/membership/food' as Href,
     bookable: true,
   },
   {
     id: 'stool-cleaning',
     title: 'Stool Cleaning',
-    icon: 'broom-sparkles',
+    icon: 'water',
     color: familyHome.blue,
-    background: familyHome.blueSoft,
+    background: familyHome.white,
     href: addonHref('stool-cleaning'),
     bookable: true,
   },
   {
     id: 'maid-assistance',
-    title: 'House Cleaning',
-    icon: 'brush-cleaning',
+    title: 'House Maid',
+    icon: 'broom',
     color: familyHome.green,
-    background: familyHome.greenSoft,
+    background: familyHome.white,
     href: addonHref('maid-assistance'),
     bookable: true,
   },
   {
     id: 'ayurvedic-massage',
     title: 'Ayurvedic Massage',
-    icon: 'hand-heart',
+    icon: 'leaf',
     color: familyHome.orange,
-    background: familyHome.yellowSoft,
+    background: familyHome.white,
     href: addonHref('ayurvedic-massage'),
-    bookable: true,
-  },
-  {
-    id: 'food',
-    title: 'Food Delivery',
-    icon: 'shopping-bag',
-    color: familyHome.orange,
-    background: familyHome.orangeSoft,
-    href: '/membership/food' as Href,
     bookable: true,
   },
 ];

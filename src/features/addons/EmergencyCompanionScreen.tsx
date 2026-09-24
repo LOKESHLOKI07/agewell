@@ -2,21 +2,23 @@ import { useMemo, useState } from 'react';
 import {
   Alert,
   Image,
+  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import { router, type Href } from 'expo-router';
+import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LoadingState, PrimaryButton, SecondaryButton } from '@/components';
 import type { IconName } from '@/components/ui';
 import { Icon } from '@/components/ui';
-import { spacing, typography } from '@/constants/theme';
+import { minTouchSize, spacing, typography } from '@/constants/theme';
 import { useServiceRequests, useServices } from '@/features/home/hooks/queries';
-import { AgeWellHeader } from '@/features/home/components/AgeWellHeader';
+import { ServicePageHeader } from '@/features/home/components/ServicePageHeader';
 import { familyHome } from '@/features/home/components/familyHomeTheme';
+import { ServiceHelpBanner } from '@/features/membership/ServiceHelpBanner';
 import {
   filterOfferingsByKind,
   parseOfferingMeta,
@@ -28,7 +30,7 @@ import {
 } from '@/features/membership/liveServiceRequests';
 import { MEMBERSHIP_SERVICE_AREA_LINE } from '@/features/membership/membershipServicePageVariant';
 import { membershipPurchaseHref } from '@/features/membership/planCatalog';
-import { SERVICE_HERO_IMAGES } from '@/features/membership/serviceHeroes';
+import { SERVICE_BANNER_HEIGHT, SERVICE_HERO_IMAGES } from '@/features/membership/serviceHeroes';
 import { useMembershipServicePageVariant } from '@/features/membership/useMembershipServicePageVariant';
 import { useMembershipSubmit } from '@/features/membership/useMembershipSubmit';
 import { useServiceOfferings } from '@/features/membership/useCatalog';
@@ -36,9 +38,19 @@ import { useTabScreenBottomPad } from '@/utils/safeBottom';
 
 const SLUG = 'emergency-companion';
 const heroImage = SERVICE_HERO_IMAGES.companion;
+const VIDEO_URL =
+  'https://www.youtube.com/results?search_query=How+Emergency+Companion+Helps+AgeWell';
 
 const DEFAULT_LEAD =
   'Hospital companion provided during your hospitalization. Handles all hospital procedures. Stays at hospital for 8-10 hours. Updates family about health condition & Discharge. (Extra Cost based on availability)';
+
+const SERVICE_DETAILS =
+  'Emergency companion during your hospitalisation can be availed for 8 hours or 16 hours. Our companion will assist you at the hospital, handle procedures, stay with you, and keep your family updated about your health condition and discharge.';
+
+const FALLBACK_OPTIONS: { title: string; line: string }[] = [
+  { title: '8 Hours', line: 'Hospital companionship' },
+  { title: '16 Hours', line: 'Extended support' },
+];
 
 const FEATURE_ICONS: { match: RegExp; icon: IconName }[] = [
   { match: /procedure|admission|paperwork/i, icon: 'clipboard-outline' },
@@ -62,7 +74,7 @@ export function EmergencyCompanionScreen() {
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
-      <AgeWellHeader title="AgeWell" showBack showProfile={false} showBell />
+      <ServicePageHeader />
 
       {variant === 'serviceable_with_membership' ? (
         <MemberLiveBody />
@@ -99,15 +111,116 @@ function useAddonServiceCopy() {
   return { service, features, options, lead, catalog };
 }
 
-function TitleBlock({ lead }: { lead: string }) {
+function TitleBlock({ lead }: { lead?: string }) {
   return (
     <View style={styles.titleRow}>
       <View style={styles.titleIcon}>
-        <Icon name="heart-handshake" size={22} color={familyHome.greenDark} />
+        <Icon name="ambulance" size={22} color={familyHome.greenDark} />
       </View>
       <View style={styles.flex}>
         <Text style={styles.title}>EMERGENCY COMPANION</Text>
-        <Text style={styles.lead}>{lead}</Text>
+        {lead ? <Text style={styles.lead}>{lead}</Text> : null}
+      </View>
+    </View>
+  );
+}
+
+function WatchVideoCard() {
+  return (
+    <Pressable
+      onPress={() => void Linking.openURL(VIDEO_URL)}
+      accessibilityRole="button"
+      accessibilityLabel="Watch: How Emergency Companion Helps"
+      style={({ pressed }) => [styles.videoCard, pressed ? styles.pressed : null]}
+    >
+      <View style={styles.videoThumb}>
+        <Image source={heroImage} style={styles.videoThumbImage} resizeMode="cover" />
+        <View style={styles.videoPlay}>
+          <Icon name="play" size={18} color={familyHome.white} />
+        </View>
+        <Text style={styles.videoDuration}>2:28</Text>
+      </View>
+      <View style={styles.videoCopy}>
+        <View style={styles.watchRow}>
+          <Icon name="play" size={12} color={familyHome.red} />
+          <Text style={styles.watchLabel}>Watch</Text>
+        </View>
+        <Text style={styles.videoTitle}>How Emergency Companion Helps</Text>
+        <Text style={styles.videoSub}>A short video about support during hospitalisation.</Text>
+      </View>
+      <Icon name="chevron-forward" size={16} color={familyHome.muted} />
+    </Pressable>
+  );
+}
+
+function ServiceDetailsCard({
+  options,
+  loading,
+}: {
+  options: ServiceOffering[];
+  loading?: boolean;
+}) {
+  const cards =
+    options.length >= 2
+      ? options.slice(0, 2).map((item) => ({
+          title: item.title,
+          line: item.description || 'Hospital companionship',
+        }))
+      : FALLBACK_OPTIONS;
+
+  return (
+    <View style={styles.detailsCard}>
+      <View style={styles.detailsHead}>
+        <Icon name="document-text-outline" size={18} color={familyHome.blue} />
+        <Text style={styles.detailsTitle}>Service Details</Text>
+      </View>
+      <Text style={styles.detailsBody}>{SERVICE_DETAILS}</Text>
+      {loading ? <Text style={styles.empty}>Loading options…</Text> : null}
+      <View style={styles.optionGrid}>
+        {cards.map((item) => (
+          <View key={item.title} style={styles.optionCard}>
+            <Icon name="time-outline" size={18} color={familyHome.blue} />
+            <Text style={styles.optionTitle}>{item.title}</Text>
+            <Text style={styles.optionLine}>{item.line}</Text>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function AddonNoteBanner() {
+  return (
+    <View style={styles.addonBanner} accessibilityRole="summary">
+      <Icon name="card-outline" size={20} color={familyHome.orange} />
+      <View style={styles.flex}>
+        <Text style={styles.addonTitle}>Add-on Service</Text>
+        <Text style={styles.addonBody}>
+          This is an add-on service and pricing will be decided as per your need and availability.
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+function InAreaBanner() {
+  return (
+    <View style={styles.inAreaBanner} accessibilityRole="summary">
+      <Icon name="location" size={16} color={familyHome.greenDark} />
+      <Text style={styles.inAreaText}>You are in serviceable area</Text>
+    </View>
+  );
+}
+
+function MembershipRequiredBanner() {
+  return (
+    <View style={styles.membershipRequired} accessibilityRole="summary">
+      <Icon name="lock-closed-outline" size={18} color="#B45309" />
+      <View style={styles.flex}>
+        <Text style={styles.membershipRequiredTitle}>Membership Required</Text>
+        <Text style={styles.membershipRequiredBody}>
+          This service is available to active members only.
+        </Text>
       </View>
     </View>
   );
@@ -168,30 +281,6 @@ function FeaturesGrid({ items, loading }: { items: ServiceOffering[]; loading?: 
   );
 }
 
-function HelpBanner({ green }: { green?: boolean }) {
-  return (
-    <Pressable
-      onPress={() => router.push('/account/help' as Href)}
-      style={({ pressed }) => [
-        green ? styles.helpBannerGreen : styles.helpBanner,
-        pressed ? styles.pressed : null,
-      ]}
-      accessibilityRole="button"
-    >
-      <View style={green ? styles.helpIconGreen : styles.contactIcon}>
-        <Icon name="help-circle-outline" size={16} color={familyHome.white} />
-      </View>
-      <View style={styles.flex}>
-        <Text style={green ? styles.helpTitleGreen : styles.helpTitle}>Have Questions?</Text>
-        <Text style={green ? styles.helpBodyGreen : styles.helpBody}>
-          Our team is here to help. Reach out to us anytime.
-        </Text>
-      </View>
-      <Icon name="chevron-forward" size={16} color={green ? familyHome.greenDark : familyHome.blue} />
-    </Pressable>
-  );
-}
-
 function OutsideAreaBody() {
   const { lead, features, catalog } = useAddonServiceCopy();
   const { submitting, submit } = useMembershipSubmit(SLUG);
@@ -245,57 +334,25 @@ function OutsideAreaBody() {
           <Text style={styles.notifyBtnText}>{submitting ? 'Saving…' : 'Notify Me'}</Text>
         </Pressable>
       </View>
-      <HelpBanner green />
+      <ServiceHelpBanner tone="green" />
     </View>
   );
 }
 
+/** In serviceable area, membership not purchased — matches add-on gate mockup. */
 function NoMembershipBody() {
-  const { lead, features, catalog } = useAddonServiceCopy();
+  const { options, catalog } = useAddonServiceCopy();
 
   return (
     <View style={styles.stack}>
-      <TitleBlock lead={lead} />
-      <GateHero
-        headline="You’re Not Alone,"
-        accent="We’re With You."
-        body="Our emergency companions are there to support you at every step, so you can focus on your recovery while we take care of the rest."
-        tag="Better Care, Brighter Tomorrows."
-      />
-      <FeaturesGrid items={features} loading={catalog.isPending} />
-      <View style={styles.membershipCard}>
-        <View style={styles.membershipHead}>
-          <View style={styles.lockWell}>
-            <Icon name="lock-closed-outline" size={16} color="#B45309" />
-          </View>
-          <View style={styles.flex}>
-            <Text style={styles.membershipTitle}>Membership Required</Text>
-            <Text style={styles.membershipBody}>
-              Emergency Companion service is available only for AgeWell members.
-            </Text>
-          </View>
-        </View>
-        <Pressable
-          onPress={() => router.push(membershipPurchaseHref())}
-          style={({ pressed }) => [styles.joinPromo, pressed ? styles.pressed : null]}
-          accessibilityRole="button"
-        >
-          <View style={styles.flex}>
-            <Text style={styles.joinPromoTitle}>Join AgeWell Membership</Text>
-            <Text style={styles.joinPromoBody}>
-              Get access to Emergency Companion and many other services for a safer, healthier and happier
-              life.
-            </Text>
-          </View>
-          <Icon name="chevron-forward" size={16} color="#B45309" />
-        </Pressable>
-        <PrimaryButton label="Join Membership  →" onPress={() => router.push(membershipPurchaseHref())} />
-        <SecondaryButton
-          label="View Membership Plans"
-          onPress={() => router.push(membershipPurchaseHref())}
-        />
-      </View>
-      <HelpBanner />
+      <TitleBlock />
+      <WatchVideoCard />
+      <ServiceDetailsCard options={options} loading={catalog.isPending} />
+      <AddonNoteBanner />
+      <InAreaBanner />
+      <MembershipRequiredBanner />
+      <PrimaryButton label="Get Membership  →" onPress={() => router.push(membershipPurchaseHref())} />
+      <SecondaryButton label="View Membership Plans" onPress={() => router.push(membershipPurchaseHref())} />
     </View>
   );
 }
@@ -333,7 +390,7 @@ function MemberLiveBody() {
     >
       <View style={styles.liveTitleRow}>
         <View style={styles.liveTitleIcon}>
-          <Icon name="heart-handshake" size={22} color={familyHome.white} />
+          <Icon name="ambulance" size={22} color={familyHome.white} />
         </View>
         <View style={styles.flex}>
           <Text style={styles.liveTitle}>Emergency Companion</Text>
@@ -364,7 +421,7 @@ function MemberLiveBody() {
               accessibilityState={{ selected: active }}
             >
               <View style={styles.flex}>
-                <Text style={styles.optionTitle}>{item.title}</Text>
+                <Text style={styles.optionLiveTitle}>{item.title}</Text>
                 <Text style={styles.optionMeta}>{price}</Text>
               </View>
               {active ? (
@@ -409,11 +466,11 @@ function MemberLiveBody() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: familyHome.white },
-  flex: { flex: 1 },
+  flex: { flex: 1, minWidth: 0 },
   stack: { gap: spacing.md },
   gateContent: { paddingHorizontal: spacing.xl, paddingTop: spacing.md, gap: spacing.md },
   liveContent: { paddingHorizontal: spacing.xl, paddingTop: spacing.md, gap: spacing.md },
-  titleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   titleIcon: {
     width: 44,
     height: 44,
@@ -430,12 +487,119 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   lead: { ...typography.caption, color: familyHome.blue, lineHeight: 18, marginTop: 4 },
+
+  videoCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: familyHome.border,
+    backgroundColor: familyHome.white,
+    padding: spacing.sm,
+    minHeight: minTouchSize,
+  },
+  videoThumb: {
+    width: 112,
+    height: 72,
+    borderRadius: 10,
+    overflow: 'hidden',
+    backgroundColor: familyHome.border,
+  },
+  videoThumbImage: { width: '100%', height: '100%' },
+  videoPlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.18)',
+  },
+  videoDuration: {
+    position: 'absolute',
+    right: 6,
+    bottom: 6,
+    ...typography.caption,
+    fontSize: 10,
+    lineHeight: 12,
+    color: familyHome.white,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  videoCopy: { flex: 1, gap: 2, minWidth: 0 },
+  watchRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  watchLabel: { ...typography.caption, color: familyHome.muted },
+  videoTitle: { ...typography.bodyStrong, color: familyHome.text },
+  videoSub: { ...typography.caption, color: familyHome.muted, lineHeight: 16 },
+
+  detailsCard: {
+    backgroundColor: familyHome.blueSoft,
+    borderRadius: 16,
+    padding: spacing.lg,
+    gap: spacing.md,
+  },
+  detailsHead: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  detailsTitle: { ...typography.bodyStrong, color: familyHome.blueDark },
+  detailsBody: { ...typography.body, color: familyHome.muted, lineHeight: 22 },
+  optionGrid: { flexDirection: 'row', gap: spacing.sm },
+  optionCard: {
+    flex: 1,
+    backgroundColor: familyHome.white,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: familyHome.border,
+    padding: spacing.md,
+    gap: 4,
+    minHeight: 92,
+  },
+  optionTitle: { ...typography.bodyStrong, color: familyHome.text },
+  optionLine: { ...typography.caption, color: familyHome.muted },
+
+  addonBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.md,
+    backgroundColor: familyHome.orangeSoft,
+    borderRadius: 14,
+    padding: spacing.lg,
+  },
+  addonTitle: { ...typography.bodyStrong, color: familyHome.orange },
+  addonBody: { ...typography.caption, color: familyHome.muted, lineHeight: 18, marginTop: 2 },
+
+  inAreaBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: familyHome.greenSoft,
+    borderRadius: 12,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+  },
+  inAreaText: { ...typography.bodyStrong, color: familyHome.greenDark },
+
+  membershipRequired: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.md,
+    backgroundColor: familyHome.orangeSoft,
+    borderRadius: 14,
+    padding: spacing.lg,
+  },
+  membershipRequiredTitle: { ...typography.bodyStrong, color: '#B45309' },
+  membershipRequiredBody: {
+    ...typography.caption,
+    color: familyHome.muted,
+    lineHeight: 18,
+    marginTop: 2,
+  },
+
   heroCard: {
     flexDirection: 'row',
-    borderRadius: 18,
+    borderRadius: 16,
     overflow: 'hidden',
     backgroundColor: familyHome.greenSoft,
-    minHeight: 168,
+    minHeight: SERVICE_BANNER_HEIGHT,
   },
   heroCopy: { flex: 1, padding: spacing.lg, justifyContent: 'center', gap: spacing.sm },
   heroHeadline: {
@@ -521,69 +685,8 @@ const styles = StyleSheet.create({
     backgroundColor: familyHome.white,
   },
   notifyBtnText: { ...typography.captionStrong, color: familyHome.blue },
-  membershipCard: {
-    backgroundColor: familyHome.yellowSoft,
-    borderRadius: 16,
-    padding: spacing.lg,
-    gap: spacing.md,
-  },
-  membershipHead: { flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start' },
-  lockWell: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: '#FDE68A',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  membershipTitle: { ...typography.bodyStrong, color: familyHome.text },
-  membershipBody: { ...typography.caption, color: familyHome.muted, lineHeight: 18, marginTop: 2 },
-  joinPromo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    backgroundColor: familyHome.white,
-    borderRadius: 12,
-    padding: spacing.md,
-  },
-  joinPromoTitle: { ...typography.bodyStrong, color: '#B45309' },
-  joinPromoBody: { ...typography.caption, color: familyHome.muted, lineHeight: 18, marginTop: 2 },
-  helpBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    backgroundColor: familyHome.blueSoft,
-    borderRadius: 14,
-    padding: spacing.lg,
-  },
-  helpBannerGreen: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    backgroundColor: familyHome.greenSoft,
-    borderRadius: 14,
-    padding: spacing.lg,
-  },
-  contactIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: familyHome.blue,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  helpIconGreen: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: familyHome.green,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   helpTitle: { ...typography.bodyStrong, color: familyHome.blueDark },
   helpBody: { ...typography.caption, color: familyHome.blue, lineHeight: 18, marginTop: 2 },
-  helpTitleGreen: { ...typography.bodyStrong, color: familyHome.greenDark },
-  helpBodyGreen: { ...typography.caption, color: familyHome.greenDark, lineHeight: 18, marginTop: 2 },
   liveTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   liveTitleIcon: {
     width: 44,
@@ -607,7 +710,7 @@ const styles = StyleSheet.create({
     padding: spacing.md,
   },
   optionRowActive: { borderColor: familyHome.green, backgroundColor: familyHome.greenSoft },
-  optionTitle: { ...typography.bodyStrong, color: familyHome.text },
+  optionLiveTitle: { ...typography.bodyStrong, color: familyHome.text },
   optionMeta: { ...typography.caption, color: familyHome.muted, marginTop: 2 },
   radio: {
     width: 20,

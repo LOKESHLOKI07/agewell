@@ -2,28 +2,34 @@ import { useMemo, useState } from 'react';
 import {
   Alert,
   Image,
+  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import { router, type Href } from 'expo-router';
+import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LoadingState, PrimaryButton, SecondaryButton } from '@/components';
 import type { IconName } from '@/components/ui';
 import { Icon } from '@/components/ui';
 import { spacing, typography } from '@/constants/theme';
 import { useServiceRequests } from '@/features/home/hooks/queries';
-import { AgeWellHeader } from '@/features/home/components/AgeWellHeader';
+import { ServicePageHeader } from '@/features/home/components/ServicePageHeader';
 import { familyHome } from '@/features/home/components/familyHomeTheme';
+import { ServiceHelpBanner } from '@/features/membership/ServiceHelpBanner';
+import { MarketplaceServiceIcon } from '@/features/services/components/MarketplaceServiceIcon';
 import { useTabScreenBottomPad } from '@/utils/safeBottom';
 import type { ServiceOffering } from './catalogTypes';
-import { parseOfferingMeta } from './catalogTypes';
 import { MEMBERSHIP_SERVICE_AREA_LINE } from './membershipServicePageVariant';
 import { membershipPurchaseHref } from './planCatalog';
 import { SERVICE_HERO_IMAGES } from './serviceHeroes';
-import { filterRequestsBySlug, toLiveRequestViews } from './liveServiceRequests';
+import {
+  filterRequestsBySlug,
+  liveRequestToneMeta,
+  toLiveRequestViews,
+} from './liveServiceRequests';
 import { useMembershipServicePageVariant } from './useMembershipServicePageVariant';
 import { useMembershipSubmit } from './useMembershipSubmit';
 import { useServiceOfferings } from './useCatalog';
@@ -31,34 +37,10 @@ import { useServiceOfferings } from './useCatalog';
 const heroImage = SERVICE_HERO_IMAGES.pooja;
 
 const SLUG = 'pooja';
+const VIDEO_URL =
+  'https://www.youtube.com/results?search_query=Simple+Steps+to+Plan+a+Home+Pooja+for+Peace';
 const LEAD =
   'Choose from various pooja options on the app, with 1–2 helpers provided to assist you at home. (Extra charges apply)';
-const LIVE_SUBTITLE = 'Spiritual care, with complete support.';
-const LIVE_PROMO =
-  'Pooja at your home, made simple. We take care of everything — materials, arrangements and 1–2 companions to assist with setup.';
-
-const GATE_FEATURES: { icon: IconName; title: string; body: string }[] = [
-  {
-    icon: 'sparkles',
-    title: 'Various Pooja Options',
-    body: 'Choose from different pooja services on the app',
-  },
-  {
-    icon: 'people-outline',
-    title: '1–2 Helpers at Home',
-    body: 'Trained helpers to assist you',
-  },
-  {
-    icon: 'clipboard-outline',
-    title: 'Hassle-Free Arrangements',
-    body: 'We coordinate the details',
-  },
-  {
-    icon: 'home-outline',
-    title: 'A More Peaceful Experience',
-    body: 'Perform rituals comfortably at home',
-  },
-];
 
 const WHAT_INCLUDED = [
   'Complete pooja arrangement',
@@ -74,45 +56,148 @@ const PLEASE_NOTE = [
   'Special / custom requests supported',
 ];
 
-type CategoryTab = 'all' | 'festival' | 'special' | 'regular';
-
-const CATEGORY_TABS: { key: CategoryTab; label: string }[] = [
-  { key: 'all', label: 'All Pooja Services' },
-  { key: 'festival', label: 'Festival Pooja' },
-  { key: 'special', label: 'Special Pooja' },
-  { key: 'regular', label: 'Regular Pooja' },
+const GATE_FEATURES: { icon: IconName; title: string; body: string }[] = [
+  {
+    icon: 'lamp',
+    title: 'Various Pooja Options',
+    body: 'Choose from different pooja services on the app',
+  },
+  {
+    icon: 'people-outline',
+    title: '1–2 Helpers at Home',
+    body: 'Trained helpers to assist you',
+  },
+  {
+    icon: 'clipboard-outline',
+    title: 'Hassle-Free Arrangements',
+    body: 'We coordinate the details',
+  },
+  {
+    icon: 'flame',
+    title: 'A More Peaceful Experience',
+    body: 'Perform rituals comfortably at home',
+  },
 ];
 
-const CARD_SOFTS = [
-  familyHome.purpleSoft,
-  familyHome.orangeSoft,
-  familyHome.blueSoft,
-  familyHome.greenSoft,
-  familyHome.yellowSoft,
+const FALLBACK_OFFERINGS: ServiceOffering[] = [
+  {
+    id: 'fallback-ganesh',
+    serviceSlug: SLUG,
+    title: 'Ganesh Pooja',
+    description: 'For new beginnings and success.',
+    badge: '1–2 helpers',
+    priceLabel: '₹5,500',
+    image: null,
+    metaJson: null,
+    sortOrder: 0,
+    isActive: true,
+  },
+  {
+    id: 'fallback-lakshmi',
+    serviceSlug: SLUG,
+    title: 'Lakshmi Pooja',
+    description: 'Invite prosperity and abundance into your home.',
+    badge: '1–2 helpers',
+    priceLabel: '₹4,500',
+    image: null,
+    metaJson: null,
+    sortOrder: 1,
+    isActive: true,
+  },
+  {
+    id: 'fallback-navratri',
+    serviceSlug: SLUG,
+    title: 'Navratri Pooja',
+    description: 'Festival worship with complete arrangements.',
+    badge: '1–2 helpers',
+    priceLabel: '₹6,500',
+    image: null,
+    metaJson: null,
+    sortOrder: 2,
+    isActive: true,
+  },
+  {
+    id: 'fallback-diwali',
+    serviceSlug: SLUG,
+    title: 'Diwali Lakshmi Pooja',
+    description: 'Auspicious Diwali Lakshmi pooja at home.',
+    badge: '1–2 helpers',
+    priceLabel: '₹7,500',
+    image: null,
+    metaJson: null,
+    sortOrder: 3,
+    isActive: true,
+  },
+  {
+    id: 'fallback-satya',
+    serviceSlug: SLUG,
+    title: 'Satyanarayan Pooja',
+    description: 'For peace and prosperity.',
+    badge: '2 helpers',
+    priceLabel: '₹3,500',
+    image: null,
+    metaJson: null,
+    sortOrder: 4,
+    isActive: true,
+  },
+  {
+    id: 'fallback-griha',
+    serviceSlug: SLUG,
+    title: 'Griha Shanti',
+    description: 'Peace and wellbeing pooja for the household.',
+    badge: '2 helpers',
+    priceLabel: '₹2,999',
+    image: null,
+    metaJson: null,
+    sortOrder: 5,
+    isActive: true,
+  },
+  {
+    id: 'fallback-vastu',
+    serviceSlug: SLUG,
+    title: 'Vastu Shanti',
+    description: 'Harmonize your home with Vastu rituals.',
+    badge: '1–2 helpers',
+    priceLabel: '₹4,999',
+    image: null,
+    metaJson: null,
+    sortOrder: 6,
+    isActive: true,
+  },
+  {
+    id: 'fallback-other',
+    serviceSlug: SLUG,
+    title: 'Other Pooja (Custom)',
+    description: 'Tell us the pooja you need — we will arrange it.',
+    badge: 'Custom',
+    priceLabel: '',
+    image: null,
+    metaJson: null,
+    sortOrder: 7,
+    isActive: true,
+  },
 ];
 
-function parsePrice(label: string): number {
-  const n = Number(String(label).replace(/[₹,\s]/g, ''));
-  return Number.isFinite(n) ? n : 0;
-}
+const SERVICE_LOOKS: { match: RegExp; icon: IconName; color: string; soft: string }[] = [
+  { match: /ganesh/i, icon: 'sparkles', color: familyHome.purple, soft: familyHome.purpleSoft },
+  { match: /diwali/i, icon: 'lamp', color: familyHome.green, soft: familyHome.greenSoft },
+  { match: /lakshmi/i, icon: 'flower', color: familyHome.orange, soft: familyHome.orangeSoft },
+  { match: /navratri/i, icon: 'flame', color: familyHome.blue, soft: familyHome.blueSoft },
+  { match: /satyanarayan/i, icon: 'flame', color: familyHome.red, soft: familyHome.redSoft },
+  { match: /griha/i, icon: 'home-outline', color: familyHome.purple, soft: familyHome.purpleSoft },
+  { match: /vastu/i, icon: 'landmark', color: familyHome.orange, soft: familyHome.orangeSoft },
+  { match: /other|custom/i, icon: 'ellipsis-horizontal', color: familyHome.muted, soft: '#F3F4F6' },
+];
 
-function formatRupees(amount: number): string {
-  return `₹${amount.toLocaleString('en-IN')}`;
-}
-
-function isQuoteOffering(item: ServiceOffering): boolean {
-  const meta = parseOfferingMeta(item.metaJson);
-  if (meta.quote === 'true') return true;
-  const price = item.priceLabel?.trim() ?? '';
-  if (!price || /^quote$/i.test(price)) return true;
-  if (/custom/i.test(item.title)) return true;
-  return false;
-}
-
-function offeringCategory(item: ServiceOffering): CategoryTab | null {
-  const cat = parseOfferingMeta(item.metaJson).category?.toLowerCase();
-  if (cat === 'festival' || cat === 'special' || cat === 'regular') return cat;
-  return null;
+function lookForService(title: string) {
+  for (const row of SERVICE_LOOKS) {
+    if (row.match.test(title)) return row;
+  }
+  return {
+    icon: 'sparkles' as IconName,
+    color: familyHome.purple,
+    soft: familyHome.purpleSoft,
+  };
 }
 
 export function PoojaHelperScreen() {
@@ -122,7 +207,7 @@ export function PoojaHelperScreen() {
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
-      <AgeWellHeader title="Home Pooja Assistance" showBack showProfile={false} showBell />
+      <ServicePageHeader />
 
       {variant === 'serviceable_with_membership' ? (
         <MemberLiveBody />
@@ -143,11 +228,14 @@ export function PoojaHelperScreen() {
 function TitleBlock() {
   return (
     <View style={styles.titleRow}>
-      <View style={styles.titleIcon}>
-        <Icon name="sparkles" size={22} color={familyHome.greenDark} />
-      </View>
+      <MarketplaceServiceIcon
+        serviceId={SLUG}
+        fallbackIcon="sparkles"
+        fallbackColor={familyHome.orange}
+        size={48}
+      />
       <View style={styles.flex}>
-        <Text style={styles.title}>HOUSE POOJA ASSISTANCE</Text>
+        <Text style={styles.title}>Home Pooja Assistance</Text>
         <Text style={styles.lead}>{LEAD}</Text>
       </View>
     </View>
@@ -245,20 +333,7 @@ function OutsideAreaBody() {
           <Text style={styles.notifyBtnText}>{submitting ? 'Saving…' : 'Notify Me'}</Text>
         </Pressable>
       </View>
-      <Pressable
-        onPress={() => router.push('/account/help' as Href)}
-        style={({ pressed }) => [styles.helpBannerGreen, pressed ? styles.pressed : null]}
-        accessibilityRole="button"
-      >
-        <View style={styles.helpIconGreen}>
-          <Icon name="help-circle-outline" size={16} color={familyHome.white} />
-        </View>
-        <View style={styles.flex}>
-          <Text style={styles.helpTitleGreen}>Have Questions?</Text>
-          <Text style={styles.helpBodyGreen}>Our team is here to help. Reach out to us anytime.</Text>
-        </View>
-        <Icon name="chevron-forward" size={16} color={familyHome.greenDark} />
-      </Pressable>
+      <ServiceHelpBanner tone="green" />
     </View>
   );
 }
@@ -301,20 +376,7 @@ function NoMembershipBody() {
           onPress={() => router.push(membershipPurchaseHref())}
         />
       </View>
-      <Pressable
-        onPress={() => router.push('/account/help' as Href)}
-        style={({ pressed }) => [styles.helpBanner, pressed ? styles.pressed : null]}
-        accessibilityRole="button"
-      >
-        <View style={styles.contactIcon}>
-          <Icon name="help-circle-outline" size={16} color={familyHome.white} />
-        </View>
-        <View style={styles.flex}>
-          <Text style={styles.helpTitle}>Have Questions?</Text>
-          <Text style={styles.helpBody}>Our team is here to help. Reach out to us anytime.</Text>
-        </View>
-        <Icon name="chevron-forward" size={16} color={familyHome.blue} />
-      </Pressable>
+      <ServiceHelpBanner />
     </View>
   );
 }
@@ -323,321 +385,238 @@ function MemberLiveBody() {
   const catalog = useServiceOfferings(SLUG);
   const requestsQuery = useServiceRequests();
   const { submitting, submit } = useMembershipSubmit(SLUG);
-  const [cart, setCart] = useState<Record<string, number>>({});
-  const [category, setCategory] = useState<CategoryTab>('all');
+  const [selectedId, setSelectedId] = useState('');
 
-  const offerings = catalog.data ?? [];
+  const offerings = useMemo(() => {
+    const fromApi = catalog.data ?? [];
+    const byTitle = new Map<string, ServiceOffering>();
+    for (const item of fromApi) {
+      const key = item.title.trim().toLowerCase();
+      if (!byTitle.has(key)) byTitle.set(key, item);
+    }
+    return FALLBACK_OFFERINGS.map((fallback) => byTitle.get(fallback.title.toLowerCase()) ?? fallback);
+  }, [catalog.data]);
 
-  const filtered = useMemo(() => {
-    if (category === 'all') return offerings;
-    return offerings.filter((item) => offeringCategory(item) === category);
-  }, [category, offerings]);
+  const selected =
+    offerings.find((item) => item.id === selectedId) ?? offerings[0] ?? null;
+  const selectedLook = lookForService(selected?.title ?? 'Ganesh');
 
-  const cartLines = useMemo(
-    () => offerings.filter((item) => (cart[item.id] ?? 0) > 0),
-    [cart, offerings],
+  const recent = useMemo(() => {
+    const mine = filterRequestsBySlug(requestsQuery.data?.items ?? [], SLUG);
+    return toLiveRequestViews(mine, { fallbackTitle: 'Pooja booking', limit: 3 });
+  }, [requestsQuery.data?.items]);
+
+  const allCount = useMemo(
+    () => filterRequestsBySlug(requestsQuery.data?.items ?? [], SLUG).length,
+    [requestsQuery.data?.items],
   );
 
-  const cartCount = useMemo(
-    () => Object.values(cart).reduce((sum, n) => sum + n, 0),
-    [cart],
-  );
+  const onSelect = (item: ServiceOffering) => {
+    setSelectedId(item.id);
+  };
 
-  const totalAmount = useMemo(() => {
-    return cartLines.reduce((sum, item) => {
-      const qty = cart[item.id] ?? 0;
-      return sum + parsePrice(item.priceLabel) * qty;
-    }, 0);
-  }, [cart, cartLines]);
+  const onRequestCallback = () => {
+    if (!selected) {
+      Alert.alert('Select a pooja', 'Please choose a pooja service before requesting a call back.');
+      return;
+    }
+    void submit(
+      `Call back: ${selected.title}. ${selected.description || ''}`.trim(),
+      'Call back requested',
+    );
+  };
 
-  const onMyBookings = () => {
+  const onViewAllRequests = () => {
     const mine = filterRequestsBySlug(requestsQuery.data?.items ?? [], SLUG);
     const lines = toLiveRequestViews(mine, { fallbackTitle: 'Pooja booking', limit: 20 })
       .map((item) => `• ${item.title} — ${item.statusLabel} (${item.dateLabel})`)
       .join('\n');
-    Alert.alert('My Bookings', lines || 'No bookings yet.');
-  };
-
-  const onViewCart = () => {
-    const lines = cartLines
-      .map((item) => `• ${item.title} ×${cart[item.id]} (${item.priceLabel || '—'})`)
-      .join('\n');
-    Alert.alert(`Your Cart (${cartCount} items)`, lines || 'Cart is empty.');
-  };
-
-  const addToCart = (id: string) => {
-    setCart((prev) => ({ ...prev, [id]: (prev[id] ?? 0) + 1 }));
-  };
-
-  const setQty = (id: string, next: number) => {
-    setCart((prev) => {
-      const copy = { ...prev };
-      if (next <= 0) delete copy[id];
-      else copy[id] = next;
-      return copy;
-    });
-  };
-
-  const onRequestQuote = (item: ServiceOffering) => {
-    void submit(
-      `Quote request: ${item.title}. ${item.description || ''}`.trim(),
-      'Quote request submitted',
-    );
-  };
-
-  const onCheckout = () => {
-    if (cartCount === 0) {
-      Alert.alert('Pooja cart empty', 'Add a package before checking out.');
-      return;
-    }
-    const lines = cartLines.map((item) => `${item.title} x${cart[item.id]} (${item.priceLabel})`);
-    void submit(`Pooja cart: ${lines.join('; ')}`, 'Pooja request submitted').then((ok) => {
-      if (ok) setCart({});
-    });
+    Alert.alert('Recent Requests', lines || 'No requests yet.');
   };
 
   return (
     <ScrollView contentContainerStyle={styles.liveContent} showsVerticalScrollIndicator={false}>
       <View style={styles.liveTitleRow}>
-        <View style={styles.liveTitleIcon}>
-          <Icon name="sparkles" size={22} color={familyHome.white} />
-        </View>
-        <View style={styles.flex}>
-          <Text style={styles.liveTitle}>Home Pooja Assistance</Text>
-          <Text style={styles.subtitle}>{LIVE_SUBTITLE}</Text>
-        </View>
-        <View style={styles.headerActions}>
-          {cartCount > 0 ? (
-            <Pressable
-              onPress={onViewCart}
-              style={styles.cartPill}
-              accessibilityRole="button"
-              accessibilityLabel={`Cart ${cartCount} items`}
-            >
-              <Icon name="cart-outline" size={14} color={familyHome.greenDark} />
-              <Text style={styles.cartPillText}>{cartCount}</Text>
-            </Pressable>
-          ) : null}
-          <Pressable
-            onPress={onMyBookings}
-            style={styles.viewRequestsBtn}
-            accessibilityRole="button"
-            accessibilityLabel="My Bookings"
-          >
-            <Icon name="calendar-outline" size={14} color={familyHome.green} />
-            <Text style={styles.viewRequestsText}>My{'\n'}Bookings</Text>
-            <Icon name="chevron-forward" size={14} color={familyHome.green} />
-          </Pressable>
-        </View>
+        <MarketplaceServiceIcon
+          serviceId={SLUG}
+          fallbackIcon="sparkles"
+          fallbackColor={familyHome.orange}
+          size={40}
+        />
+        <Text style={styles.liveTitle}>Home Pooja Assistance</Text>
       </View>
 
-      <View style={styles.promoBanner}>
-        <View style={styles.promoIcon}>
-          <Icon name="sparkles" size={18} color={familyHome.purple} />
-        </View>
-        <View style={styles.flex}>
-          <Text style={styles.promoBody}>{LIVE_PROMO}</Text>
-        </View>
-      </View>
+      <Text style={styles.sectionTitle}>Select a Pooja Service</Text>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.tabsRow}
-      >
-        {CATEGORY_TABS.map((tab) => {
-          const active = tab.key === category;
-          return (
-            <Pressable
-              key={tab.key}
-              onPress={() => setCategory(tab.key)}
-              style={[styles.tabChip, active ? styles.tabChipActive : null]}
-              accessibilityRole="button"
-              accessibilityState={{ selected: active }}
-              accessibilityLabel={tab.label}
-            >
-              <Text style={[styles.tabChipText, active ? styles.tabChipTextActive : null]}>
-                {tab.label}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
-
-      {catalog.isPending ? <Text style={styles.empty}>Loading pooja services…</Text> : null}
-      {catalog.isError ? (
+      {catalog.isPending && !catalog.data?.length ? (
+        <Text style={styles.empty}>Loading pooja services…</Text>
+      ) : null}
+      {catalog.isError && !catalog.data?.length ? (
         <Pressable onPress={() => void catalog.refetch()} accessibilityRole="button">
           <Text style={styles.viewAll}>Unable to load · Tap to retry</Text>
         </Pressable>
       ) : null}
 
       <View style={styles.offerGrid}>
-        {filtered.map((item, index) => {
-          const quote = isQuoteOffering(item);
-          const soft = CARD_SOFTS[index % CARD_SOFTS.length];
+        {offerings.map((item) => {
+          const look = lookForService(item.title);
+          const active = item.id === (selectedId || selected?.id);
           return (
-            <View key={item.id} style={styles.offerCard}>
-              {item.image ? (
-                <Image
-                  source={{ uri: item.image }}
-                  style={styles.offerImage}
-                  accessibilityLabel={`${item.title} image`}
-                />
-              ) : (
-                <View style={[styles.offerPlaceholder, { backgroundColor: soft }]}>
-                  <Icon name="sparkles" size={28} color={familyHome.purple} />
-                </View>
-              )}
+            <Pressable
+              key={item.id}
+              onPress={() => onSelect(item)}
+              disabled={submitting}
+              style={[
+                styles.offerCard,
+                active ? { borderColor: look.color, backgroundColor: look.soft } : null,
+                submitting ? styles.disabled : null,
+              ]}
+              accessibilityRole="button"
+              accessibilityState={{ selected: active }}
+              accessibilityLabel={item.title}
+            >
+              <Icon name={look.icon} size={18} color={look.color} />
               <Text style={styles.offerTitle} numberOfLines={2}>
                 {item.title}
               </Text>
-              {item.description ? (
-                <Text style={styles.offerDesc} numberOfLines={2}>
-                  {item.description}
-                </Text>
-              ) : null}
-              <Text style={styles.offerPrice}>
-                {quote ? item.priceLabel?.trim() || 'Quote' : item.priceLabel || '—'}
-              </Text>
-              {quote ? (
-                <Pressable
-                  onPress={() => onRequestQuote(item)}
-                  disabled={submitting}
-                  style={[styles.quoteBtn, submitting ? styles.disabled : null]}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Request quote for ${item.title}`}
-                >
-                  <Text style={styles.quoteBtnText}>Request Quote</Text>
-                </Pressable>
-              ) : (
-                <Pressable
-                  onPress={() => addToCart(item.id)}
-                  style={[styles.addBtn, (cart[item.id] ?? 0) > 0 ? styles.addBtnAdded : null]}
-                  accessibilityRole="button"
-                  accessibilityLabel={
-                    (cart[item.id] ?? 0) > 0
-                      ? `${item.title} in cart, quantity ${cart[item.id]}`
-                      : `Add ${item.title} to cart`
-                  }
-                >
-                  <Icon
-                    name="cart-outline"
-                    size={14}
-                    color={(cart[item.id] ?? 0) > 0 ? familyHome.greenDark : familyHome.white}
-                  />
-                  <Text
-                    style={[
-                      styles.addBtnText,
-                      (cart[item.id] ?? 0) > 0 ? styles.addBtnTextAdded : null,
-                    ]}
-                  >
-                    {(cart[item.id] ?? 0) > 0 ? `Added (${cart[item.id]})` : 'Add to Cart'}
-                  </Text>
-                </Pressable>
-              )}
-            </View>
+              <Icon name="chevron-forward" size={12} color={familyHome.muted} />
+            </Pressable>
           );
         })}
       </View>
 
-      {!catalog.isPending && filtered.length === 0 ? (
-        <Text style={styles.empty}>No pooja services in this category yet.</Text>
-      ) : null}
-
-      {cartCount > 0 ? (
-        <View style={styles.cartSection}>
-          <View style={styles.cartHead}>
-            <Text style={styles.sectionTitle}>Your Cart ({cartCount} items)</Text>
-            <Pressable onPress={onViewCart} accessibilityRole="button">
-              <Text style={styles.viewAll}>View Cart</Text>
+      {selected ? (
+        <View style={styles.selectedPanel}>
+          <Text style={styles.selectedLabel}>Selected Pooja Service</Text>
+          <View style={styles.selectedCard}>
+            <View style={[styles.selectedIcon, { backgroundColor: selectedLook.soft }]}>
+              <Icon name={selectedLook.icon} size={16} color={selectedLook.color} />
+            </View>
+            <View style={styles.flex}>
+              <Text style={styles.selectedTitle}>{selected.title}</Text>
+              {selected.description ? (
+                <Text style={styles.selectedBody} numberOfLines={2}>
+                  {selected.description}
+                </Text>
+              ) : null}
+            </View>
+            <Pressable
+              onPress={() => Alert.alert('Change service', 'Tap another pooja above to change your selection.')}
+              accessibilityRole="button"
+              accessibilityLabel="Change selected pooja"
+            >
+              <Text style={styles.changeLink}>Change &gt;</Text>
             </Pressable>
           </View>
 
-          {cartLines.map((item) => {
-            const qty = cart[item.id] ?? 0;
-            return (
-              <View key={item.id} style={styles.cartLine}>
-                {item.image ? (
-                  <Image source={{ uri: item.image }} style={styles.cartThumb} />
-                ) : (
-                  <View style={[styles.cartThumb, styles.cartThumbPlaceholder]}>
-                    <Icon name="sparkles" size={16} color={familyHome.purple} />
-                  </View>
-                )}
-                <View style={styles.flex}>
-                  <Text style={styles.cartLineTitle} numberOfLines={1}>
-                    {item.title}
-                  </Text>
-                  <Text style={styles.cartLinePrice}>{item.priceLabel || '—'}</Text>
-                </View>
-                <View style={styles.qtyRow}>
-                  <Pressable
-                    onPress={() => setQty(item.id, qty - 1)}
-                    style={styles.qtyBtn}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Decrease ${item.title}`}
-                  >
-                    <Text style={styles.qtyBtnText}>−</Text>
-                  </Pressable>
-                  <Text style={styles.qtyValue}>{qty}</Text>
-                  <Pressable
-                    onPress={() => setQty(item.id, qty + 1)}
-                    style={styles.qtyBtn}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Increase ${item.title}`}
-                  >
-                    <Text style={styles.qtyBtnText}>+</Text>
-                  </Pressable>
-                </View>
-                <Pressable
-                  onPress={() => setQty(item.id, 0)}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Remove ${item.title}`}
-                >
-                  <Icon name="trash-outline" size={18} color={familyHome.red} />
-                </Pressable>
-              </View>
-            );
-          })}
-
-          <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>Total Amount</Text>
-            <Text style={styles.totalValue}>{formatRupees(totalAmount)}</Text>
-          </View>
-
           <Pressable
-            style={[styles.checkoutBtn, submitting ? styles.disabled : null]}
-            onPress={onCheckout}
+            onPress={onRequestCallback}
             disabled={submitting}
+            style={({ pressed }) => [
+              styles.raiseCta,
+              submitting ? styles.disabled : null,
+              pressed ? styles.pressed : null,
+            ]}
             accessibilityRole="button"
-            accessibilityLabel="Proceed to Checkout"
+            accessibilityLabel="Request a Call Back"
           >
-            <Text style={styles.checkoutBtnText}>
-              {submitting ? 'Sending…' : 'Proceed to Checkout'}
+            <Icon name="call-outline" size={16} color={familyHome.white} />
+            <Text style={styles.raiseCtaText}>
+              {submitting ? 'Sending…' : 'Request a Call Back'}
             </Text>
+            <Icon name="chevron-forward" size={16} color={familyHome.white} />
           </Pressable>
         </View>
       ) : null}
 
-      <View style={styles.infoCard}>
-        <Text style={styles.infoTitle}>What’s Included</Text>
-        {WHAT_INCLUDED.map((line) => (
-          <View key={line} style={styles.infoRow}>
-            <Icon name="checkmark-circle-outline" size={16} color={familyHome.green} />
-            <Text style={styles.infoText}>{line}</Text>
-          </View>
-        ))}
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Recent Requests</Text>
+        {allCount > 0 ? (
+          <Pressable onPress={onViewAllRequests} accessibilityRole="button">
+            <Text style={styles.viewAll}>View All &gt;</Text>
+          </Pressable>
+        ) : null}
       </View>
 
-      <View style={styles.infoCard}>
-        <Text style={styles.infoTitle}>Please Note</Text>
-        {PLEASE_NOTE.map((line) => (
-          <View key={line} style={styles.infoRow}>
-            <Icon name="help-circle-outline" size={16} color={familyHome.blue} />
-            <Text style={styles.infoText}>{line}</Text>
-          </View>
-        ))}
+      {requestsQuery.isPending ? <Text style={styles.empty}>Loading requests…</Text> : null}
+      {!requestsQuery.isPending && recent.length === 0 ? (
+        <Text style={styles.empty}>No requests yet. Select a pooja and request a call back.</Text>
+      ) : null}
+
+      {recent.length > 0 ? (
+        <View style={styles.activityCard}>
+          {recent.map((item, index) => {
+            const look = lookForService(item.title);
+            const tone = liveRequestToneMeta(item.tone);
+            return (
+              <View
+                key={item.id}
+                style={[styles.requestRow, index < recent.length - 1 ? styles.requestDivider : null]}
+              >
+                <View style={[styles.requestIcon, { backgroundColor: look.soft }]}>
+                  <Icon name={look.icon} size={14} color={look.color} />
+                </View>
+                <View style={styles.flex}>
+                  <Text style={styles.requestDate}>{item.dateLabel}</Text>
+                  <Text style={styles.requestTitle}>{item.title}</Text>
+                  <Text style={styles.requestDetail}>{item.detail}</Text>
+                </View>
+                <View style={[styles.statusPill, { backgroundColor: tone.soft }]}>
+                  <Text style={[styles.statusPillText, { color: tone.color }]}>{item.statusLabel}</Text>
+                </View>
+                <Icon name="chevron-forward" size={14} color={familyHome.muted} />
+              </View>
+            );
+          })}
+        </View>
+      ) : null}
+
+      <View style={styles.infoRowPair}>
+        <View style={[styles.infoCard, styles.infoCardPurple]}>
+          <Text style={styles.infoTitle}>What's Included</Text>
+          {WHAT_INCLUDED.map((line) => (
+            <View key={line} style={styles.infoLine}>
+              <Icon name="checkmark-circle-outline" size={12} color={familyHome.green} />
+              <Text style={styles.infoText}>{line}</Text>
+            </View>
+          ))}
+        </View>
+        <View style={[styles.infoCard, styles.infoCardBlue]}>
+          <Text style={styles.infoTitle}>Please Note</Text>
+          {PLEASE_NOTE.map((line) => (
+            <View key={line} style={styles.infoLine}>
+              <Icon name="help-circle-outline" size={12} color={familyHome.blue} />
+              <Text style={styles.infoText}>{line}</Text>
+            </View>
+          ))}
+        </View>
       </View>
+
+      <Text style={styles.sectionTitle}>Learn with Video</Text>
+      <Pressable
+        onPress={() => void Linking.openURL(VIDEO_URL)}
+        accessibilityRole="button"
+        accessibilityLabel="Watch on YouTube: Simple Steps to Plan a Home Pooja"
+        style={({ pressed }) => [styles.videoCard, pressed ? styles.pressed : null]}
+      >
+        <View style={styles.videoThumb}>
+          <Image source={heroImage} style={styles.videoThumbImage} resizeMode="cover" />
+          <View style={styles.videoThumbPlay}>
+            <Icon name="play" size={14} color={familyHome.white} />
+          </View>
+          <Text style={styles.videoThumbDuration}>6:25</Text>
+        </View>
+        <View style={styles.videoCopy}>
+          <Text style={styles.videoTitle}>
+            Simple Steps to Plan a Home Pooja for Peace & Positivity
+          </Text>
+          <View style={styles.watchRow}>
+            <Icon name="play" size={11} color={familyHome.red} />
+            <Text style={styles.watchLabel}>YouTube Video</Text>
+          </View>
+        </View>
+        <Icon name="chevron-forward" size={14} color={familyHome.muted} />
+      </Pressable>
     </ScrollView>
   );
 }
@@ -666,7 +645,7 @@ const styles = StyleSheet.create({
   subtitle: { ...typography.body, color: familyHome.muted },
   heroFull: {
     height: 188,
-    borderRadius: 18,
+    borderRadius: 16,
     overflow: 'hidden',
     backgroundColor: familyHome.border,
     position: 'relative',
@@ -846,210 +825,191 @@ const styles = StyleSheet.create({
   liveContent: {
     paddingHorizontal: spacing.xl,
     paddingBottom: spacing.xxxl,
-    gap: spacing.lg,
-    paddingTop: spacing.sm,
+    gap: 10,
+    paddingTop: 4,
   },
-  liveTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  headerActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  cartPill: {
+  liveTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  liveTitle: { ...typography.title, color: familyHome.text, flex: 1, fontSize: 18, lineHeight: 22 },
+  sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: familyHome.greenSoft,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: familyHome.green,
+    justifyContent: 'space-between',
   },
-  cartPillText: { ...typography.captionStrong, color: familyHome.greenDark },
-  liveTitleIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: familyHome.orange,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  viewRequestsBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    borderWidth: 1,
-    borderColor: familyHome.green,
-    borderRadius: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    maxWidth: 108,
-  },
-  viewRequestsText: {
-    ...typography.captionStrong,
-    color: familyHome.green,
-    fontSize: 10,
-    lineHeight: 13,
-  },
-  promoBanner: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.md,
-    backgroundColor: familyHome.purpleSoft,
-    borderRadius: 16,
-    padding: spacing.lg,
-  },
-  promoIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    backgroundColor: familyHome.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  promoBody: { ...typography.caption, color: familyHome.text, lineHeight: 18 },
-  tabsRow: { gap: spacing.sm, paddingVertical: 2 },
-  tabChip: {
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: familyHome.border,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    backgroundColor: familyHome.white,
-  },
-  tabChipActive: {
-    backgroundColor: familyHome.purple,
-    borderColor: familyHome.purple,
-  },
-  tabChipText: { ...typography.captionStrong, color: familyHome.text, fontSize: 12 },
-  tabChipTextActive: { color: familyHome.white },
-  sectionTitle: { ...typography.subtitle, color: familyHome.text },
-  viewAll: { ...typography.captionStrong, color: familyHome.blue },
-  empty: { ...typography.caption, color: familyHome.muted },
+  sectionTitle: { ...typography.subtitle, color: familyHome.text, fontSize: 14, lineHeight: 18 },
+  viewAll: { ...typography.captionStrong, color: familyHome.blue, fontSize: 11 },
+  empty: { ...typography.caption, color: familyHome.muted, fontSize: 11 },
   offerGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing.sm,
+    gap: 8,
   },
   offerCard: {
-    width: '47.5%',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: familyHome.border,
-    padding: spacing.sm,
+    width: '48%',
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 6,
-    backgroundColor: familyHome.white,
-  },
-  offerImage: {
-    width: '100%',
-    height: 96,
-    borderRadius: 12,
-    backgroundColor: familyHome.border,
-  },
-  offerPlaceholder: {
-    width: '100%',
-    height: 96,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  offerTitle: { ...typography.captionStrong, color: familyHome.text, fontSize: 13, lineHeight: 16 },
-  offerDesc: { ...typography.caption, color: familyHome.muted, fontSize: 11, lineHeight: 15 },
-  offerPrice: { ...typography.bodyStrong, color: familyHome.greenDark, fontSize: 14 },
-  addBtn: {
-    marginTop: 2,
-    minHeight: 36,
-    borderRadius: 10,
-    backgroundColor: familyHome.green,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-  },
-  addBtnAdded: {
-    backgroundColor: familyHome.greenSoft,
-    borderWidth: 1,
-    borderColor: familyHome.green,
-  },
-  addBtnText: { ...typography.captionStrong, color: familyHome.white },
-  addBtnTextAdded: { color: familyHome.greenDark },
-  quoteBtn: {
-    marginTop: 2,
-    minHeight: 36,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: familyHome.purple,
-    backgroundColor: familyHome.purpleSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  quoteBtnText: { ...typography.captionStrong, color: familyHome.purpleDark },
-  cartSection: {
-    borderRadius: 16,
     borderWidth: 1,
     borderColor: familyHome.border,
-    padding: spacing.lg,
-    gap: spacing.md,
-    backgroundColor: familyHome.white,
-  },
-  cartHead: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  cartLine: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  cartThumb: {
-    width: 44,
-    height: 44,
     borderRadius: 10,
-    backgroundColor: familyHome.border,
-  },
-  cartThumbPlaceholder: {
-    backgroundColor: familyHome.purpleSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cartLineTitle: { ...typography.bodyStrong, color: familyHome.text, fontSize: 13 },
-  cartLinePrice: { ...typography.caption, color: familyHome.muted, marginTop: 2 },
-  qtyRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  qtyBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: familyHome.border,
-    alignItems: 'center',
-    justifyContent: 'center',
     backgroundColor: familyHome.white,
-  },
-  qtyBtnText: { ...typography.bodyStrong, color: familyHome.text, fontSize: 16, lineHeight: 18 },
-  qtyValue: { ...typography.bodyStrong, color: familyHome.text, minWidth: 16, textAlign: 'center' },
-  totalRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: spacing.sm,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: familyHome.border,
-  },
-  totalLabel: { ...typography.bodyStrong, color: familyHome.text },
-  totalValue: { ...typography.subtitle, color: familyHome.greenDark },
-  checkoutBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 8,
     minHeight: 48,
-    borderRadius: 14,
-    backgroundColor: familyHome.green,
+  },
+  offerTitle: {
+    ...typography.captionStrong,
+    color: familyHome.text,
+    flex: 1,
+    fontSize: 11,
+    lineHeight: 14,
+  },
+  selectedPanel: {
+    borderRadius: 12,
+    backgroundColor: familyHome.greenSoft,
+    padding: 10,
+    gap: 8,
+  },
+  selectedLabel: {
+    ...typography.captionStrong,
+    color: familyHome.muted,
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+  selectedCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderRadius: 10,
+    backgroundColor: familyHome.white,
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+  },
+  selectedIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  checkoutBtnText: { ...typography.bodyStrong, color: familyHome.white },
-  infoCard: {
-    borderRadius: 16,
-    backgroundColor: familyHome.blueSoft,
-    padding: spacing.lg,
-    gap: spacing.sm,
+  selectedTitle: { ...typography.bodyStrong, color: familyHome.text, fontSize: 13, lineHeight: 16 },
+  selectedBody: { ...typography.caption, color: familyHome.muted, fontSize: 11, lineHeight: 14, marginTop: 1 },
+  changeLink: { ...typography.captionStrong, color: familyHome.blue, fontSize: 12 },
+  raiseCta: {
+    minHeight: 42,
+    borderRadius: 12,
+    backgroundColor: familyHome.green,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingHorizontal: spacing.md,
   },
-  infoTitle: { ...typography.subtitle, color: familyHome.text, marginBottom: 2 },
-  infoRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm },
-  infoText: { ...typography.caption, color: familyHome.text, flex: 1, lineHeight: 18 },
+  raiseCtaText: { ...typography.bodyStrong, color: familyHome.white, flex: 1, fontSize: 14 },
+  activityCard: {
+    borderWidth: 1,
+    borderColor: familyHome.border,
+    borderRadius: 12,
+    backgroundColor: familyHome.white,
+    overflow: 'hidden',
+  },
+  requestRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 9,
+    paddingHorizontal: 10,
+  },
+  requestDivider: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: familyHome.border,
+  },
+  requestIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  requestDate: { ...typography.caption, color: familyHome.muted, fontSize: 10, lineHeight: 12 },
+  requestTitle: {
+    ...typography.bodyStrong,
+    color: familyHome.text,
+    fontSize: 12,
+    lineHeight: 15,
+    marginTop: 1,
+  },
+  requestDetail: {
+    ...typography.caption,
+    color: familyHome.muted,
+    fontSize: 10,
+    lineHeight: 13,
+    marginTop: 1,
+  },
+  statusPill: {
+    borderRadius: 999,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+  },
+  statusPillText: { ...typography.captionStrong, fontSize: 9 },
+  infoRowPair: { flexDirection: 'row', gap: 8 },
+  infoCard: {
+    flex: 1,
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    gap: 5,
+  },
+  infoCardPurple: { backgroundColor: familyHome.purpleSoft },
+  infoCardBlue: { backgroundColor: familyHome.blueSoft },
+  infoTitle: { ...typography.bodyStrong, color: familyHome.text, fontSize: 12, marginBottom: 2 },
+  infoLine: { flexDirection: 'row', alignItems: 'flex-start', gap: 5 },
+  infoText: {
+    ...typography.caption,
+    color: familyHome.muted,
+    fontSize: 10,
+    lineHeight: 13,
+    flex: 1,
+  },
+  videoCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: familyHome.border,
+    backgroundColor: '#F7F8FA',
+    padding: 8,
+  },
+  videoThumb: {
+    width: 72,
+    height: 56,
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: '#123B7A',
+  },
+  videoThumbImage: { width: '100%', height: '100%' },
+  videoThumbPlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.22)',
+  },
+  videoThumbDuration: {
+    position: 'absolute',
+    right: 4,
+    bottom: 4,
+    ...typography.caption,
+    color: familyHome.white,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: 4,
+    fontSize: 9,
+  },
+  videoCopy: { flex: 1, gap: 3 },
+  videoTitle: { ...typography.bodyStrong, color: familyHome.text, fontSize: 12, lineHeight: 15 },
+  watchRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  watchLabel: { ...typography.caption, color: familyHome.muted, fontSize: 10 },
 });
+

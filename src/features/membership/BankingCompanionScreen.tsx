@@ -1,23 +1,27 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Alert,
   Image,
+  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import { router, type Href } from 'expo-router';
+import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LoadingState, PrimaryButton, SecondaryButton } from '@/components';
 import type { IconName } from '@/components/ui';
 import { Icon } from '@/components/ui';
 import { spacing, typography } from '@/constants/theme';
 import { useServiceRequests, useServices } from '@/features/home/hooks/queries';
-import { AgeWellHeader } from '@/features/home/components/AgeWellHeader';
+import { ServicePageHeader } from '@/features/home/components/ServicePageHeader';
 import { familyHome } from '@/features/home/components/familyHomeTheme';
+import { ServiceHelpBanner } from '@/features/membership/ServiceHelpBanner';
+import { MarketplaceServiceIcon } from '@/features/services/components/MarketplaceServiceIcon';
 import { useTabScreenBottomPad } from '@/utils/safeBottom';
+import { toDisplayDate } from '@/utils/date';
 import type { ServiceOffering } from './catalogTypes';
 import { MEMBERSHIP_SERVICE_AREA_LINE } from './membershipServicePageVariant';
 import { membershipPurchaseHref } from './planCatalog';
@@ -27,6 +31,7 @@ import {
   liveRequestToneMeta,
   toLiveRequestViews,
 } from './liveServiceRequests';
+import { useHasActiveMembership } from './useHasActiveMembership';
 import { useMembershipServicePageVariant } from './useMembershipServicePageVariant';
 import { useMembershipSubmit } from './useMembershipSubmit';
 import { useServiceOfferings } from './useCatalog';
@@ -34,18 +39,118 @@ import { useServiceOfferings } from './useCatalog';
 const heroImage = SERVICE_HERO_IMAGES['banking-companion'];
 
 const SLUG = 'banking-companion';
+const VIDEO_URL =
+  'https://www.youtube.com/results?search_query=Banking+Made+Easy+for+Seniors+AgeWell';
 const LEAD =
   'Book a companion for bank visits like pension withdrawal, cheque deposit, passbook update & other banking work. Paid on a per-visit basis. Prior appointments required.';
 const DEFAULT_ABOUT =
-  'Our companions assist with banking coordination, scheduling visits, documentation, and acting as a liaison with the bank.';
-const LIVE_SUBTITLE = 'Your banking work, our support.';
+  'Our Banking Companion helps you with day-to-day banking needs such as pension withdrawal, KYC updates, passbook updates, cheque book requests and other branch visits with trusted companion support.';
 const HERO_BODY = 'A trusted companion to make your banking errands easier and hassle-free.';
 
 const GATE_FEATURES: { icon: IconName; title: string; body: string }[] = [
-  { icon: 'person-outline', title: 'Pension Withdrawal', body: 'Assistance for pension collection' },
+  { icon: 'card-outline', title: 'Pension Withdrawal', body: 'Assistance for pension collection' },
   { icon: 'document-text-outline', title: 'Cheque Deposit', body: 'Help with deposit and clearance' },
   { icon: 'clipboard-outline', title: 'Passbook Update', body: 'Assistance for passbook printing and update' },
-  { icon: 'business-outline', title: 'Other Banking Work', body: 'Support for various banking errands' },
+  { icon: 'landmark', title: 'Other Banking Work', body: 'Support for various banking errands' },
+];
+
+const FALLBACK_OFFERINGS: ServiceOffering[] = [
+  {
+    id: 'fallback-pension',
+    serviceSlug: SLUG,
+    title: 'Pension Withdrawal',
+    description: 'Assistance with pension withdrawal process.',
+    badge: 'Banking',
+    priceLabel: 'Per visit',
+    image: null,
+    metaJson: null,
+    sortOrder: 0,
+    isActive: true,
+  },
+  {
+    id: 'fallback-account',
+    serviceSlug: SLUG,
+    title: 'Account Related Help',
+    description: 'Support for account services and issues.',
+    badge: 'Banking',
+    priceLabel: 'Per visit',
+    image: null,
+    metaJson: null,
+    sortOrder: 1,
+    isActive: true,
+  },
+  {
+    id: 'fallback-kyc',
+    serviceSlug: SLUG,
+    title: 'KYC Update',
+    description: 'Help with KYC document update and verification.',
+    badge: 'Banking',
+    priceLabel: 'Per visit',
+    image: null,
+    metaJson: null,
+    sortOrder: 2,
+    isActive: true,
+  },
+  {
+    id: 'fallback-passbook',
+    serviceSlug: SLUG,
+    title: 'Passbook Update',
+    description: 'Assistance with passbook printing and updates.',
+    badge: 'Banking',
+    priceLabel: 'Per visit',
+    image: null,
+    metaJson: null,
+    sortOrder: 3,
+    isActive: true,
+  },
+  {
+    id: 'fallback-cheque',
+    serviceSlug: SLUG,
+    title: 'Cheque Book Request',
+    description: 'Request a new cheque book or related support.',
+    badge: 'Banking',
+    priceLabel: 'Per visit',
+    image: null,
+    metaJson: null,
+    sortOrder: 4,
+    isActive: true,
+  },
+  {
+    id: 'fallback-neft',
+    serviceSlug: SLUG,
+    title: 'NEFT / RTGS Assistance',
+    description: 'Help with fund transfer and transaction issues.',
+    badge: 'Banking',
+    priceLabel: 'Per visit',
+    image: null,
+    metaJson: null,
+    sortOrder: 5,
+    isActive: true,
+  },
+  {
+    id: 'fallback-fd',
+    serviceSlug: SLUG,
+    title: 'Fixed Deposit (FD) Support',
+    description: 'Assistance with FD opening, renewal, etc.',
+    badge: 'Banking',
+    priceLabel: 'Per visit',
+    image: null,
+    metaJson: null,
+    sortOrder: 6,
+    isActive: true,
+  },
+  {
+    id: 'fallback-other',
+    serviceSlug: SLUG,
+    title: 'Other Banking Service',
+    description: 'Any other banking related assistance.',
+    badge: 'Banking',
+    priceLabel: 'Per visit',
+    image: null,
+    metaJson: null,
+    sortOrder: 7,
+    isActive: true,
+  },
 ];
 
 const SERVICE_LOOKS: { match: RegExp; icon: IconName; color: string; soft: string }[] = [
@@ -54,7 +159,7 @@ const SERVICE_LOOKS: { match: RegExp; icon: IconName; color: string; soft: strin
   { match: /kyc/i, icon: 'document-text-outline', color: familyHome.red, soft: familyHome.redSoft },
   { match: /passbook/i, icon: 'clipboard-outline', color: familyHome.orange, soft: familyHome.orangeSoft },
   { match: /cheque/i, icon: 'document-outline', color: familyHome.purple, soft: familyHome.purpleSoft },
-  { match: /neft|rtgs/i, icon: 'arrow-forward', color: familyHome.green, soft: familyHome.greenSoft },
+  { match: /neft|rtgs|transfer/i, icon: 'arrow-forward', color: familyHome.green, soft: familyHome.greenSoft },
   { match: /fixed\s*deposit|\bfd\b/i, icon: 'ribbon-outline', color: familyHome.blue, soft: familyHome.blueSoft },
   { match: /other/i, icon: 'ellipsis-horizontal', color: familyHome.purple, soft: familyHome.purpleSoft },
 ];
@@ -64,10 +169,23 @@ function lookForService(title: string) {
     if (row.match.test(title)) return row;
   }
   return {
-    icon: 'business-outline' as IconName,
+    icon: 'landmark' as IconName,
     color: familyHome.purple,
     soft: familyHome.purpleSoft,
   };
+}
+
+function membershipValidLabel(endDate: string | null | undefined): string | null {
+  if (!endDate) {
+    return null;
+  }
+  const parsed = new Date(endDate);
+  if (Number.isNaN(parsed.getTime())) {
+    const display = toDisplayDate(endDate);
+    return display ? `Membership valid upto ${display}` : null;
+  }
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return `Membership valid upto ${parsed.getDate()} ${months[parsed.getMonth()]} ${parsed.getFullYear()}`;
 }
 
 export function BankingCompanionScreen() {
@@ -77,7 +195,7 @@ export function BankingCompanionScreen() {
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
-      <AgeWellHeader title="Banking Companion" showBack showProfile={false} showBell />
+      <ServicePageHeader />
 
       {variant === 'serviceable_with_membership' ? (
         <MemberLiveBody />
@@ -98,11 +216,14 @@ export function BankingCompanionScreen() {
 function TitleBlock() {
   return (
     <View style={styles.titleRow}>
-      <View style={styles.titleIcon}>
-        <Icon name="business-outline" size={22} color={familyHome.greenDark} />
-      </View>
+      <MarketplaceServiceIcon
+        serviceId={SLUG}
+        fallbackIcon="landmark"
+        fallbackColor={familyHome.blue}
+        size={48}
+      />
       <View style={styles.flex}>
-        <Text style={styles.title}>BANKING COMPANION</Text>
+        <Text style={styles.title}>Banking Companion</Text>
         <Text style={styles.lead}>{LEAD}</Text>
       </View>
     </View>
@@ -192,20 +313,7 @@ function OutsideAreaBody() {
           <Text style={styles.notifyBtnText}>{submitting ? 'Saving…' : 'Notify Me'}</Text>
         </Pressable>
       </View>
-      <Pressable
-        onPress={() => router.push('/account/help' as Href)}
-        style={({ pressed }) => [styles.helpBannerGreen, pressed ? styles.pressed : null]}
-        accessibilityRole="button"
-      >
-        <View style={styles.helpIconGreen}>
-          <Icon name="help-circle-outline" size={16} color={familyHome.white} />
-        </View>
-        <View style={styles.flex}>
-          <Text style={styles.helpTitleGreen}>Have Questions?</Text>
-          <Text style={styles.helpBodyGreen}>Our team is here to help. Reach out to us anytime.</Text>
-        </View>
-        <Icon name="chevron-forward" size={16} color={familyHome.greenDark} />
-      </Pressable>
+      <ServiceHelpBanner tone="green" />
     </View>
   );
 }
@@ -247,20 +355,7 @@ function NoMembershipBody() {
           onPress={() => router.push(membershipPurchaseHref())}
         />
       </View>
-      <Pressable
-        onPress={() => router.push('/account/help' as Href)}
-        style={({ pressed }) => [styles.helpBanner, pressed ? styles.pressed : null]}
-        accessibilityRole="button"
-      >
-        <View style={styles.contactIcon}>
-          <Icon name="help-circle-outline" size={16} color={familyHome.white} />
-        </View>
-        <View style={styles.flex}>
-          <Text style={styles.helpTitle}>Have Questions?</Text>
-          <Text style={styles.helpBody}>Our team is here to help. Reach out to us anytime.</Text>
-        </View>
-        <Icon name="chevron-forward" size={16} color={familyHome.blue} />
-      </Pressable>
+      <ServiceHelpBanner />
     </View>
   );
 }
@@ -269,9 +364,28 @@ function MemberLiveBody() {
   const services = useServices();
   const catalog = useServiceOfferings(SLUG);
   const requestsQuery = useServiceRequests();
+  const membership = useHasActiveMembership();
   const { submitting, submit } = useMembershipSubmit(SLUG);
+  const validTill = membershipValidLabel(membership.query.data?.endDate);
+  const [selectedId, setSelectedId] = useState('');
 
-  const offerings = catalog.data ?? [];
+  const offerings = useMemo(() => {
+    const fromApi = catalog.data ?? [];
+    const byTitle = new Map<string, ServiceOffering>();
+    for (const item of fromApi) {
+      const key = item.title.trim().toLowerCase();
+      if (!byTitle.has(key)) {
+        byTitle.set(key, item);
+      }
+    }
+    const resolved = FALLBACK_OFFERINGS.map((fallback) => {
+      const apiItem = byTitle.get(fallback.title.toLowerCase());
+      return apiItem ?? fallback;
+    });
+    return resolved;
+  }, [catalog.data]);
+
+  const selected = offerings.find((item) => item.id === selectedId) ?? null;
 
   const service = useMemo(
     () => (services.data ?? []).find((item) => item.slug === SLUG) ?? null,
@@ -290,15 +404,19 @@ function MemberLiveBody() {
     [requestsQuery.data?.items],
   );
 
-  const onSelectOffering = (item: ServiceOffering) => {
-    void submit(
-      `${item.title}. Banking companion assistance requested. ${item.description || ''}`.trim(),
-      `${item.title} request sent`,
-    );
+  const onSelectService = (item: ServiceOffering) => {
+    setSelectedId(item.id);
   };
 
-  const onCustomRequest = () => {
-    void submit('Custom banking related assistance requested.', 'Custom request sent');
+  const onRaiseRequest = () => {
+    if (!selected) {
+      Alert.alert('Select a service', 'Please choose a banking service before raising a request.');
+      return;
+    }
+    void submit(
+      `${selected.title}. Banking companion assistance requested. ${selected.description || ''}`.trim(),
+      `${selected.title} request sent`,
+    );
   };
 
   const onViewAllRequests = () => {
@@ -311,23 +429,30 @@ function MemberLiveBody() {
 
   return (
     <ScrollView contentContainerStyle={styles.liveContent} showsVerticalScrollIndicator={false}>
-      <View style={styles.liveTitleRow}>
-        <View style={styles.liveTitleIcon}>
-          <Icon name="business-outline" size={22} color={familyHome.white} />
-        </View>
-        <View style={styles.flex}>
+      <View style={styles.liveTitleBlock}>
+        <View style={styles.liveTitleRow}>
+          <MarketplaceServiceIcon
+            serviceId={SLUG}
+            fallbackIcon="landmark"
+            fallbackColor={familyHome.blue}
+            size={48}
+          />
           <Text style={styles.liveTitle}>Banking Companion</Text>
-          <Text style={styles.subtitle}>{LIVE_SUBTITLE}</Text>
         </View>
+        {validTill ? (
+          <View style={styles.memberBadge}>
+            <Icon name="checkmark-circle-outline" size={14} color={familyHome.green} />
+            <Text style={styles.memberBadgeTitle}>{validTill}</Text>
+          </View>
+        ) : null}
       </View>
 
-      <View style={styles.sectionBlock}>
-        <Text style={styles.sectionTitle}>Raise a Request</Text>
-        <Text style={styles.sectionHint}>Select the banking service you need assistance with</Text>
-      </View>
+      <Text style={styles.sectionHint}>Select the banking service you need assistance with</Text>
 
-      {catalog.isPending ? <Text style={styles.empty}>Loading services…</Text> : null}
-      {catalog.isError ? (
+      {catalog.isPending && !catalog.data?.length ? (
+        <Text style={styles.empty}>Loading services…</Text>
+      ) : null}
+      {catalog.isError && !catalog.data?.length ? (
         <Pressable onPress={() => void catalog.refetch()} accessibilityRole="button">
           <Text style={styles.viewAll}>Unable to load · Tap to retry</Text>
         </Pressable>
@@ -336,51 +461,60 @@ function MemberLiveBody() {
       <View style={styles.offerGrid}>
         {offerings.map((item) => {
           const look = lookForService(item.title);
+          const selectedCard = item.id === selectedId;
           return (
             <Pressable
               key={item.id}
-              onPress={() => onSelectOffering(item)}
+              onPress={() => onSelectService(item)}
               disabled={submitting}
               style={[
                 styles.offerCard,
-                { backgroundColor: look.soft, borderColor: look.color },
+                { backgroundColor: look.soft },
+                selectedCard ? styles.offerCardSelected : null,
+                selectedCard ? { borderColor: look.color } : null,
                 submitting ? styles.disabled : null,
               ]}
               accessibilityRole="button"
+              accessibilityState={{ selected: selectedCard }}
               accessibilityLabel={item.title}
             >
-              <View style={[styles.offerIcon, { backgroundColor: familyHome.white }]}>
-                <Icon name={look.icon} size={20} color={look.color} />
+              <View style={styles.offerIcon}>
+                <Icon name={look.icon} size={14} color={look.color} />
               </View>
-              <Text style={[styles.offerTitle, { color: look.color }]} numberOfLines={2}>
-                {item.title}
-              </Text>
+              <View style={styles.offerCopy}>
+                <Text style={[styles.offerTitle, { color: look.color }]} numberOfLines={2}>
+                  {item.title}
+                </Text>
+                {item.description ? (
+                  <Text style={styles.offerBody} numberOfLines={2}>
+                    {item.description}
+                  </Text>
+                ) : null}
+              </View>
+              <Icon name="chevron-forward" size={12} color={familyHome.muted} />
             </Pressable>
           );
         })}
       </View>
 
       <Pressable
-        onPress={onCustomRequest}
+        onPress={onRaiseRequest}
         disabled={submitting}
         style={({ pressed }) => [
-          styles.customBanner,
-          pressed || submitting ? styles.pressed : null,
+          styles.raiseCta,
           submitting ? styles.disabled : null,
+          pressed ? styles.pressed : null,
         ]}
         accessibilityRole="button"
-        accessibilityLabel="Custom banking request"
+        accessibilityLabel="Raise a Support Request"
       >
-        <View style={styles.customIcon}>
-          <Icon name="create-outline" size={16} color={familyHome.white} />
+        <View style={styles.raisePlus}>
+          <Icon name="plus-circle" size={20} color={familyHome.green} />
         </View>
-        <View style={styles.flex}>
-          <Text style={styles.customTitle}>Need something else?</Text>
-          <Text style={styles.customBody}>
-            You can also raise a custom request for any other banking related assistance.
-          </Text>
-        </View>
-        <Icon name="chevron-forward" size={16} color={familyHome.greenDark} />
+        <Text style={styles.raiseCtaText}>
+          {submitting ? 'Sending…' : 'Raise a Support Request'}
+        </Text>
+        <Icon name="chevron-forward" size={18} color={familyHome.white} />
       </Pressable>
 
       <View style={styles.sectionHeader}>
@@ -397,44 +531,73 @@ function MemberLiveBody() {
         <Text style={styles.empty}>No requests yet. Select a banking service above.</Text>
       ) : null}
 
-      <View>
-        {recent.map((item, index) => {
-          const look = lookForService(item.title);
-          const tone = liveRequestToneMeta(item.tone);
-          return (
-            <View
-              key={item.id}
-              style={[styles.requestRow, index < recent.length - 1 ? styles.requestDivider : null]}
-            >
-              <View style={[styles.requestIcon, { backgroundColor: look.soft }]}>
-                <Icon name={look.icon} size={18} color={look.color} />
+      {recent.length > 0 ? (
+        <View style={styles.activityCard}>
+          {recent.map((item, index) => {
+            const look = lookForService(item.title);
+            const tone = liveRequestToneMeta(item.tone);
+            return (
+              <View
+                key={item.id}
+                style={[styles.requestRow, index < recent.length - 1 ? styles.requestDivider : null]}
+              >
+                <View style={[styles.requestIcon, { backgroundColor: look.soft }]}>
+                  <Icon name={look.icon} size={14} color={look.color} />
+                </View>
+                <View style={styles.flex}>
+                  <Text style={styles.requestDate}>{item.dateLabel}</Text>
+                  <Text style={styles.requestTitle}>{item.title}</Text>
+                  <Text style={styles.requestDetail}>{item.detail}</Text>
+                </View>
+                <View style={[styles.statusPill, { backgroundColor: tone.soft }]}>
+                  <Text style={[styles.statusPillText, { color: tone.color }]}>{item.statusLabel}</Text>
+                </View>
+                <Icon name="chevron-forward" size={14} color={familyHome.muted} />
               </View>
-              <View style={styles.flex}>
-                <Text style={styles.requestTitle}>{item.title}</Text>
-                <Text style={styles.requestDate}>{item.dateLabel}</Text>
-                <Text style={styles.requestDetail} numberOfLines={2}>
-                  {item.detail}
-                </Text>
-              </View>
-              <View style={[styles.statusPill, { backgroundColor: tone.soft }]}>
-                <Text style={[styles.statusPillText, { color: tone.color }]}>{item.statusLabel}</Text>
-              </View>
-              <Icon name="chevron-forward" size={18} color={familyHome.muted} />
-            </View>
-          );
-        })}
-      </View>
+            );
+          })}
+        </View>
+      ) : null}
 
       <View style={styles.aboutCard}>
-        <View style={styles.aboutRow}>
+        <View style={styles.aboutHead}>
           <View style={styles.aboutIcon}>
-            <Icon name="help-circle-outline" size={18} color={familyHome.blue} />
+            <Icon name="help-circle-outline" size={14} color={familyHome.blue} />
           </View>
-          <View style={styles.flex}>
-            <Text style={styles.aboutTitle}>About This Service</Text>
-            <Text style={styles.aboutText}>{about}</Text>
-          </View>
+          <Text style={styles.aboutTitle}>About This Service</Text>
         </View>
+        <Text style={styles.aboutText}>{about}</Text>
+      </View>
+
+      <View style={styles.videoSection}>
+        <Text style={styles.sectionTitle}>Learn with Video</Text>
+        <Text style={styles.videoSectionHint}>
+          Watch this helpful video to learn more about banking with AgeWell.
+        </Text>
+        <Pressable
+          onPress={() => void Linking.openURL(VIDEO_URL)}
+          accessibilityRole="button"
+          accessibilityLabel="Watch on YouTube: Banking Made Easy for Seniors"
+          style={({ pressed }) => [styles.videoCardCompact, pressed ? styles.pressed : null]}
+        >
+          <View style={styles.videoThumb}>
+            <Image source={heroImage} style={styles.videoThumbImage} resizeMode="cover" />
+            <View style={styles.videoThumbPlay}>
+              <Icon name="play" size={14} color={familyHome.white} />
+            </View>
+            <Text style={styles.videoThumbDuration}>5:28</Text>
+          </View>
+          <View style={styles.videoCompactCopy}>
+            <View style={styles.watchRow}>
+              <Icon name="play" size={12} color={familyHome.red} />
+              <Text style={styles.watchLabel}>Watch on YouTube</Text>
+            </View>
+            <Text style={styles.videoCompactTitle}>
+              Banking Made Easy for Seniors | Essential Tips & Support
+            </Text>
+          </View>
+          <Icon name="chevron-forward" size={16} color={familyHome.muted} />
+        </Pressable>
       </View>
     </ScrollView>
   );
@@ -464,7 +627,7 @@ const styles = StyleSheet.create({
   subtitle: { ...typography.body, color: familyHome.muted },
   heroFull: {
     height: 188,
-    borderRadius: 18,
+    borderRadius: 16,
     overflow: 'hidden',
     backgroundColor: familyHome.border,
     position: 'relative',
@@ -638,112 +801,200 @@ const styles = StyleSheet.create({
   liveContent: {
     paddingHorizontal: spacing.xl,
     paddingBottom: spacing.xxxl,
-    gap: spacing.lg,
+    gap: spacing.md,
     paddingTop: spacing.sm,
   },
+  liveTitleBlock: { gap: spacing.sm },
   liveTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  liveTitleIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: familyHome.blue,
+  liveTitle: { ...typography.title, color: familyHome.text, flex: 1, fontSize: 22 },
+  memberBadge: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: familyHome.greenSoft,
+    borderRadius: 20,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 6,
   },
-  sectionBlock: { gap: 4 },
+  memberBadgeTitle: { ...typography.captionStrong, color: familyHome.greenDark },
+  sectionHint: { ...typography.body, color: familyHome.text, fontSize: 14, lineHeight: 20 },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  sectionTitle: { ...typography.subtitle, color: familyHome.text },
-  sectionHint: { ...typography.caption, color: familyHome.muted, lineHeight: 18 },
+  sectionTitle: { ...typography.subtitle, color: familyHome.text, fontSize: 17 },
   viewAll: { ...typography.captionStrong, color: familyHome.blue },
   empty: { ...typography.caption, color: familyHome.muted },
   offerGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing.sm,
+    gap: 8,
   },
   offerCard: {
-    width: '47.5%',
-    minHeight: 100,
-    borderRadius: 16,
-    borderWidth: 1.5,
-    padding: spacing.md,
-    gap: spacing.sm,
-    justifyContent: 'center',
-  },
-  offerIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  offerTitle: {
-    ...typography.captionStrong,
-    fontSize: 12,
-    lineHeight: 16,
-  },
-  customBanner: {
+    width: '48%',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
-    backgroundColor: familyHome.greenSoft,
-    borderRadius: 16,
-    padding: spacing.lg,
+    gap: 6,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+    minHeight: 56,
   },
-  customIcon: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: familyHome.green,
+  offerCardSelected: {
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 1,
+  },
+  offerIcon: {
+    width: 26,
+    height: 26,
+    borderRadius: 8,
+    backgroundColor: familyHome.white,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  customTitle: { ...typography.bodyStrong, color: familyHome.greenDark },
-  customBody: { ...typography.caption, color: familyHome.greenDark, marginTop: 2, lineHeight: 18 },
+  offerCopy: { flex: 1, minWidth: 0, gap: 1 },
+  offerTitle: { ...typography.captionStrong, fontSize: 11, lineHeight: 14 },
+  offerBody: { ...typography.caption, color: familyHome.muted, fontSize: 9, lineHeight: 12 },
+  raiseCta: {
+    minHeight: 48,
+    borderRadius: 14,
+    backgroundColor: familyHome.green,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.lg,
+  },
+  raisePlus: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: familyHome.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  raiseCtaText: { ...typography.bodyStrong, color: familyHome.white, flex: 1, fontSize: 15 },
+  activityCard: {
+    borderWidth: 1,
+    borderColor: familyHome.border,
+    borderRadius: 14,
+    backgroundColor: familyHome.white,
+    overflow: 'hidden',
+  },
   requestRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
-    paddingVertical: spacing.md,
+    gap: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
   },
   requestDivider: {
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: familyHome.border,
   },
   requestIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  requestTitle: { ...typography.bodyStrong, color: familyHome.text },
-  requestDate: { ...typography.caption, color: familyHome.muted, marginTop: 2 },
-  requestDetail: { ...typography.caption, color: familyHome.muted, marginTop: 2 },
-  statusPill: {
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  statusPillText: { ...typography.captionStrong, fontSize: 11 },
-  aboutCard: {
-    borderRadius: 16,
-    backgroundColor: familyHome.blueSoft,
-    padding: spacing.lg,
-  },
-  aboutRow: { flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start' },
-  aboutIcon: {
     width: 32,
     height: 32,
     borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  requestDate: { ...typography.caption, color: familyHome.muted, fontSize: 11, lineHeight: 14 },
+  requestTitle: {
+    ...typography.bodyStrong,
+    color: familyHome.text,
+    fontSize: 13,
+    lineHeight: 16,
+    marginTop: 1,
+  },
+  requestDetail: {
+    ...typography.caption,
+    color: familyHome.muted,
+    fontSize: 11,
+    lineHeight: 14,
+    marginTop: 1,
+  },
+  statusPill: {
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  statusPillText: { ...typography.captionStrong, fontSize: 10 },
+  aboutCard: {
+    borderRadius: 12,
+    backgroundColor: familyHome.blueSoft,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 6,
+  },
+  aboutHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  aboutIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     backgroundColor: familyHome.white,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  aboutTitle: { ...typography.subtitle, color: familyHome.text, marginBottom: 4 },
-  aboutText: { ...typography.body, color: familyHome.muted, lineHeight: 22 },
+  aboutTitle: { ...typography.bodyStrong, color: familyHome.text, fontSize: 14 },
+  aboutText: {
+    ...typography.caption,
+    color: familyHome.muted,
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  videoSection: { gap: 6 },
+  videoSectionHint: { ...typography.caption, color: familyHome.muted, lineHeight: 16 },
+  videoCardCompact: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: familyHome.border,
+    backgroundColor: '#F7F8FA',
+    padding: spacing.sm,
+  },
+  videoThumb: {
+    width: 78,
+    height: 64,
+    borderRadius: 10,
+    overflow: 'hidden',
+    backgroundColor: '#123B7A',
+  },
+  videoThumbImage: { width: '100%', height: '100%' },
+  videoThumbPlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.22)',
+  },
+  videoThumbDuration: {
+    position: 'absolute',
+    right: 4,
+    bottom: 4,
+    ...typography.caption,
+    color: familyHome.white,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 4,
+    fontSize: 10,
+  },
+  videoCompactCopy: { flex: 1, gap: 2 },
+  watchRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  watchLabel: { ...typography.caption, color: familyHome.muted, fontSize: 11 },
+  videoCompactTitle: { ...typography.bodyStrong, color: familyHome.text, fontSize: 13, lineHeight: 17 },
 });
+

@@ -166,18 +166,18 @@ OFFERING_SERVICE_SLUGS = (
     "health-check",
     "monthly-blood-test",
     "doctor",
+    "personalised-diet-plan",
     "small-errands",
     "errand-coordination",
-    "cyber-security",
     "banking-companion",
     "events-trips",
-    "legal",
+    "cyber-security",
     "ca",
+    "legal",
+    "home-repair",
     "local-transport",
     "transport",
-    "home-repair",
     "pooja",
-    "home-inspection",
     "cctv",
     # Home add-ons (not in Single 21; food uses the dedicated food catalog)
     "emergency-companion",
@@ -188,6 +188,7 @@ OFFERING_SERVICE_SLUGS = (
     "lab-testing",
     "medical-history",
     "tech-assistance",
+    "home-inspection",
 )
 
 

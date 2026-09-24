@@ -2,21 +2,23 @@ import { useMemo } from 'react';
 import {
   Alert,
   Image,
+  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import { router, type Href } from 'expo-router';
+import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LoadingState, PrimaryButton, SecondaryButton } from '@/components';
 import type { IconName } from '@/components/ui';
 import { Icon } from '@/components/ui';
-import { spacing, typography } from '@/constants/theme';
+import { minTouchSize, spacing, typography } from '@/constants/theme';
 import { useServiceRequests, useServices } from '@/features/home/hooks/queries';
-import { AgeWellHeader } from '@/features/home/components/AgeWellHeader';
+import { ServicePageHeader } from '@/features/home/components/ServicePageHeader';
 import { familyHome } from '@/features/home/components/familyHomeTheme';
+import { ServiceHelpBanner } from '@/features/membership/ServiceHelpBanner';
 import {
   filterOfferingsByKind,
   type ServiceOffering,
@@ -34,13 +36,17 @@ import { useServiceOfferings } from '@/features/membership/useCatalog';
 import { useTabScreenBottomPad } from '@/utils/safeBottom';
 
 const SLUG = 'stool-cleaning';
-const heroImage = SERVICE_HERO_IMAGES['home-inspection'];
+const heroImage = SERVICE_HERO_IMAGES['stool-cleaning'];
+const VIDEO_URL =
+  'https://www.youtube.com/results?search_query=Perineal+Care+Stool+Cleaning+AgeWell';
 
 const DEFAULT_LEAD = 'Monthly (Morning + evening) stool cleaning & servicing.';
-const DEFAULT_PRICE = 'General cost: ₹22,000 / month. (Exact cost based on availability)';
+const DEFAULT_PRICE = '₹22,000 / month';
+const SERVICE_DETAILS =
+  'For bed ridden people, we provide morning stool/toilet cleaning (perineal care) & sponging, and evening stool/toilet cleaning.';
 
 const FEATURE_ICONS: { match: RegExp; icon: IconName }[] = [
-  { match: /regular|morning|evening|cleaning|broom/i, icon: 'broom-sparkles' },
+  { match: /regular|morning|evening|cleaning|broom/i, icon: 'water' },
   { match: /hygien|safe|healthy/i, icon: 'shield-checkmark-outline' },
   { match: /professional|staff|trained/i, icon: 'people-outline' },
   { match: /comfort|peace|mind/i, icon: 'heart-outline' },
@@ -51,7 +57,7 @@ function iconForFeature(title: string, description: string): IconName {
   for (const row of FEATURE_ICONS) {
     if (row.match.test(hay)) return row.icon;
   }
-  return 'broom-sparkles';
+  return 'water';
 }
 
 export function StoolCleaningScreen() {
@@ -61,7 +67,7 @@ export function StoolCleaningScreen() {
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
-      <AgeWellHeader title="AgeWell" showBack showProfile={false} showBell />
+      <ServicePageHeader />
 
       {variant === 'serviceable_with_membership' ? (
         <MemberLiveBody />
@@ -95,22 +101,126 @@ function useAddonServiceCopy() {
     [catalog.data],
   );
   const lead = service?.description?.trim() || DEFAULT_LEAD;
+  const priceLabel = plans[0]?.priceLabel?.trim() || DEFAULT_PRICE;
   const priceLine = plans[0]?.priceLabel
     ? `General cost: ${plans[0].priceLabel}. (Exact cost based on availability)`
-    : plans[0]?.description || DEFAULT_PRICE;
-  return { service, features, plans, lead, priceLine, catalog };
+    : plans[0]?.description || `General cost: ${DEFAULT_PRICE}. (Exact cost based on availability)`;
+  return { service, features, plans, lead, priceLine, priceLabel, catalog };
 }
 
-function TitleBlock({ lead, priceLine }: { lead: string; priceLine: string }) {
+function TitleBlock({ lead, priceLine }: { lead?: string; priceLine?: string }) {
   return (
     <View style={styles.titleRow}>
       <View style={styles.titleIcon}>
-        <Icon name="broom-sparkles" size={22} color={familyHome.greenDark} />
+        <Icon name="water" size={22} color={familyHome.greenDark} />
       </View>
       <View style={styles.flex}>
         <Text style={styles.title}>STOOL CLEANING</Text>
-        <Text style={styles.lead}>{lead}</Text>
-        <Text style={styles.priceLine}>{priceLine}</Text>
+        {lead ? <Text style={styles.lead}>{lead}</Text> : null}
+        {priceLine ? <Text style={styles.priceLine}>{priceLine}</Text> : null}
+      </View>
+    </View>
+  );
+}
+
+function WatchVideoCard() {
+  return (
+    <Pressable
+      onPress={() => void Linking.openURL(VIDEO_URL)}
+      accessibilityRole="button"
+      accessibilityLabel="Watch: Perineal Care & Stool Cleaning"
+      style={({ pressed }) => [styles.videoCard, pressed ? styles.pressed : null]}
+    >
+      <View style={styles.videoThumb}>
+        <Image source={heroImage} style={styles.videoThumbImage} resizeMode="cover" />
+        <View style={styles.videoPlay}>
+          <Icon name="play" size={18} color={familyHome.white} />
+        </View>
+        <Text style={styles.videoDuration}>2:36</Text>
+      </View>
+      <View style={styles.videoCopy}>
+        <View style={styles.watchRow}>
+          <Icon name="play" size={12} color={familyHome.red} />
+          <Text style={styles.watchLabel}>Watch</Text>
+        </View>
+        <Text style={styles.videoTitle}>Perineal Care & Stool Cleaning</Text>
+        <Text style={styles.videoSub}>A short video on hygiene care for bed ridden people.</Text>
+      </View>
+      <Icon name="chevron-forward" size={16} color={familyHome.muted} />
+    </Pressable>
+  );
+}
+
+function ServiceDetailsCard() {
+  return (
+    <View style={styles.detailsCard}>
+      <View style={styles.detailsHead}>
+        <Icon name="document-text-outline" size={18} color={familyHome.blue} />
+        <Text style={styles.detailsTitle}>Service Details</Text>
+      </View>
+      <Text style={styles.detailsBody}>{SERVICE_DETAILS}</Text>
+      <View style={styles.visitGrid}>
+        <View style={styles.visitCard}>
+          <Icon name="sparkles" size={20} color="#E6A817" />
+          <Text style={styles.visitTitle}>Morning Visit</Text>
+          <Text style={styles.visitBody}>Stool cleaning, perineal care & sponging</Text>
+        </View>
+        <View style={styles.visitCard}>
+          <Icon name="time-outline" size={20} color={familyHome.blue} />
+          <Text style={styles.visitTitle}>Evening Visit</Text>
+          <Text style={styles.visitBody}>Again stool cleaning, perineal care & sponging</Text>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+function CostBanner({ priceLabel }: { priceLabel: string }) {
+  return (
+    <View style={styles.costBanner} accessibilityRole="summary">
+      <Icon name="ribbon-outline" size={18} color={familyHome.greenDark} />
+      <View style={styles.flex}>
+        <Text style={styles.costLabel}>General Cost</Text>
+        <Text style={styles.costAmount}>{priceLabel}</Text>
+        <Text style={styles.costNote}>(Exact cost based on availability)</Text>
+      </View>
+    </View>
+  );
+}
+
+function AddonNoteBanner() {
+  return (
+    <View style={styles.addonBanner} accessibilityRole="summary">
+      <Icon name="card-outline" size={20} color={familyHome.orange} />
+      <View style={styles.flex}>
+        <Text style={styles.addonTitle}>Add-on Service</Text>
+        <Text style={styles.addonBody}>
+          This is an add-on service and pricing will be decided as per your need. For actual costing
+          & to avail this service, please connect with us.
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+function InAreaBanner() {
+  return (
+    <View style={styles.inAreaBanner} accessibilityRole="summary">
+      <Icon name="location" size={16} color={familyHome.greenDark} />
+      <Text style={styles.inAreaText}>You are in serviceable area</Text>
+    </View>
+  );
+}
+
+function MembershipRequiredBanner() {
+  return (
+    <View style={styles.membershipRequired} accessibilityRole="summary">
+      <Icon name="lock-closed-outline" size={18} color="#B45309" />
+      <View style={styles.flex}>
+        <Text style={styles.membershipRequiredTitle}>Membership Required</Text>
+        <Text style={styles.membershipRequiredBody}>
+          This service is available to active members only.
+        </Text>
       </View>
     </View>
   );
@@ -159,30 +269,6 @@ function FeaturesGrid({ items, loading }: { items: ServiceOffering[]; loading?: 
   );
 }
 
-function HelpBanner({ green }: { green?: boolean }) {
-  return (
-    <Pressable
-      onPress={() => router.push('/account/help' as Href)}
-      style={({ pressed }) => [
-        green ? styles.helpBannerGreen : styles.helpBanner,
-        pressed ? styles.pressed : null,
-      ]}
-      accessibilityRole="button"
-    >
-      <View style={green ? styles.helpIconGreen : styles.contactIcon}>
-        <Icon name="help-circle-outline" size={16} color={familyHome.white} />
-      </View>
-      <View style={styles.flex}>
-        <Text style={green ? styles.helpTitleGreen : styles.helpTitle}>Have Questions?</Text>
-        <Text style={green ? styles.helpBodyGreen : styles.helpBody}>
-          Our team is here to help. Reach out to us anytime.
-        </Text>
-      </View>
-      <Icon name="chevron-forward" size={16} color={green ? familyHome.greenDark : familyHome.blue} />
-    </Pressable>
-  );
-}
-
 function OutsideAreaBody() {
   const { lead, priceLine, features, catalog } = useAddonServiceCopy();
   const { submitting, submit } = useMembershipSubmit(SLUG);
@@ -228,51 +314,26 @@ function OutsideAreaBody() {
           <Text style={styles.notifyBtnText}>{submitting ? 'Saving…' : 'Notify Me'}</Text>
         </Pressable>
       </View>
-      <HelpBanner green />
+      <ServiceHelpBanner tone="green" />
     </View>
   );
 }
 
+/** In serviceable area, membership not purchased — matches Stool Cleaning gate mockup. */
 function NoMembershipBody() {
-  const { lead, priceLine, features, catalog } = useAddonServiceCopy();
+  const { priceLabel } = useAddonServiceCopy();
 
   return (
     <View style={styles.stack}>
-      <TitleBlock lead={lead} priceLine={priceLine} />
-      <GateHero />
-      <FeaturesGrid items={features} loading={catalog.isPending} />
-      <View style={styles.membershipCard}>
-        <View style={styles.membershipHead}>
-          <View style={styles.lockWell}>
-            <Icon name="lock-closed-outline" size={16} color="#B45309" />
-          </View>
-          <View style={styles.flex}>
-            <Text style={styles.membershipTitle}>Membership Required</Text>
-            <Text style={styles.membershipBody}>
-              Stool Cleaning service is available only for AgeWell members.
-            </Text>
-          </View>
-        </View>
-        <Pressable
-          onPress={() => router.push(membershipPurchaseHref())}
-          style={({ pressed }) => [styles.joinPromo, pressed ? styles.pressed : null]}
-          accessibilityRole="button"
-        >
-          <View style={styles.flex}>
-            <Text style={styles.joinPromoTitle}>Join AgeWell Membership</Text>
-            <Text style={styles.joinPromoBody}>
-              Get access to Stool Cleaning and many other services for a safer, healthier and happier life.
-            </Text>
-          </View>
-          <Icon name="chevron-forward" size={16} color="#B45309" />
-        </Pressable>
-        <PrimaryButton label="Join Membership  →" onPress={() => router.push(membershipPurchaseHref())} />
-        <SecondaryButton
-          label="View Membership Plans"
-          onPress={() => router.push(membershipPurchaseHref())}
-        />
-      </View>
-      <HelpBanner />
+      <TitleBlock />
+      <WatchVideoCard />
+      <ServiceDetailsCard />
+      <CostBanner priceLabel={priceLabel} />
+      <AddonNoteBanner />
+      <InAreaBanner />
+      <MembershipRequiredBanner />
+      <PrimaryButton label="Get Membership  →" onPress={() => router.push(membershipPurchaseHref())} />
+      <SecondaryButton label="View Membership Plans" onPress={() => router.push(membershipPurchaseHref())} />
     </View>
   );
 }
@@ -307,7 +368,7 @@ function MemberLiveBody() {
     >
       <View style={styles.liveTitleRow}>
         <View style={styles.liveTitleIcon}>
-          <Icon name="broom-sparkles" size={22} color={familyHome.white} />
+          <Icon name="water" size={22} color={familyHome.white} />
         </View>
         <View style={styles.flex}>
           <Text style={styles.liveTitle}>Stool Cleaning</Text>
@@ -364,11 +425,11 @@ function MemberLiveBody() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: familyHome.white },
-  flex: { flex: 1 },
+  flex: { flex: 1, minWidth: 0 },
   stack: { gap: spacing.md },
   gateContent: { paddingHorizontal: spacing.xl, paddingTop: spacing.md, gap: spacing.md },
   liveContent: { paddingHorizontal: spacing.xl, paddingTop: spacing.md, gap: spacing.md },
-  titleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   titleIcon: {
     width: 44,
     height: 44,
@@ -386,12 +447,131 @@ const styles = StyleSheet.create({
   },
   lead: { ...typography.caption, color: familyHome.blue, lineHeight: 18, marginTop: 4 },
   priceLine: { ...typography.caption, color: familyHome.blue, lineHeight: 18, marginTop: 2 },
+
+  videoCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: familyHome.border,
+    backgroundColor: familyHome.white,
+    padding: spacing.sm,
+    minHeight: minTouchSize,
+  },
+  videoThumb: {
+    width: 112,
+    height: 72,
+    borderRadius: 10,
+    overflow: 'hidden',
+    backgroundColor: familyHome.border,
+  },
+  videoThumbImage: { width: '100%', height: '100%' },
+  videoPlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.18)',
+  },
+  videoDuration: {
+    position: 'absolute',
+    right: 6,
+    bottom: 6,
+    ...typography.caption,
+    fontSize: 10,
+    lineHeight: 12,
+    color: familyHome.white,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  videoCopy: { flex: 1, gap: 2, minWidth: 0 },
+  watchRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  watchLabel: { ...typography.caption, color: familyHome.muted },
+  videoTitle: { ...typography.bodyStrong, color: familyHome.text },
+  videoSub: { ...typography.caption, color: familyHome.muted, lineHeight: 16 },
+
+  detailsCard: {
+    backgroundColor: familyHome.blueSoft,
+    borderRadius: 16,
+    padding: spacing.lg,
+    gap: spacing.md,
+  },
+  detailsHead: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  detailsTitle: { ...typography.bodyStrong, color: familyHome.blueDark },
+  detailsBody: { ...typography.body, color: familyHome.muted, lineHeight: 22 },
+  visitGrid: { flexDirection: 'row', gap: spacing.sm },
+  visitCard: {
+    flex: 1,
+    backgroundColor: familyHome.white,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: familyHome.border,
+    padding: spacing.md,
+    gap: 4,
+    minHeight: 100,
+  },
+  visitTitle: { ...typography.bodyStrong, color: familyHome.text },
+  visitBody: { ...typography.caption, color: familyHome.muted, lineHeight: 16 },
+
+  costBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.md,
+    backgroundColor: familyHome.greenSoft,
+    borderRadius: 14,
+    padding: spacing.lg,
+  },
+  costLabel: { ...typography.bodyStrong, color: familyHome.greenDark },
+  costAmount: { ...typography.subtitle, color: familyHome.blueDark, marginTop: 2 },
+  costNote: { ...typography.caption, color: familyHome.muted, marginTop: 2 },
+
+  addonBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.md,
+    backgroundColor: familyHome.orangeSoft,
+    borderRadius: 14,
+    padding: spacing.lg,
+  },
+  addonTitle: { ...typography.bodyStrong, color: familyHome.orange },
+  addonBody: { ...typography.caption, color: familyHome.muted, lineHeight: 18, marginTop: 2 },
+
+  inAreaBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: familyHome.greenSoft,
+    borderRadius: 12,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+  },
+  inAreaText: { ...typography.bodyStrong, color: familyHome.greenDark },
+
+  membershipRequired: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.md,
+    backgroundColor: familyHome.orangeSoft,
+    borderRadius: 14,
+    padding: spacing.lg,
+  },
+  membershipRequiredTitle: { ...typography.bodyStrong, color: '#B45309' },
+  membershipRequiredBody: {
+    ...typography.caption,
+    color: familyHome.muted,
+    lineHeight: 18,
+    marginTop: 2,
+  },
+
   heroCard: {
     flexDirection: 'row',
-    borderRadius: 18,
+    borderRadius: 16,
     overflow: 'hidden',
     backgroundColor: familyHome.greenSoft,
-    minHeight: 168,
+    minHeight: 188,
   },
   heroCopy: { flex: 1, padding: spacing.lg, justifyContent: 'center', gap: spacing.sm },
   heroHeadline: {
@@ -477,69 +657,8 @@ const styles = StyleSheet.create({
     backgroundColor: familyHome.white,
   },
   notifyBtnText: { ...typography.captionStrong, color: familyHome.blue },
-  membershipCard: {
-    backgroundColor: familyHome.yellowSoft,
-    borderRadius: 16,
-    padding: spacing.lg,
-    gap: spacing.md,
-  },
-  membershipHead: { flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start' },
-  lockWell: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: '#FDE68A',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  membershipTitle: { ...typography.bodyStrong, color: familyHome.text },
-  membershipBody: { ...typography.caption, color: familyHome.muted, lineHeight: 18, marginTop: 2 },
-  joinPromo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    backgroundColor: familyHome.white,
-    borderRadius: 12,
-    padding: spacing.md,
-  },
-  joinPromoTitle: { ...typography.bodyStrong, color: '#B45309' },
-  joinPromoBody: { ...typography.caption, color: familyHome.muted, lineHeight: 18, marginTop: 2 },
-  helpBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    backgroundColor: familyHome.blueSoft,
-    borderRadius: 14,
-    padding: spacing.lg,
-  },
-  helpBannerGreen: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    backgroundColor: familyHome.greenSoft,
-    borderRadius: 14,
-    padding: spacing.lg,
-  },
-  contactIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: familyHome.blue,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  helpIconGreen: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: familyHome.green,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   helpTitle: { ...typography.bodyStrong, color: familyHome.blueDark },
   helpBody: { ...typography.caption, color: familyHome.blue, lineHeight: 18, marginTop: 2 },
-  helpTitleGreen: { ...typography.bodyStrong, color: familyHome.greenDark },
-  helpBodyGreen: { ...typography.caption, color: familyHome.greenDark, lineHeight: 18, marginTop: 2 },
   liveTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   liveTitleIcon: {
     width: 44,

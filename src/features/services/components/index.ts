@@ -1,3 +1,4 @@
+export { MarketplaceServiceIcon } from './MarketplaceServiceIcon';
 export { ServiceIcon } from './ServiceIcon';
 export { ServiceCategorySection } from './ServiceCategorySection';
 export { ServiceStatus } from './ServiceStatus';

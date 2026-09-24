@@ -14,11 +14,11 @@ export type LiveRequestView = {
 };
 
 const TONE_META: Record<LiveRequestTone, { color: string; soft: string; icon: IconName }> = {
-  completed: { color: '#3D8B40', soft: '#E8F5E9', icon: 'checkmark-circle-outline' },
-  scheduled: { color: '#2F80ED', soft: '#E8F1FF', icon: 'time-outline' },
-  progress: { color: '#E67E22', soft: '#FFF0E4', icon: 'time-outline' },
+  completed: { color: '#3D8B40', soft: '#F3FAF4', icon: 'checkmark-circle-outline' },
+  scheduled: { color: '#2F80ED', soft: '#F5F8FE', icon: 'time-outline' },
+  progress: { color: '#E67E22', soft: '#FFF8F2', icon: 'time-outline' },
   placed: { color: '#6B6B6B', soft: '#F3F4F6', icon: 'clipboard-outline' },
-  cancelled: { color: '#E5484D', soft: '#FDECEC', icon: 'alert-circle-outline' },
+  cancelled: { color: '#E5484D', soft: '#FEF6F6', icon: 'alert-circle-outline' },
 };
 
 export function liveRequestToneMeta(tone: LiveRequestTone) {

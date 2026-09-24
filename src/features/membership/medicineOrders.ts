@@ -21,11 +21,11 @@ export type MedicineOrderView = {
 };
 
 const TONE_META: Record<MedicineOrderTone, { icon: IconName; color: string; soft: string }> = {
-  delivered: { icon: 'checkmark-circle-outline', color: '#3D8B40', soft: '#E8F5E9' },
-  en_route: { icon: 'bike', color: '#2F80ED', soft: '#E8F1FF' },
+  delivered: { icon: 'checkmark-circle-outline', color: '#3D8B40', soft: '#F3FAF4' },
+  en_route: { icon: 'bike', color: '#2F80ED', soft: '#F5F8FE' },
   placed: { icon: 'time-outline', color: '#6B6B6B', soft: '#F3F4F6' },
-  progress: { icon: 'time-outline', color: '#E67E22', soft: '#FFF0E4' },
-  cancelled: { icon: 'alert-circle-outline', color: '#E5484D', soft: '#FDECEC' },
+  progress: { icon: 'time-outline', color: '#E67E22', soft: '#FFF8F2' },
+  cancelled: { icon: 'alert-circle-outline', color: '#E5484D', soft: '#FEF6F6' },
 };
 
 export function medicineOrderToneMeta(tone: MedicineOrderTone) {

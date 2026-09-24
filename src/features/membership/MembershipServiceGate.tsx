@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView, LoadingState, PrimaryButton, SecondaryButton } from '@/components';
 import { Icon } from '@/components/ui';
 import { spacing, typography } from '@/constants/theme';
-import { AgeWellHeader } from '@/features/home/components/AgeWellHeader';
+import { ServicePageHeader } from '@/features/home/components/ServicePageHeader';
 import { familyHome } from '@/features/home/components/familyHomeTheme';
 import { MEMBERSHIP_SERVICE_AREA_LINE } from './membershipServicePageVariant';
 import { MembershipServiceHero } from './MembershipServiceHero';
@@ -36,7 +36,7 @@ export function MembershipServiceGate({
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
-      <AgeWellHeader title={title} showBack showProfile={false} showBell={false} />
+      <ServicePageHeader />
       <KeyboardAwareScrollView
         contentContainerStyle={[styles.content, { paddingBottom: bottomPad }]}
         showsVerticalScrollIndicator={false}

@@ -1,7 +1,7 @@
 """Canonical AgeWell Single Membership catalogue (21 services).
 
 Used by seed and kept in sync with the mobile `serviceCatalog` slugs.
-Order matches the product brochure. Food Delivery lives in addon_catalog.
+Order matches the product brochure. Tiffin Box lives in addon_catalog.
 admin_inbox tells ops which admin screen fulfills the member action.
 """
 
@@ -30,14 +30,14 @@ MEMBERSHIP_SERVICES: list[MembershipServiceDef] = [
     },
     {
         "slug": "care-manager",
-        "name": "Care Manager Visit",
+        "name": "Care Manager",
         "category": ServiceCategory.CARE,
         "description": "Monthly visit to check well-being and assist with membership services.",
         "admin_inbox": "visits",
     },
     {
         "slug": "companion",
-        "name": "Companion Visit",
+        "name": "Companion Support",
         "category": ServiceCategory.CARE,
         "description": "20 companion visits a month for assistance or meetup (max 30 mins). Always available for emergency.",
         "admin_inbox": "visits",
@@ -51,7 +51,7 @@ MEMBERSHIP_SERVICES: list[MembershipServiceDef] = [
     },
     {
         "slug": "health-check",
-        "name": "Health Check",
+        "name": "Health Checks",
         "category": ServiceCategory.HEALTH,
         "description": "Free monthly BP, pulse, SpO2, temperature and blood sugar checks.",
         "admin_inbox": "appointments",
@@ -69,6 +69,13 @@ MEMBERSHIP_SERVICES: list[MembershipServiceDef] = [
         "category": ServiceCategory.HEALTH,
         "description": "One monthly doctor visit to review health and reports.",
         "admin_inbox": "appointments",
+    },
+    {
+        "slug": "personalised-diet-plan",
+        "name": "Personalised Diet Plan",
+        "category": ServiceCategory.FOOD_HOME,
+        "description": "Nutrition guidance tailored to health needs and preferences.",
+        "admin_inbox": "requests",
     },
     {
         "slug": "grocery",
@@ -90,21 +97,11 @@ MEMBERSHIP_SERVICES: list[MembershipServiceDef] = [
     },
     {
         "slug": "errand-coordination",
-        "name": "Coordination for Other Errands",
+        "name": "Other Errands Assistance",
         "category": ServiceCategory.CARE,
         "description": (
             "Our companion helps coordinate home services like ironing, haircuts, cleaning and minor repairs "
             "with trusted professionals. Service provider costs are charged separately based on the actual bill."
-        ),
-        "admin_inbox": "requests",
-    },
-    {
-        "slug": "cyber-security",
-        "name": "Cyber Security Guidance",
-        "category": ServiceCategory.CARE,
-        "description": (
-            "Stay aware and stay safe. Guidance on common online scams, OTP sharing risks, "
-            "caution before investing, and support after fraud — our team is with you."
         ),
         "admin_inbox": "requests",
     },
@@ -114,6 +111,23 @@ MEMBERSHIP_SERVICES: list[MembershipServiceDef] = [
         "category": ServiceCategory.CARE,
         "description": "Book a companion for bank visits such as pension withdrawal and cheque deposit.",
         "admin_inbox": "visits",
+    },
+    {
+        "slug": "events-trips",
+        "name": "Local Events & Trips",
+        "category": ServiceCategory.COMMUNITY,
+        "description": "Nearby events, priority AgeWell tours across Maharashtra & India, and companion support for luggage, boarding, seating, hotel check-in/out plus medication & emergency help (tours cost extra).",
+        "admin_inbox": "community",
+    },
+    {
+        "slug": "cyber-security",
+        "name": "Cyber Security Assistance",
+        "category": ServiceCategory.CARE,
+        "description": (
+            "Stay aware and stay safe. Guidance on common online scams, OTP sharing risks, "
+            "caution before investing, and support after fraud — our team is with you."
+        ),
+        "admin_inbox": "requests",
     },
     {
         "slug": "ca",
@@ -126,11 +140,11 @@ MEMBERSHIP_SERVICES: list[MembershipServiceDef] = [
         "admin_inbox": "requests",
     },
     {
-        "slug": "events-trips",
-        "name": "Local Events & Trips",
-        "category": ServiceCategory.COMMUNITY,
-        "description": "Nearby events, priority AgeWell tours across Maharashtra & India, and companion support for luggage, boarding, seating, hotel check-in/out plus medication & emergency help (tours cost extra).",
-        "admin_inbox": "community",
+        "slug": "legal",
+        "name": "Legal Assistance",
+        "category": ServiceCategory.ADD_ON,
+        "description": "Exclusive access to our lawyer team for consultations. (Costs extra)",
+        "admin_inbox": "requests",
     },
     {
         "slug": "home-repair",
@@ -140,22 +154,8 @@ MEMBERSHIP_SERVICES: list[MembershipServiceDef] = [
         "admin_inbox": "requests",
     },
     {
-        "slug": "pooja",
-        "name": "House Pooja Assistance",
-        "category": ServiceCategory.FOOD_HOME,
-        "description": "Pooja options on the app with 1–2 helpers at home (extra charges).",
-        "admin_inbox": "orders",
-    },
-    {
-        "slug": "legal",
-        "name": "Legal Assistance",
-        "category": ServiceCategory.ADD_ON,
-        "description": "Exclusive access to our lawyer team for consultations. (Costs extra)",
-        "admin_inbox": "requests",
-    },
-    {
         "slug": "local-transport",
-        "name": "Local Area Transportation",
+        "name": "Local Area Transport",
         "category": ServiceCategory.MOBILITY,
         "description": "Companion supported coordination between cabs and rikshaws.",
         "admin_inbox": "requests",
@@ -168,11 +168,11 @@ MEMBERSHIP_SERVICES: list[MembershipServiceDef] = [
         "admin_inbox": "requests",
     },
     {
-        "slug": "home-inspection",
-        "name": "Home Inspection",
+        "slug": "pooja",
+        "name": "House Pooja Assistance",
         "category": ServiceCategory.FOOD_HOME,
-        "description": "Monthly home safety check for washroom, bedroom, entrance and more.",
-        "admin_inbox": "records",
+        "description": "Pooja options on the app with 1–2 helpers at home (extra charges).",
+        "admin_inbox": "orders",
     },
     {
         "slug": "cctv",

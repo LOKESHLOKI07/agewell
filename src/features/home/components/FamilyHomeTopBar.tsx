@@ -66,10 +66,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingLeft: 2,
+    paddingLeft: 0,
     paddingRight: spacing.lg,
     paddingBottom: spacing.sm,
-    minHeight: 56,
+    minHeight: 72,
   },
   left: {
     flex: 1,
@@ -78,8 +78,11 @@ const styles = StyleSheet.create({
     marginLeft: 0,
   },
   logo: {
-    width: 56,
-    height: 56,
+    // Wordmark is ~3:2 — give it width so AgeWell + tagline stay readable.
+    // Pull flush to the screen’s left edge (asset has transparent inset).
+    width: 168,
+    height: 72,
+    marginLeft: -22,
   },
   right: {
     flexDirection: 'row',

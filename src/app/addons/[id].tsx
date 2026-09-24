@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { router, useLocalSearchParams, useNavigation, type Href } from 'expo-router';
 import { colors, typography, spacing, minTouchSize, cardSurface } from '@/constants/theme';
-import { AgeWellHeader } from '@/features/home/components/AgeWellHeader';
+import { ServicePageHeader } from '@/features/home/components/ServicePageHeader';
 import { EmptyState, LoadingState, PrimaryButton } from '@/components';
 import { AyurvedicMassageScreen } from '@/features/addons/AyurvedicMassageScreen';
 import { EmergencyCompanionScreen } from '@/features/addons/EmergencyCompanionScreen';
@@ -51,7 +51,7 @@ function GenericAddonRequest({ id }: { id: string | undefined }) {
   if (query.isPending) {
     return (
       <View style={styles.container}>
-        <AgeWellHeader title={t('addons.title')} showBack />
+        <ServicePageHeader />
         <LoadingState message="Loading…" />
       </View>
     );
@@ -60,7 +60,7 @@ function GenericAddonRequest({ id }: { id: string | undefined }) {
   if (!service) {
     return (
       <View style={styles.container}>
-        <AgeWellHeader title="Not found" showBack />
+        <ServicePageHeader />
         <EmptyState
           icon="cart-outline"
           title="Add-on not found"
@@ -97,7 +97,7 @@ function GenericAddonRequestLive({
 }) {
   return (
     <View style={styles.container}>
-      <AgeWellHeader title="Request add-on" showBack />
+      <ServicePageHeader />
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.summaryCard}>
           <Text style={styles.title}>{name}</Text>

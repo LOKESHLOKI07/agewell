@@ -14,6 +14,8 @@ interface ConfirmDialogProps {
   onCancel: () => void;
   busy?: boolean;
   error?: string | null;
+  /** Red confirm button for destructive actions (logout, delete). */
+  destructive?: boolean;
 }
 
 export function ConfirmDialog({
@@ -26,6 +28,7 @@ export function ConfirmDialog({
   onCancel,
   busy = false,
   error = null,
+  destructive = false,
 }: ConfirmDialogProps) {
   const insets = useSafeAreaInsets();
 
@@ -59,7 +62,13 @@ export function ConfirmDialog({
               {error ? <Text style={styles.error}>{error}</Text> : null}
               <View style={styles.actions}>
                 <SecondaryButton label={cancelLabel} onPress={onCancel} disabled={busy} />
-                <PrimaryButton label={confirmLabel} onPress={onConfirm} loading={busy} disabled={busy} />
+                <PrimaryButton
+                  label={confirmLabel}
+                  onPress={onConfirm}
+                  loading={busy}
+                  disabled={busy}
+                  tone={destructive ? 'danger' : 'primary'}
+                />
               </View>
             </ScrollView>
           </View>

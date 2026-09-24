@@ -95,6 +95,7 @@ export function CareProfileScreen() {
         title="Sign out?"
         message="You will need to sign in again to see assigned visits."
         confirmLabel="Logout"
+        destructive
         onConfirm={() => {
           void onLogout();
         }}

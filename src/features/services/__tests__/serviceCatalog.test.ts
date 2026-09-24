@@ -1,17 +1,18 @@
 jest.mock('@/features/home/components/familyHomeTheme', () => ({
   familyHome: {
     red: '#E53935',
-    redSoft: '#FFEBEE',
+    redSoft: '#FEF6F6',
     green: '#4CAF50',
-    greenSoft: '#E8F5E9',
+    greenSoft: '#F3FAF4',
     orange: '#E67E22',
-    orangeSoft: '#FFF3E0',
+    orangeSoft: '#FFF8F2',
     purple: '#7B5EA7',
-    purpleSoft: '#F3EDF8',
+    purpleSoft: '#F9F6FC',
     blue: '#2F80ED',
-    blueSoft: '#E8F1FF',
-    yellowSoft: '#FFF8E1',
+    blueSoft: '#F5F8FE',
+    yellowSoft: '#FFFCF0',
     muted: '#6B6B6B',
+    white: '#FFFFFF',
   },
 }));
 
@@ -29,26 +30,34 @@ describe('basic membership catalogue', () => {
       'health-check',
       'monthly-blood-test',
       'doctor',
+      'personalised-diet-plan',
       'grocery',
       'small-errands',
       'errand-coordination',
-      'cyber-security',
       'banking-companion',
-      'ca',
       'events-trips',
-      'home-repair',
-      'pooja',
+      'cyber-security',
+      'ca',
       'legal',
+      'home-repair',
       'local-transport',
       'transport',
-      'home-inspection',
+      'pooja',
       'cctv',
     ]);
   });
 
-  it('keeps food out of basic and in add-ons', () => {
+  it('keeps tiffin box (food) out of basic and in add-ons', () => {
     expect(MARKETPLACE_SERVICES.some((item) => item.id === 'food')).toBe(false);
-    expect(ADD_ON_SERVICES.map((item) => item.id)).toContain('food');
+    expect(ADD_ON_SERVICES.map((item) => item.id)).toEqual([
+      'emergency-companion',
+      'food',
+      'stool-cleaning',
+      'maid-assistance',
+      'ayurvedic-massage',
+    ]);
+    expect(ADD_ON_SERVICES.find((item) => item.id === 'food')?.title).toBe('Tiffin Box');
+    expect(ADD_ON_SERVICES.find((item) => item.id === 'maid-assistance')?.title).toBe('House Maid');
   });
 
   it('uses brochure companion quota and medicine lead time', () => {

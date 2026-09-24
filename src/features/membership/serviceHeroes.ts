@@ -1,5 +1,9 @@
 import type { ImageSourcePropType } from 'react-native';
 
+/** Uniform banner size on every membership / add-on service page. */
+export const SERVICE_BANNER_HEIGHT = 188;
+export const SERVICE_BANNER_RADIUS = 16;
+
 /** Bundled flat hero art for membership service screens (slug → asset). */
 export const SERVICE_HERO_IMAGES: Record<string, ImageSourcePropType> = {
   'emergency-sos': require('../../../assets/services/hero-emergency-sos.png'),
@@ -23,6 +27,7 @@ export const SERVICE_HERO_IMAGES: Record<string, ImageSourcePropType> = {
   'local-transport': require('../../../assets/services/hero-transport.png'),
   transport: require('../../../assets/services/hero-transport.png'),
   'home-inspection': require('../../../assets/services/hero-home-inspection.png'),
+  'personalised-diet-plan': require('../../../assets/services/hero-food.png'),
   cctv: require('../../../assets/services/hero-cctv.png'),
   // Add-on / legacy extras
   'emergency-companion': require('../../../assets/services/hero-companion.png'),
@@ -37,7 +42,7 @@ export const SERVICE_HERO_IMAGES: Record<string, ImageSourcePropType> = {
 /** Optional board-style hero copy overrides (title + supporting line). */
 export const SERVICE_HERO_COPY: Record<string, { headline: string; subtitle: string }> = {
   'health-check': {
-    headline: 'Monthly Health Check',
+    headline: 'Monthly Health Checks',
     subtitle: 'BP · Pulse · SpO₂ · Temperature · Blood sugar',
   },
   'small-errands': {
@@ -80,12 +85,16 @@ export const SERVICE_HERO_COPY: Record<string, { headline: string; subtitle: str
     headline: 'Monthly Home Inspection',
     subtitle: 'Safety check of your home.',
   },
+  'personalised-diet-plan': {
+    headline: 'Personalised Diet Plan',
+    subtitle: 'Nutrition guidance tailored to your health needs.',
+  },
   cctv: {
     headline: 'Your Safety Our Priority',
     subtitle: 'Entrance CCTV camera coverage available on-app activity.',
   },
   companion: {
-    headline: 'Companion Visit',
+    headline: 'Companion Support',
     subtitle: '20 visits a month · up to 30 mins · emergency cover',
   },
   medicine: {
@@ -109,8 +118,8 @@ export const SERVICE_HERO_COPY: Record<string, { headline: string; subtitle: str
     subtitle: 'Catalogue, cart or upload a handwritten list.',
   },
   food: {
-    headline: 'Home-style Meals',
-    subtitle: 'Breakfast, lunch, dinner · monthly or daily tiffin.',
+    headline: 'Tiffin Box',
+    subtitle: 'Breakfast, lunch, dinner · monthly or daily home-made tiffin.',
   },
   'care-manager': {
     headline: 'Care Manager',
@@ -129,7 +138,7 @@ export const SERVICE_HERO_COPY: Record<string, { headline: string; subtitle: str
     subtitle: 'Morning + evening stool cleaning & servicing.',
   },
   'maid-assistance': {
-    headline: 'A Cleaner Home A Happier You',
+    headline: 'House Maid',
     subtitle: 'Trained maid for house & utensil cleaning, stock drying.',
   },
   'ayurvedic-massage': {

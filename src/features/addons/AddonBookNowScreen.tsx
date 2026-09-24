@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Ellipse, Path, Rect } from 'react-native-svg';
 import { Icon } from '@/components/ui';
 import { spacing, typography } from '@/constants/theme';
-import { AgeWellHeader } from '@/features/home/components/AgeWellHeader';
+import { ServicePageHeader } from '@/features/home/components/ServicePageHeader';
 import { familyHome } from '@/features/home/components/familyHomeTheme';
 import { MembershipServiceGate } from '@/features/membership/MembershipServiceGate';
 import { useMembershipSubmit } from '@/features/membership/useMembershipSubmit';
@@ -31,7 +31,7 @@ function AddonBookNowLive({ addon }: { addon: AddonBookNow }) {
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
-      <AgeWellHeader title={addon.title} showBack showProfile={false} showBell={false} />
+      <ServicePageHeader />
       <ScrollView
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + spacing.xxxl }]}
         showsVerticalScrollIndicator={false}
@@ -136,7 +136,7 @@ function MaidArt() {
     <Svg width={180} height={120} viewBox="0 0 180 120">
       <Circle cx="90" cy="28" r="14" fill="#E8C4B4" />
       <Rect x="68" y="42" width="44" height="38" rx="10" fill="#FFFFFF" />
-      <Path d="M62 52h56v36c0 10-12 18-28 18s-28-8-28-18V52Z" fill="#F3EDF8" />
+      <Path d="M62 52h56v36c0 10-12 18-28 18s-28-8-28-18V52Z" fill="#F9F6FC" />
       <Rect x="78" y="80" width="24" height="20" fill="#7B5EA7" />
       <Path d="M44 104h92" stroke="#E5DBF0" strokeWidth="4" />
     </Svg>
@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   artWrap: {
-    height: 140,
+    height: 188,
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',

@@ -214,6 +214,7 @@ export function ProfileScreen() {
         message="You will need to sign in again to use AgeWell."
         confirmLabel="Sign out"
         cancelLabel="Stay signed in"
+        destructive
         onConfirm={() => void onLogout()}
         onCancel={() => setConfirmVisible(false)}
       />

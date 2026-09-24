@@ -185,7 +185,7 @@ export function AdminFoodCatalogScreen() {
   return (
     <AdminScreen
       title="Food catalog"
-      subtitle="Cuisines and menu items here show on the member Food Delivery screen."
+      subtitle="Cuisines and menu items here show on the member Tiffin Box screen."
     >
       {formError ? <Text style={styles.error}>{formError}</Text> : null}
 

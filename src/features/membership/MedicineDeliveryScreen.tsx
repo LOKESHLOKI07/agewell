@@ -2,6 +2,7 @@ import { useState } from 'react';
 import {
   Alert,
   Image,
+  Linking,
   Pressable,
   StyleSheet,
   Text,
@@ -16,8 +17,10 @@ import { minTouchSize, spacing, typography } from '@/constants/theme';
 import { queryClient } from '@/api/queryClient';
 import { useMemberDeliveries } from '@/features/deliveries/hooks';
 import { seniorDeliveryTrackHref } from '@/features/deliveries/selectors';
-import { AgeWellHeader } from '@/features/home/components/AgeWellHeader';
+import { ServicePageHeader } from '@/features/home/components/ServicePageHeader';
 import { familyHome } from '@/features/home/components/familyHomeTheme';
+import { ServiceHelpBanner } from '@/features/membership/ServiceHelpBanner';
+import { MarketplaceServiceIcon } from '@/features/services/components/MarketplaceServiceIcon';
 import { homeQueryKeys } from '@/features/home/api/homeQueryKeys';
 import { useServiceRequests } from '@/features/home/hooks/queries';
 import { MEMBERSHIP_SERVICE_AREA_LINE } from './membershipServicePageVariant';
@@ -30,7 +33,11 @@ import { membershipPurchaseHref } from './planCatalog';
 import { SERVICE_HERO_IMAGES } from './serviceHeroes';
 import { useMembershipServicePageVariant } from './useMembershipServicePageVariant';
 import { useMembershipSubmit } from './useMembershipSubmit';
+import { useHasActiveMembership } from './useHasActiveMembership';
 import { useSystemBottomInset } from '@/utils/safeBottom';
+import { toDisplayDate } from '@/utils/date';
+
+const VIDEO_URL = 'https://www.youtube.com/results?search_query=How+AgeWell+Medicine+Delivery+Works';
 
 const GATE_BENEFITS: { icon: IconName; title: string; line: string }[] = [
   {
@@ -55,11 +62,42 @@ const GATE_BENEFITS: { icon: IconName; title: string; line: string }[] = [
   },
 ];
 
-const MEMBER_PROMO_FEATURES: { icon: IconName; label: string }[] = [
-  { icon: 'shield-checkmark-outline', label: 'Safe & Reliable' },
-  { icon: 'home-outline', label: 'Home Delivery' },
-  { icon: 'time-outline', label: 'On-Time Delivery' },
+const WHY_FEATURES: { icon: IconName; title: string; line: string; color: string; soft: string }[] = [
+  {
+    icon: 'shield-checkmark-outline',
+    title: 'Safe & Reliable',
+    line: 'Genuine medicines from trusted partners',
+    color: familyHome.green,
+    soft: familyHome.greenSoft,
+  },
+  {
+    icon: 'home-outline',
+    title: 'Home Delivery',
+    line: 'Delivered safely to your doorstep',
+    color: familyHome.blue,
+    soft: familyHome.blueSoft,
+  },
+  {
+    icon: 'time-outline',
+    title: 'On-Time Delivery',
+    line: 'Timely delivery you can count on',
+    color: familyHome.orange,
+    soft: familyHome.orangeSoft,
+  },
 ];
+
+function membershipValidLabel(endDate: string | null | undefined): string | null {
+  if (!endDate) {
+    return null;
+  }
+  const parsed = new Date(endDate);
+  if (Number.isNaN(parsed.getTime())) {
+    const display = toDisplayDate(endDate);
+    return display ? `Membership valid upto ${display}` : null;
+  }
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return `Membership valid upto ${parsed.getDate()} ${months[parsed.getMonth()]} ${parsed.getFullYear()}`;
+}
 
 /**
  * Medicine Delivery — membership-gated; recent orders come from real service_requests.
@@ -68,7 +106,9 @@ export function MedicineDeliveryScreen() {
   const insets = useSafeAreaInsets();
   const bottomPad = useSystemBottomInset(12) + spacing.xxl;
   const variant = useMembershipServicePageVariant(true);
+  const membership = useHasActiveMembership();
   const { submitting, submit } = useMembershipSubmit('medicine');
+  const validTill = membershipValidLabel(membership.query.data?.endDate);
   const requestsQuery = useServiceRequests();
   const deliveriesQuery = useMemberDeliveries();
   const [showAll, setShowAll] = useState(false);
@@ -137,7 +177,7 @@ export function MedicineDeliveryScreen() {
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
-      <AgeWellHeader title="AgeWell" showBack showProfile={false} showBell showTagline centerTitle />
+      <ServicePageHeader />
       <KeyboardAwareScrollView
         contentContainerStyle={[styles.content, { paddingBottom: bottomPad }]}
         showsVerticalScrollIndicator={false}
@@ -180,9 +220,16 @@ export function MedicineDeliveryScreen() {
             ordersError={ordersError}
             hasMore={allOrders.length > 3 && !showAll}
             submitting={submitting}
+            validTill={validTill}
             onUpload={onUploadPrescription}
-            onViewPast={() => router.push('/(tabs)/orders' as Href)}
-            onViewAll={() => setShowAll(true)}
+            onWritePrescription={() => router.push('/membership/doctor' as Href)}
+            onViewAll={() => {
+              if (allOrders.length > 3 && !showAll) {
+                setShowAll(true);
+                return;
+              }
+              router.push('/(tabs)/orders' as Href);
+            }}
             onRetry={() => void Promise.all([requestsQuery.refetch(), deliveriesQuery.refetch()])}
             onOpenOrder={openOrder}
           />
@@ -196,9 +243,12 @@ function ServiceTitleBlock() {
   return (
     <View style={styles.titleBlock}>
       <View style={styles.titleLine}>
-        <View style={styles.titleWell}>
-          <Icon name="pill" size={22} color={familyHome.green} />
-        </View>
+        <MarketplaceServiceIcon
+          serviceId="medicine"
+          fallbackIcon="pill"
+          fallbackColor={familyHome.green}
+          size={48}
+        />
         <View style={styles.titleTextWrap}>
           <Text style={styles.title} numberOfLines={2}>Medicine Delivery</Text>
         </View>
@@ -277,7 +327,6 @@ function BenefitRow() {
             <Icon name={item.icon} size={16} color={familyHome.green} />
           </View>
           <Text style={styles.benefitTitle}>{item.title}</Text>
-          <Text style={styles.benefitLine}>{item.line}</Text>
         </View>
       ))}
     </View>
@@ -351,18 +400,7 @@ function MembershipRequiredFooter() {
 
 function HelpFooter() {
   return (
-    <Pressable
-      onPress={() => router.push('/account/help' as Href)}
-      accessibilityRole="button"
-      accessibilityLabel="Have Questions? Reach out to AgeWell support"
-      style={({ pressed }) => [styles.helpBanner, pressed ? styles.pressed : null]}
-    >
-      <Icon name="help-circle-outline" size={18} color={familyHome.blue} />
-      <View style={styles.flex}>
-        <Text style={styles.helpTitle}>Have Questions?</Text>
-        <Text style={styles.helpBody}>Our team is here to help. Reach out to us anytime.</Text>
-      </View>
-    </Pressable>
+    <ServiceHelpBanner />
   );
 }
 
@@ -370,10 +408,11 @@ function MemberBody({
   orders,
   ordersLoading,
   ordersError,
-  hasMore,
+  hasMore: _hasMore,
   submitting,
+  validTill,
   onUpload,
-  onViewPast,
+  onWritePrescription,
   onViewAll,
   onRetry,
   onOpenOrder,
@@ -383,22 +422,31 @@ function MemberBody({
   ordersError: boolean;
   hasMore: boolean;
   submitting: boolean;
+  validTill: string | null;
   onUpload: () => void;
-  onViewPast: () => void;
+  onWritePrescription: () => void;
   onViewAll: () => void;
   onRetry: () => void;
   onOpenOrder: (order: MedicineOrderView) => void;
 }) {
   return (
-    <View style={styles.stack}>
-      <View style={styles.memberTitleLine}>
-        <View style={styles.memberTitleWell}>
-          <Icon name="pill" size={18} color={familyHome.blue} />
-        </View>
-        <View style={styles.flex}>
+    <View style={styles.memberStack}>
+      <View style={styles.titleBlock}>
+        <View style={styles.memberTitleLine}>
+          <MarketplaceServiceIcon
+            serviceId="medicine"
+            fallbackIcon="pill"
+            fallbackColor={familyHome.blue}
+            size={36}
+          />
           <Text style={styles.title}>Medicine Delivery</Text>
-          <Text style={styles.memberSubtitle}>Upload prescription, we deliver to your home</Text>
         </View>
+        {validTill ? (
+          <View style={styles.memberBadge}>
+            <Icon name="checkmark-circle-outline" size={14} color={familyHome.green} />
+            <Text style={styles.memberBadgeTitle}>{validTill}</Text>
+          </View>
+        ) : null}
       </View>
 
       <View style={styles.actionCards}>
@@ -416,118 +464,114 @@ function MemberBody({
             <Icon name="chevron-forward" size={16} color={familyHome.muted} />
           </View>
           <Text style={styles.actionTitle}>{submitting ? 'Uploading…' : 'Upload Prescription'}</Text>
-          <Text style={styles.actionBody}>Take a clear photo of your prescription.</Text>
+          <Text style={styles.actionBody}>Take a clear photo of your prescription</Text>
         </Pressable>
 
         <Pressable
-          onPress={onViewPast}
+          onPress={onWritePrescription}
           accessibilityRole="button"
-          accessibilityLabel="View Past Orders"
+          accessibilityLabel="Write a Prescription"
           style={({ pressed }) => [styles.pastCard, pressed ? styles.pressed : null]}
         >
           <View style={styles.actionCardTop}>
             <View style={[styles.actionIconWell, styles.pastIconWell]}>
-              <Icon name="document-text-outline" size={18} color={familyHome.blue} />
+              <Icon name="create-outline" size={18} color={familyHome.blue} />
             </View>
             <Icon name="chevron-forward" size={16} color={familyHome.muted} />
           </View>
-          <Text style={styles.actionTitle}>View Past Orders</Text>
-          <Text style={styles.actionBody}>Check your delivery history.</Text>
+          <Text style={styles.actionTitle}>Write a Prescription</Text>
+          <Text style={styles.actionBody}>Request a prescription through our doctors</Text>
         </Pressable>
       </View>
 
-      <View style={styles.ordersCard}>
-        <View style={styles.activityHead}>
-          <Text style={styles.sectionTitle}>Recent Orders & Delivery Status</Text>
-          {hasMore ? (
-            <Pressable onPress={onViewAll} accessibilityRole="button" accessibilityLabel="View all medicine orders">
-              <Text style={styles.viewAll}>View All &gt;</Text>
-            </Pressable>
-          ) : null}
-        </View>
-
-        {ordersLoading ? <LoadingState message="Loading your medicine orders..." /> : null}
-
-        {ordersError ? (
-          <Pressable onPress={onRetry} accessibilityRole="button" style={styles.errorBanner}>
-            <Text style={styles.errorText}>Could not load medicine orders. Tap to retry.</Text>
-          </Pressable>
-        ) : null}
-
-        {!ordersLoading && !ordersError && orders.length === 0 ? (
-          <Text style={styles.emptyOrders}>No medicine orders yet. Upload a prescription to get started.</Text>
-        ) : null}
-
-        {!ordersLoading && !ordersError && orders.length > 0 ? (
-          <View style={styles.orderList}>
-            {orders.map((order, index) => {
-              const meta = medicineOrderToneMeta(order.tone);
-              const isLast = index === orders.length - 1;
-              return (
-                <Pressable
-                  key={order.id}
-                  onPress={() => onOpenOrder(order)}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${order.orderCode}. ${order.statusLabel}`}
-                  style={({ pressed }) => [styles.orderRow, pressed ? styles.pressed : null]}
-                >
-                  <View style={styles.timelineCol}>
-                    <View style={[styles.orderIcon, { backgroundColor: meta.soft }]}>
-                      <Icon name={meta.icon} size={16} color={meta.color} />
-                    </View>
-                    {!isLast ? <View style={styles.timelineLine} /> : null}
-                  </View>
-                  <View style={styles.orderBody}>
-                    <Text style={styles.orderCode}>{order.orderCode}</Text>
-                    <Text style={styles.orderMeta}>{order.subtitle}</Text>
-                    <View style={[styles.statusPill, { backgroundColor: meta.soft }]}>
-                      <Text style={[styles.statusPillText, { color: meta.color }]}>{order.statusLabel}</Text>
-                    </View>
-                    <Text style={styles.statusDetail}>{order.statusDetail}</Text>
-                    {order.trackable ? (
-                      <Text style={styles.statusSubDetail}>Tap to track live</Text>
-                    ) : null}
-                  </View>
-                  <Icon name="chevron-forward" size={16} color={familyHome.muted} />
-                </Pressable>
-              );
-            })}
-          </View>
-        ) : null}
+      <View style={styles.activityHead}>
+        <Text style={styles.sectionTitle}>Recent Orders & Delivery Status</Text>
+        <Pressable onPress={onViewAll} accessibilityRole="button" accessibilityLabel="View all medicine orders">
+          <Text style={styles.viewAll}>View All ›</Text>
+        </Pressable>
       </View>
 
-      <View style={styles.memberPromo}>
-        <View style={styles.memberPromoTop}>
-          <View style={styles.flex}>
-            <Text style={styles.memberPromoHeadline}>
-              Your Medicines, <Text style={styles.bannerAccent}>Our Responsibility</Text>
-            </Text>
-            <Text style={styles.memberPromoBody}>
-              Safe, timely and reliable delivery of your medicines at your home.
-            </Text>
-          </View>
-          <View style={styles.memberPromoMedia}>
-            <Image
-              source={SERVICE_HERO_IMAGES.medicine}
-              style={styles.memberPromoImage}
-              resizeMode="contain"
-            />
-            <Text style={styles.memberPromoBadge}>Better Health Brighter Days</Text>
-          </View>
+      {ordersLoading ? <LoadingState message="Loading your medicine orders..." /> : null}
+
+      {ordersError ? (
+        <Pressable onPress={onRetry} accessibilityRole="button" style={styles.errorBanner}>
+          <Text style={styles.errorText}>Could not load medicine orders. Tap to retry.</Text>
+        </Pressable>
+      ) : null}
+
+      {!ordersLoading && !ordersError && orders.length === 0 ? (
+        <Text style={styles.emptyOrders}>No medicine orders yet. Upload a prescription to get started.</Text>
+      ) : null}
+
+      {!ordersLoading && !ordersError && orders.length > 0 ? (
+        <View style={styles.orderList}>
+          {orders.map((order, index) => {
+            const meta = medicineOrderToneMeta(order.tone);
+            return (
+              <Pressable
+                key={order.id}
+                onPress={() => onOpenOrder(order)}
+                accessibilityRole="button"
+                accessibilityLabel={`${order.orderCode}. ${order.statusLabel}`}
+                style={({ pressed }) => [
+                  styles.orderRow,
+                  index < orders.length - 1 ? styles.orderRowBorder : null,
+                  pressed ? styles.pressed : null,
+                ]}
+              >
+                <View style={[styles.orderDot, { backgroundColor: meta.color }]} />
+                <View style={styles.orderBody}>
+                  <Text style={styles.orderCode}>{order.orderCode}</Text>
+                  <Text style={styles.orderMeta} numberOfLines={1}>
+                    {order.subtitle}
+                    {order.statusDetail ? ` • ${order.statusDetail}` : ''}
+                  </Text>
+                </View>
+                <View style={[styles.statusPill, { backgroundColor: meta.soft }]}>
+                  <Text style={[styles.statusPillText, { color: meta.color }]}>{order.statusLabel}</Text>
+                </View>
+              </Pressable>
+            );
+          })}
         </View>
-        <View style={styles.memberPromoFeatures}>
-          {MEMBER_PROMO_FEATURES.map((item) => (
-            <View key={item.label} style={styles.memberPromoFeature}>
-              <View style={styles.memberPromoFeatureIcon}>
-                <Icon name={item.icon} size={14} color={familyHome.green} />
-              </View>
-              <Text style={styles.memberPromoFeatureLabel} numberOfLines={2}>
-                {item.label}
-              </Text>
-            </View>
-          ))}
-        </View>
+      ) : null}
+
+      <Text style={styles.sectionTitle}>Why choose AgeWell Medicine Delivery</Text>
+      <View style={styles.whyRow}>
+        {WHY_FEATURES.map((item) => (
+          <View key={item.title} style={[styles.whyCard, { backgroundColor: item.soft }]}>
+            <Icon name={item.icon} size={18} color={item.color} />
+            <Text style={styles.whyTitle}>{item.title}</Text>
+            <Text style={styles.whyLine}>{item.line}</Text>
+          </View>
+        ))}
       </View>
+
+      <Pressable
+        onPress={() => void Linking.openURL(VIDEO_URL)}
+        accessibilityRole="button"
+        accessibilityLabel="Watch on YouTube: How AgeWell Medicine Delivery Works"
+        style={({ pressed }) => [styles.videoCardCompact, pressed ? styles.pressed : null]}
+      >
+        <View style={styles.videoThumb}>
+          <Image source={SERVICE_HERO_IMAGES.medicine} style={styles.videoThumbImage} resizeMode="cover" />
+          <View style={styles.videoThumbPlay}>
+            <Icon name="play" size={14} color={familyHome.white} />
+          </View>
+          <Text style={styles.videoThumbDuration}>2:15</Text>
+        </View>
+        <View style={styles.videoCompactCopy}>
+          <View style={styles.watchRow}>
+            <Icon name="play" size={12} color={familyHome.red} />
+            <Text style={styles.watchLabel}>Watch on YouTube</Text>
+          </View>
+          <Text style={styles.videoCompactTitle}>How AgeWell Medicine Delivery Works</Text>
+          <Text style={styles.videoCompactBody}>
+            From prescription upload to doorstep delivery — see how AgeWell brings your medicines home.
+          </Text>
+        </View>
+        <Icon name="chevron-forward" size={16} color={familyHome.muted} />
+      </Pressable>
     </View>
   );
 }
@@ -535,19 +579,20 @@ function MemberBody({
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: familyHome.white },
   content: {
-    paddingHorizontal: spacing.xl,
-    paddingTop: spacing.md,
-    gap: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
+    gap: spacing.sm,
     width: '100%',
     maxWidth: 720,
     alignSelf: 'center',
   },
-  stack: { gap: spacing.lg },
+  stack: { gap: spacing.md },
+  memberStack: { gap: spacing.sm },
   flex: { flex: 1 },
   flexMin: { flex: 1, minWidth: 0 },
   pressed: { opacity: 0.88 },
 
-  titleBlock: { gap: spacing.sm },
+  titleBlock: { gap: 6 },
   titleLine: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   titleTextWrap: { flex: 1, minWidth: 0 },
   titleWell: {
@@ -563,12 +608,12 @@ const styles = StyleSheet.create({
   lead: { ...typography.caption, color: familyHome.muted, lineHeight: 18 },
 
   bannerCard: {
-    borderRadius: 18,
+    borderRadius: 16,
     overflow: 'hidden',
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
-    minHeight: 148,
+    minHeight: 188,
     padding: spacing.lg,
     gap: spacing.md,
   },
@@ -582,7 +627,7 @@ const styles = StyleSheet.create({
   bannerSubline: { ...typography.caption, color: '#123B7A', lineHeight: 17 },
   bannerSublineOnDark: { color: 'rgba(255,255,255,0.9)' },
   bannerMedia: { width: 96, alignItems: 'center', flexShrink: 0 },
-  bannerImage: { width: 96, height: 96 },
+  bannerImage: { width: 156, height: 156 },
   bannerCalloutFull: {
     width: '100%',
     ...typography.captionStrong,
@@ -591,18 +636,17 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
 
-  benefitGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  benefitGrid: { flexDirection: 'row', gap: spacing.sm },
   benefitCard: {
-    width: '47%',
-    maxWidth: '48%',
-    flexGrow: 1,
-    flexBasis: '47%',
-    minWidth: 140,
+    flex: 1,
     backgroundColor: familyHome.greenSoft,
-    borderRadius: 14,
-    padding: spacing.md,
+    borderRadius: 12,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.xs,
     gap: 4,
-    minHeight: 96,
+    minHeight: 78,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   benefitIcon: {
     width: 28,
@@ -611,10 +655,14 @@ const styles = StyleSheet.create({
     backgroundColor: familyHome.white,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 2,
   },
-  benefitTitle: { ...typography.captionStrong, color: familyHome.text },
-  benefitLine: { ...typography.caption, color: familyHome.muted, lineHeight: 16 },
+  benefitTitle: {
+    ...typography.captionStrong,
+    color: familyHome.text,
+    textAlign: 'center',
+    fontSize: 10,
+    lineHeight: 13,
+  },
 
   soonBanner: {
     flexDirection: 'row',
@@ -684,58 +732,63 @@ const styles = StyleSheet.create({
   memberTitleWell: {
     width: 36,
     height: 36,
-    borderRadius: 10,
+    borderRadius: 18,
     backgroundColor: familyHome.blueSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  memberSubtitle: { ...typography.body, color: familyHome.muted },
-
-  actionCards: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  uploadCard: {
-    flexGrow: 1,
-    flexBasis: 140,
-    minWidth: 140,
+  memberBadge: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     backgroundColor: familyHome.greenSoft,
-    borderRadius: 16,
+    borderRadius: 20,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 6,
+  },
+  memberBadgeTitle: { ...typography.captionStrong, color: familyHome.greenDark },
+
+  actionCards: { flexDirection: 'row', gap: spacing.sm },
+  uploadCard: {
+    flex: 1,
+    backgroundColor: familyHome.greenSoft,
+    borderRadius: 14,
     padding: spacing.md,
-    minHeight: 120,
-    gap: spacing.sm,
+    minHeight: 108,
+    gap: 6,
   },
   pastCard: {
-    flexGrow: 1,
-    flexBasis: 140,
-    minWidth: 140,
+    flex: 1,
     backgroundColor: familyHome.blueSoft,
-    borderRadius: 16,
+    borderRadius: 14,
     padding: spacing.md,
-    minHeight: 120,
-    gap: spacing.sm,
+    minHeight: 108,
+    gap: 6,
   },
   actionIconWell: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: familyHome.white,
     alignItems: 'center',
     justifyContent: 'center',
   },
   pastIconWell: { backgroundColor: familyHome.white },
-  actionTitle: { ...typography.captionStrong, color: '#123B7A' },
-  actionBody: { ...typography.caption, color: familyHome.muted, lineHeight: 15, fontSize: 11 },
+  actionTitle: { ...typography.captionStrong, color: '#123B7A', fontSize: 13 },
+  actionBody: { ...typography.caption, color: familyHome.muted, lineHeight: 14, fontSize: 10 },
   actionCardTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
 
-  ordersCard: {
+  activityHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: spacing.sm },
+  sectionTitle: { ...typography.bodyStrong, color: '#123B7A', fontSize: 14, flex: 1, paddingRight: spacing.sm },
+  viewAll: { ...typography.captionStrong, color: familyHome.green, flexShrink: 0 },
+  orderList: {
     borderWidth: 1,
     borderColor: familyHome.border,
-    borderRadius: 18,
-    padding: spacing.lg,
-    gap: spacing.md,
+    borderRadius: 14,
+    backgroundColor: familyHome.white,
+    overflow: 'hidden',
   },
-  activityHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  sectionTitle: { ...typography.subtitle, color: '#123B7A', flex: 1, paddingRight: spacing.sm },
-  viewAll: { ...typography.captionStrong, color: familyHome.blue },
-  orderList: { gap: 0 },
   emptyOrders: { ...typography.caption, color: familyHome.muted, lineHeight: 18 },
   errorBanner: {
     backgroundColor: familyHome.redSoft,
@@ -745,94 +798,98 @@ const styles = StyleSheet.create({
   errorText: { ...typography.caption, color: familyHome.red },
   orderRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.md,
-    paddingVertical: spacing.md,
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    minHeight: 52,
+  },
+  orderRowBorder: {
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: familyHome.border,
   },
-  timelineCol: { alignItems: 'center', width: 32 },
-  orderIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
+  orderDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
-  timelineLine: {
-    width: 2,
-    flex: 1,
-    minHeight: 28,
-    backgroundColor: familyHome.border,
-    marginTop: 4,
-  },
-  orderBody: { flex: 1, minWidth: 0, gap: 2 },
-  orderCode: { ...typography.bodyStrong, color: '#123B7A' },
-  orderMeta: { ...typography.caption, color: familyHome.muted },
+  orderBody: { flex: 1, minWidth: 0 },
+  orderCode: { ...typography.captionStrong, color: familyHome.text, fontSize: 12 },
+  orderMeta: { ...typography.caption, color: familyHome.muted, fontSize: 10, marginTop: 1 },
   statusPill: {
-    alignSelf: 'flex-start',
     borderRadius: 999,
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: 8,
     paddingVertical: 3,
-    marginTop: 4,
+    alignSelf: 'center',
   },
-  statusPillText: { ...typography.captionStrong, fontSize: 11 },
-  statusDetail: { ...typography.caption, color: familyHome.text, marginTop: 4 },
-  statusSubDetail: { ...typography.caption, color: familyHome.blue, marginTop: 2 },
+  statusPillText: { ...typography.captionStrong, fontSize: 10 },
 
-  memberPromo: {
-    gap: spacing.md,
-    backgroundColor: familyHome.greenSoft,
-    borderRadius: 18,
-    padding: spacing.lg,
-  },
-  memberPromoTop: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.md,
-    alignItems: 'center',
-  },
-  memberPromoHeadline: { ...typography.subtitle, color: '#123B7A', lineHeight: 24 },
-  memberPromoBody: { ...typography.caption, color: familyHome.text, marginTop: 6, lineHeight: 18 },
-  memberPromoFeatures: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  memberPromoFeature: {
-    flexGrow: 1,
-    flexBasis: '30%',
-    minWidth: 96,
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: familyHome.white,
+  whyRow: { flexDirection: 'row', gap: spacing.sm },
+  whyCard: {
+    flex: 1,
     borderRadius: 12,
     paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.sm,
-  },
-  memberPromoFeatureIcon: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: familyHome.greenSoft,
+    paddingHorizontal: spacing.xs,
+    gap: 4,
+    minHeight: 100,
     alignItems: 'center',
-    justifyContent: 'center',
   },
-  memberPromoFeatureLabel: {
+  whyTitle: {
     ...typography.captionStrong,
-    color: familyHome.greenDark,
+    color: familyHome.text,
     textAlign: 'center',
     fontSize: 11,
-    lineHeight: 14,
+    marginTop: 2,
   },
-  memberPromoMedia: { width: 96, alignItems: 'center', flexShrink: 0 },
-  memberPromoImage: { width: 90, height: 90 },
-  memberPromoBadge: {
+  whyLine: {
     ...typography.caption,
-    color: familyHome.greenDark,
-    fontWeight: '600',
-    fontSize: 10,
+    color: familyHome.muted,
     textAlign: 'center',
-    marginTop: 4,
+    fontSize: 9,
+    lineHeight: 12,
   },
+
+  videoCardCompact: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: familyHome.border,
+    backgroundColor: '#F7F8FA',
+    padding: spacing.sm,
+  },
+  videoThumb: {
+    width: 78,
+    height: 64,
+    borderRadius: 10,
+    overflow: 'hidden',
+    backgroundColor: '#123B7A',
+  },
+  videoThumbImage: { width: '100%', height: '100%' },
+  videoThumbPlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.22)',
+  },
+  videoThumbDuration: {
+    position: 'absolute',
+    right: 4,
+    bottom: 4,
+    ...typography.caption,
+    color: familyHome.white,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 4,
+    overflow: 'hidden',
+    fontSize: 9,
+  },
+  videoCompactCopy: { flex: 1, gap: 1 },
+  watchRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  watchLabel: { ...typography.captionStrong, color: familyHome.muted, fontSize: 10 },
+  videoCompactTitle: { ...typography.captionStrong, color: familyHome.text, fontSize: 12 },
+  videoCompactBody: { ...typography.caption, color: familyHome.muted, lineHeight: 14, fontSize: 10 },
 });
+

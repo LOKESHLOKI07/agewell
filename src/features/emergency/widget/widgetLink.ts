@@ -19,11 +19,11 @@ export const EMERGENCY_WIDGET_TYPE = 'MEDICAL' as const;
 
 export const EMERGENCY_WIDGET_COLORS = {
   red: '#E53935',
-  redSoft: '#FDECEC',
+  redSoft: '#FEF6F6',
   green: '#43A047',
-  greenSoft: '#E8F5E9',
+  greenSoft: '#F3FAF4',
   amber: '#F57C00',
-  amberSoft: '#FFF3E0',
+  amberSoft: '#FFF8F2',
   text: '#1A1A1A',
   muted: '#6B6B6B',
   white: '#FFFFFF',

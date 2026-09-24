@@ -2,7 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon, type IconName } from '@/components/ui';
 import { spacing, typography } from '@/constants/theme';
-import { AgeWellHeader } from '@/features/home/components/AgeWellHeader';
+import { ServicePageHeader } from '@/features/home/components/ServicePageHeader';
 import { familyHome } from '@/features/home/components/familyHomeTheme';
 
 type Props = {
@@ -18,7 +18,7 @@ export function ComingSoonServiceScreen({ title, description, icon, color, backg
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
-      <AgeWellHeader title={title} showBack showProfile={false} showBell={false} />
+      <ServicePageHeader />
       <View style={styles.body}>
         <View style={[styles.iconWell, { backgroundColor: background }]}>
           <Icon name={icon} size={36} color={color} />

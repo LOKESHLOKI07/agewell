@@ -13,16 +13,16 @@ describe('admin services catalogue order', () => {
   it('lists the 21 membership slugs in brochure order and keeps add-ons separate', () => {
     expect(MEMBERSHIP_SLUG_ORDER).toHaveLength(21);
     expect(MEMBERSHIP_SLUG_ORDER[0]).toBe('emergency-sos');
-    expect(MEMBERSHIP_SLUG_ORDER[7]).toBe('grocery');
-    expect(MEMBERSHIP_SLUG_ORDER[12]).toBe('ca');
+    expect(MEMBERSHIP_SLUG_ORDER[7]).toBe('personalised-diet-plan');
+    expect(MEMBERSHIP_SLUG_ORDER[14]).toBe('ca');
     expect(MEMBERSHIP_SLUG_ORDER[20]).toBe('cctv');
     expect(MEMBERSHIP_SLUG_ORDER).not.toContain('food');
     expect(ADDON_SLUG_ORDER).toEqual([
       'emergency-companion',
+      'food',
       'stool-cleaning',
       'maid-assistance',
       'ayurvedic-massage',
-      'food',
     ]);
   });
 

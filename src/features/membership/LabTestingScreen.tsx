@@ -3,7 +3,7 @@ import { Image, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 're
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from '@/components/ui';
 import { spacing, typography } from '@/constants/theme';
-import { AgeWellHeader } from '@/features/home/components/AgeWellHeader';
+import { ServicePageHeader } from '@/features/home/components/ServicePageHeader';
 import { familyHome } from '@/features/home/components/familyHomeTheme';
 import { filterOfferingsByKind, parseOfferingMeta } from './catalogTypes';
 import { MembershipServiceHero } from './MembershipServiceHero';
@@ -52,7 +52,7 @@ function LabTestingLive() {
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
-      <AgeWellHeader title="Lab Testing" showBack showProfile={false} showBell={false} />
+      <ServicePageHeader />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <MembershipServiceHero slug="lab-testing" />
         <Text style={styles.hint}>Nearby diagnostic labs · reminders and reports in AgeWell</Text>

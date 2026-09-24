@@ -164,14 +164,14 @@ export function toHealthReportViews(input: {
 export function healthReportToneMeta(tone: HealthReportTone): { color: string; soft: string } {
   switch (tone) {
     case 'available':
-      return { color: '#3D8B40', soft: '#E8F5E9' };
+      return { color: '#3D8B40', soft: '#F3FAF4' };
     case 'submitted':
-      return { color: '#2F80ED', soft: '#E8F1FF' };
+      return { color: '#2F80ED', soft: '#F5F8FE' };
     case 'completed':
       return { color: '#6B6B6B', soft: '#F3F4F6' };
     case 'progress':
-      return { color: '#E67E22', soft: '#FFF0E4' };
+      return { color: '#E67E22', soft: '#FFF8F2' };
     case 'cancelled':
-      return { color: '#E5484D', soft: '#FDECEC' };
+      return { color: '#E5484D', soft: '#FEF6F6' };
   }
 }

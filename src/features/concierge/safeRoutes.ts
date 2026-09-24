@@ -27,6 +27,7 @@ const SAFE_HREFS = new Set<string>([
   '/membership/legal',
   '/membership/local-transport',
   '/membership/transport',
+  '/membership/personalised-diet-plan',
   '/membership/home-inspection',
   '/membership/cctv',
 ]);

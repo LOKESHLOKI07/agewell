@@ -2,7 +2,12 @@ import { Image, StyleSheet, Text, View } from 'react-native';
 import { spacing, typography } from '@/constants/theme';
 import { familyHome } from '@/features/home/components/familyHomeTheme';
 import { findMembershipService } from '@/features/services/serviceCatalog';
-import { SERVICE_HERO_COPY, SERVICE_HERO_IMAGES } from './serviceHeroes';
+import {
+  SERVICE_BANNER_HEIGHT,
+  SERVICE_BANNER_RADIUS,
+  SERVICE_HERO_COPY,
+  SERVICE_HERO_IMAGES,
+} from './serviceHeroes';
 
 type Props = {
   slug: string;
@@ -26,7 +31,12 @@ export function MembershipServiceHero({ slug, headline, subtitle, imageOnly = fa
   return (
     <View style={styles.root} accessibilityRole="summary">
       {source ? (
-        <Image source={source} style={styles.image} resizeMode="contain" accessibilityLabel={`${title ?? slug} illustration`} />
+        <Image
+          source={source}
+          style={styles.image}
+          resizeMode="cover"
+          accessibilityLabel={`${title ?? slug} illustration`}
+        />
       ) : null}
       {!imageOnly && title ? <Text style={styles.headline}>{title}</Text> : null}
       {!imageOnly && line ? <Text style={styles.subtitle}>{line}</Text> : null}
@@ -41,9 +51,10 @@ const styles = StyleSheet.create({
   },
   image: {
     width: '100%',
-    height: 180,
-    borderRadius: 16,
+    height: SERVICE_BANNER_HEIGHT,
+    borderRadius: SERVICE_BANNER_RADIUS,
     backgroundColor: familyHome.white,
+    overflow: 'hidden',
   },
   headline: {
     ...typography.title,

@@ -10,7 +10,7 @@ interface IconProps {
 }
 
 export function Icon({ name, size = 22, color = colors.text, strokeWidth = iconStroke }: IconProps) {
-  const Cmp = ICONS[name];
+  const Cmp = ICONS[name] ?? ICONS['help-circle-outline'];
   const resolved = typeof color === 'string' ? color : colors.text;
   return <Cmp size={size} color={resolved} strokeWidth={strokeWidth} />;
 }

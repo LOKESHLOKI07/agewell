@@ -7,29 +7,29 @@ export const MEMBERSHIP_SLUG_ORDER = [
   'health-check',
   'monthly-blood-test',
   'doctor',
+  'personalised-diet-plan',
   'grocery',
   'small-errands',
   'errand-coordination',
-  'cyber-security',
   'banking-companion',
-  'ca',
   'events-trips',
-  'home-repair',
-  'pooja',
+  'cyber-security',
+  'ca',
   'legal',
+  'home-repair',
   'local-transport',
   'transport',
-  'home-inspection',
+  'pooja',
   'cctv',
 ] as const;
 
 /** Home add-ons — not part of the 21. Food lives here. */
 export const ADDON_SLUG_ORDER = [
   'emergency-companion',
+  'food',
   'stool-cleaning',
   'maid-assistance',
   'ayurvedic-massage',
-  'food',
 ] as const;
 
 /** Deep-link extras still editable in Service Catalog, shown separately. */

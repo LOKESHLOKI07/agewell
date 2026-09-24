@@ -7,8 +7,9 @@ import { Icon, type IconName } from '@/components/ui';
 import { minTouchSize, spacing, typography } from '@/constants/theme';
 import { useAuthStore } from '@/features/auth/authStore';
 import { useServicesLive } from '@/features/auth/useServicesLive';
-import { AgeWellHeader } from '@/features/home/components/AgeWellHeader';
+import { ServicePageHeader } from '@/features/home/components/ServicePageHeader';
 import { familyHome } from '@/features/home/components/familyHomeTheme';
+import { MarketplaceServiceIcon } from '@/features/services/components/MarketplaceServiceIcon';
 import { useSeniorProfile } from '@/features/home/hooks/queries';
 import { findActiveEmergency } from '@/features/emergency/mappers';
 import { useCreateEmergency, useEmergencyCases } from '@/features/emergency/hooks';
@@ -17,7 +18,6 @@ import {
   formatEmergencyWhen,
   getEmergencyCreateErrorMessage,
   recipientStatusLabel,
-  RECIPIENT_CHIP_META,
   triggerSourceLabel,
 } from '@/features/emergency/selectors';
 import type { EmergencyCase, EmergencyRecipient } from '@/features/emergency/types/emergency';
@@ -34,25 +34,22 @@ const SERVICE_AREA_LINE = 'AgeWell is currently serving Kandivali & Borivali, Mu
 
 const BENEFITS: { icon: IconName; title: string; line: string }[] = [
   { icon: 'people-outline', title: 'Alerts Family', line: 'Your loved ones are informed' },
-  { icon: 'account-circle', title: 'Care Manager', line: 'Coordinates immediately' },
-  { icon: 'people', title: 'Companion', line: 'On-ground assistance' },
-  { icon: 'business-outline', title: 'Hospital Support', line: 'Pre-selected hospital network' },
+  { icon: 'clipboard-user', title: 'Care Manager', line: 'Coordinates immediately' },
+  { icon: 'hand-heart', title: 'Companion', line: 'On-ground assistance' },
+  { icon: 'medkit', title: 'Hospital Support', line: 'Pre-selected hospital network' },
 ];
 
 function membershipValidLabel(endDate: string | null | undefined): string | null {
   if (!endDate) {
     return null;
   }
-  const display = toDisplayDate(endDate);
-  if (!display) {
-    return null;
-  }
   const parsed = new Date(endDate);
   if (Number.isNaN(parsed.getTime())) {
-    return `Valid till ${display}`;
+    const display = toDisplayDate(endDate);
+    return display ? `Membership valid upto ${display}` : null;
   }
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  return `Valid till ${parsed.getDate()} ${months[parsed.getMonth()]} ${parsed.getFullYear()}`;
+  return `Membership valid upto ${parsed.getDate()} ${months[parsed.getMonth()]} ${parsed.getFullYear()}`;
 }
 
 function recipientFor(emergency: EmergencyCase | null, role: string): EmergencyRecipient | null {
@@ -139,28 +136,25 @@ export function MembershipSosScreen() {
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
-      <AgeWellHeader title="AgeWell" showBack={false} showProfile={false} showBell />
+      <ServicePageHeader />
       <KeyboardAwareScrollView
         contentContainerStyle={[styles.content, { paddingBottom: bottomPad }]}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.titleRow}>
-          <View style={styles.titleCopy}>
-            <View style={styles.titleLine}>
-              <View style={styles.sirenWell}>
-                <Icon name="siren" size={18} color={familyHome.red} />
-              </View>
-              <Text style={styles.title}>Emergency Support</Text>
-            </View>
-            <Text style={styles.subtitle}>Help is just one tap away</Text>
+        <View style={styles.titleBlock}>
+          <View style={styles.titleLine}>
+            <MarketplaceServiceIcon
+              serviceId="emergency-sos"
+              fallbackIcon="siren"
+              fallbackColor={familyHome.red}
+              size={36}
+            />
+            <Text style={styles.title}>Emergency Support</Text>
           </View>
-          {showMemberSos && !isFamily ? (
+          {showMemberSos && !isFamily && validTill ? (
             <View style={styles.memberBadge}>
               <Icon name="checkmark-circle-outline" size={14} color={familyHome.green} />
-              <View>
-                <Text style={styles.memberBadgeTitle}>Active Member</Text>
-                {validTill ? <Text style={styles.memberBadgeSub}>{validTill}</Text> : null}
-              </View>
+              <Text style={styles.memberBadgeTitle}>{validTill}</Text>
             </View>
           ) : null}
         </View>
@@ -270,14 +264,57 @@ function MemberSosBody({
   onHoldStart: () => void;
   onHoldEnd: () => void;
 }) {
+  const alertCards = [
+    {
+      role: 'FAMILY',
+      label: 'Family Members',
+      sub: 'Notified immediately',
+      icon: 'people-outline' as IconName,
+    },
+    {
+      role: 'CARE_MANAGER',
+      label: 'Care Manager',
+      sub: 'Alerted after 30s if no response',
+      icon: 'account-circle' as IconName,
+    },
+    {
+      role: 'COMPANION',
+      label: 'Companion',
+      sub: 'Notified immediately',
+      icon: 'hand-heart' as IconName,
+    },
+    {
+      role: 'AGEWELL_SUPPORT',
+      label: 'AgeWell Support',
+      sub: preferredHospital?.trim() || 'Escalates with Care Manager',
+      icon: 'call-outline' as IconName,
+    },
+  ];
+
   return (
-    <View style={styles.stack}>
+    <View style={styles.memberStack}>
       {showHoldButton ? (
-        <View style={styles.panicBanner}>
-          <Icon name="lock-closed-outline" size={16} color={familyHome.red} />
-          <Text style={styles.panicText}>
-            Connected with your home panic button. Press here or use your home panic button for emergency assistance.
-          </Text>
+        <View style={styles.sosBlock}>
+          <View style={styles.sosRingOuter} pointerEvents="box-none">
+            <View style={styles.sosRingMid} pointerEvents="box-none">
+              <Pressable
+                onPressIn={onHoldStart}
+                onPressOut={onHoldEnd}
+                disabled={submitting || Boolean(active)}
+                accessibilityRole="button"
+                accessibilityLabel="SOS. Press and hold for 3 seconds to send an emergency alert"
+                style={({ pressed }) => [styles.sos, (pressed || holding) && !submitting ? styles.sosPressed : null]}
+              >
+                <View style={[styles.sosFill, { height: `${Math.round(holdProgress * 100)}%` }]} />
+                <Text style={styles.sosText}>SOS</Text>
+                <Text style={styles.sosHold}>
+                  {submitting ? 'SENDING…' : holding ? 'KEEP HOLDING' : 'PRESS & HOLD FOR 3 SECONDS'}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+          <Text style={styles.sosHintStrong}>Press only when emergency assistance is needed.</Text>
+          <Text style={styles.sosHint}>Accidental presses may delay help to others.</Text>
         </View>
       ) : (
         <View style={styles.infoBanner}>
@@ -288,126 +325,88 @@ function MemberSosBody({
         </View>
       )}
 
-      {showHoldButton ? (
-        <View style={styles.sosBlock}>
-          <Pressable
-            onPressIn={onHoldStart}
-            onPressOut={onHoldEnd}
-            disabled={submitting || Boolean(active)}
-            accessibilityRole="button"
-            accessibilityLabel="SOS. Press and hold for 3 seconds to send an emergency alert"
-            style={({ pressed }) => [styles.sos, (pressed || holding) && !submitting ? styles.sosPressed : null]}
-          >
-            <View style={[styles.sosFill, { height: `${Math.round(holdProgress * 100)}%` }]} />
-            <Text style={styles.sosText}>SOS</Text>
-            <Text style={styles.sosHold}>
-              {submitting ? 'SENDING…' : holding ? 'KEEP HOLDING' : 'PRESS & HOLD'}
-            </Text>
-            <Text style={styles.sosHoldSub}>{submitting ? 'Notifying care circle' : 'FOR 3 SECONDS'}</Text>
-          </Pressable>
-          <View style={styles.sosHintRow}>
-            <Text style={styles.sosHint}>Press only when emergency assistance is required. Accidental presses may delay help for others.</Text>
-          </View>
-        </View>
-      ) : null}
-
-      {preferredHospital ? (
-        <View style={styles.availableBanner}>
-          <Icon name="business-outline" size={18} color={familyHome.greenDark} />
-          <View style={styles.bannerCopy}>
-            <Text style={styles.availableTitle}>Preferred hospital</Text>
-            <Text style={styles.availableBody}>{preferredHospital}</Text>
-          </View>
-        </View>
-      ) : null}
-
       {error ? (
         <Text style={styles.error} accessibilityRole="alert">
           {error}
         </Text>
       ) : null}
 
-      <Text style={styles.sectionTitle}>Alerts will be sent to</Text>
-      <View style={styles.recipientGrid}>
-        {RECIPIENT_CHIP_META.map((item) => {
-          const recipient = recipientFor(active, item.role);
-          const pending = !recipient || recipient.status !== 'RESPONDED';
-          return (
-            <View key={item.role} style={styles.recipientCard}>
-              <View style={styles.recipientIcon}>
-                <Icon name={item.icon} size={18} color={familyHome.green} />
+      <View style={styles.alertsPanel}>
+        <Text style={styles.sectionTitle}>Alerts will be sent to</Text>
+        <View style={styles.recipientGrid}>
+          {alertCards.map((item) => {
+            const recipient = recipientFor(active, item.role);
+            const pending = !recipient || recipient.status !== 'RESPONDED';
+            return (
+              <View key={item.role} style={styles.recipientCard}>
+                <View style={styles.recipientIcon}>
+                  <Icon name={item.icon} size={14} color={familyHome.green} />
+                </View>
+                <Text style={styles.recipientLabel} numberOfLines={2}>
+                  {item.label}
+                </Text>
+                <Text style={styles.recipientSub} numberOfLines={3}>
+                  {item.sub}
+                </Text>
+                {active ? (
+                  <Text style={[styles.recipientStatus, pending ? styles.statusPending : styles.statusDone]}>
+                    {recipientStatusLabel(recipient?.status ?? 'PENDING', recipient?.respondedAt, recipient?.notifiedAt)}
+                  </Text>
+                ) : null}
               </View>
-              <Text style={styles.recipientLabel}>{item.label}</Text>
-              <Text style={styles.recipientSub}>
-                {item.role === 'FAMILY'
-                  ? 'Notified immediately'
-                  : item.role === 'CARE_MANAGER'
-                    ? 'Alerted after 30s if no response'
-                    : item.role === 'COMPANION'
-                      ? 'Notified immediately'
-                      : 'Escalates with Care Manager'}
-              </Text>
-              <Text style={[styles.recipientStatus, pending ? styles.statusPending : styles.statusDone]}>
-                {active
-                  ? recipientStatusLabel(recipient?.status ?? 'PENDING', recipient?.respondedAt, recipient?.notifiedAt)
-                  : 'Ready'}
-              </Text>
-            </View>
-          );
-        })}
+            );
+          })}
+        </View>
       </View>
 
-      <View style={styles.activityHead}>
-        <Text style={styles.sectionTitle}>Recent Emergency Activity</Text>
-        {totalRecent > recent.length ? (
-          <Pressable onPress={onViewAll} accessibilityRole="button" accessibilityLabel="View all emergency activity">
-            <Text style={styles.viewAll}>View All</Text>
-          </Pressable>
-        ) : null}
-      </View>
-      {recent.length === 0 ? (
-        <Text style={styles.emptyActivity}>No emergency cases on file yet.</Text>
-      ) : (
-        <View style={styles.activityList}>
-          {recent.map((item) => (
-            <Pressable
-              key={item.id}
-              onPress={() => router.push(emergencyDetailHref(item.id) as unknown as Href)}
-              accessibilityRole="button"
-              accessibilityLabel={item.caseNumber ?? 'Emergency case'}
-              style={({ pressed }) => [styles.activityRow, pressed ? styles.pressed : null]}
-            >
-              <View
-                style={[
-                  styles.activityDot,
-                  item.status === 'RESOLVED' || item.status === 'CANCELLED'
-                    ? styles.dotClosed
-                    : styles.dotOpen,
-                ]}
-              />
-              <View style={styles.activityBody}>
-                <Text style={styles.activityId}>{item.caseNumber ? `#${item.caseNumber}` : 'Emergency case'}</Text>
-                <Text style={styles.activityMeta}>
-                  {formatEmergencyWhen(item.triggeredAt ?? item.createdAt) ?? 'Time not on file'}
-                </Text>
-                <Text style={styles.activityMeta}>Triggered by {triggerSourceLabel(item.triggerSource)}</Text>
-              </View>
-              <Text
-                style={[
-                  styles.activityStatus,
-                  item.status === 'RESOLVED' ? styles.statusDone : styles.statusPending,
-                ]}
-              >
-                {item.status === 'RESOLVED' || item.status === 'CANCELLED'
-                  ? item.closedAt
-                    ? 'Closed'
-                    : 'Resolved'
-                  : 'Open'}
-              </Text>
+      <View style={styles.activityPanel}>
+        <View style={styles.activityHead}>
+          <Text style={styles.sectionTitle}>Recent Emergency Activity</Text>
+          {totalRecent > 0 ? (
+            <Pressable onPress={onViewAll} accessibilityRole="button" accessibilityLabel="View all emergency activity">
+              <Text style={styles.viewAll}>View All ›</Text>
             </Pressable>
-          ))}
+          ) : null}
         </View>
-      )}
+        {recent.length === 0 ? (
+          <Text style={styles.emptyActivity}>No emergency cases on file yet.</Text>
+        ) : (
+          <View style={styles.activityList}>
+            {recent.map((item, index) => {
+              const closed = item.status === 'RESOLVED' || item.status === 'CANCELLED';
+              const when = formatEmergencyWhen(item.triggeredAt ?? item.createdAt) ?? 'Time not on file';
+              return (
+                <Pressable
+                  key={item.id}
+                  onPress={() => router.push(emergencyDetailHref(item.id) as unknown as Href)}
+                  accessibilityRole="button"
+                  accessibilityLabel={item.caseNumber ?? 'Emergency case'}
+                  style={({ pressed }) => [
+                    styles.activityRow,
+                    index < recent.length - 1 ? styles.activityRowBorder : null,
+                    pressed ? styles.pressed : null,
+                  ]}
+                >
+                  <View style={[styles.activityDot, closed ? styles.dotClosed : styles.dotOpen]} />
+                  <View style={styles.activityBody}>
+                    <Text style={styles.activityId}>
+                      {item.caseNumber ? `#${item.caseNumber}` : 'Emergency case'}
+                    </Text>
+                    <Text style={styles.activityMeta}>
+                      {when} • Triggered by {triggerSourceLabel(item.triggerSource)}
+                    </Text>
+                  </View>
+                  <View style={[styles.activityBadge, closed ? styles.activityBadgeClosed : styles.activityBadgeOpen]}>
+                    <Text style={[styles.activityBadgeText, closed ? styles.activityBadgeTextClosed : null]}>
+                      {closed ? 'Closed' : 'Open'}
+                    </Text>
+                  </View>
+                </Pressable>
+              );
+            })}
+          </View>
+        )}
+      </View>
 
       <VideoCard compact />
     </View>
@@ -433,7 +432,6 @@ function BenefitGrid() {
             <Icon name={item.icon} size={18} color={familyHome.green} />
           </View>
           <Text style={styles.benefitTitle}>{item.title}</Text>
-          <Text style={styles.benefitLine}>{item.line}</Text>
         </View>
       ))}
     </View>
@@ -441,6 +439,35 @@ function BenefitGrid() {
 }
 
 function VideoCard({ compact = false }: { compact?: boolean }) {
+  if (compact) {
+    return (
+      <Pressable
+        onPress={() => void Linking.openURL(VIDEO_URL)}
+        accessibilityRole="button"
+        accessibilityLabel="Watch on YouTube: How AgeWell Emergency Support Works"
+        style={({ pressed }) => [styles.videoCardCompact, pressed ? styles.pressed : null]}
+      >
+        <View style={styles.videoThumb}>
+          <Image source={SERVICE_HERO_IMAGES['emergency-sos']} style={styles.videoThumbImage} resizeMode="cover" />
+          <View style={styles.videoThumbPlay}>
+            <Icon name="play" size={14} color={familyHome.white} />
+          </View>
+        </View>
+        <View style={styles.videoCompactCopy}>
+          <View style={styles.watchRow}>
+            <Icon name="play" size={12} color={familyHome.red} />
+            <Text style={styles.watchLabel}>Watch on YouTube</Text>
+          </View>
+          <Text style={styles.videoCompactTitle}>How AgeWell Emergency Support Works</Text>
+          <Text style={styles.videoCompactBody}>
+            A short guide to the SOS button, alerts, and how AgeWell responds in an emergency.
+          </Text>
+        </View>
+        <Icon name="chevron-forward" size={16} color={familyHome.muted} />
+      </Pressable>
+    );
+  }
+
   return (
     <Pressable
       onPress={() => void Linking.openURL(VIDEO_URL)}
@@ -448,7 +475,7 @@ function VideoCard({ compact = false }: { compact?: boolean }) {
       accessibilityLabel="Watch: What is AgeWell Emergency Support?"
       style={({ pressed }) => [styles.videoCard, pressed ? styles.pressed : null]}
     >
-      <View style={[styles.videoHero, compact ? styles.videoHeroCompact : null]}>
+      <View style={styles.videoHero}>
         <Image source={SERVICE_HERO_IMAGES['emergency-sos']} style={styles.videoImage} resizeMode="cover" />
         <View style={styles.videoOverlay} pointerEvents="none">
           <Text style={styles.videoHeadline}>What is AgeWell Emergency Support?</Text>
@@ -475,21 +502,18 @@ const styles = StyleSheet.create({
     backgroundColor: familyHome.white,
   },
   content: {
-    paddingHorizontal: spacing.xl,
-    paddingTop: spacing.md,
-    gap: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xs,
+    gap: spacing.sm,
   },
   stack: {
     gap: spacing.lg,
   },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: spacing.md,
+  memberStack: {
+    gap: spacing.sm,
   },
-  titleCopy: {
-    flex: 1,
+  titleBlock: {
+    gap: 4,
   },
   titleLine: {
     flexDirection: 'row',
@@ -497,9 +521,9 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   sirenWell: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: familyHome.redSoft,
     alignItems: 'center',
     justifyContent: 'center',
@@ -508,30 +532,19 @@ const styles = StyleSheet.create({
     ...typography.title,
     color: '#123B7A',
   },
-  subtitle: {
-    ...typography.body,
-    color: familyHome.muted,
-    marginTop: 2,
-    marginLeft: 40,
-  },
   memberBadge: {
+    alignSelf: 'flex-start',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     backgroundColor: familyHome.greenSoft,
-    borderRadius: 12,
-    paddingHorizontal: spacing.sm,
+    borderRadius: 20,
+    paddingHorizontal: spacing.md,
     paddingVertical: 6,
-    maxWidth: 140,
   },
   memberBadgeTitle: {
     ...typography.captionStrong,
     color: familyHome.greenDark,
-  },
-  memberBadgeSub: {
-    ...typography.caption,
-    color: familyHome.muted,
-    fontSize: 10,
   },
   explainer: {
     ...typography.body,
@@ -540,34 +553,33 @@ const styles = StyleSheet.create({
   },
   benefitGrid: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: spacing.sm,
   },
   benefitCard: {
-    width: '48%',
-    flexGrow: 1,
+    flex: 1,
     backgroundColor: familyHome.greenSoft,
-    borderRadius: 16,
-    padding: spacing.md,
+    borderRadius: 12,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.xs,
     gap: 4,
-    minHeight: 92,
+    minHeight: 78,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   benefitIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: familyHome.white,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 4,
   },
   benefitTitle: {
     ...typography.captionStrong,
     color: familyHome.text,
-  },
-  benefitLine: {
-    ...typography.caption,
-    color: familyHome.muted,
+    textAlign: 'center',
+    fontSize: 10,
+    lineHeight: 13,
   },
   soonBanner: {
     flexDirection: 'row',
@@ -659,20 +671,38 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   sosBlock: {
-    flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
+    justifyContent: 'center',
+    paddingTop: 0,
+    paddingBottom: 0,
+    gap: 4,
+  },
+  sosRingOuter: {
+    width: 188,
+    height: 188,
+    borderRadius: 94,
+    borderWidth: 12,
+    borderColor: '#FDE8EA',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sosRingMid: {
+    width: 164,
+    height: 164,
+    borderRadius: 82,
+    borderWidth: 10,
+    borderColor: '#FAD1D4',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   sos: {
-    width: 156,
-    height: 156,
-    borderRadius: 78,
+    width: 144,
+    height: 144,
+    borderRadius: 72,
     backgroundColor: familyHome.red,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
-    borderWidth: 8,
-    borderColor: '#FFD0D2',
   },
   sosFill: {
     position: 'absolute',
@@ -687,7 +717,9 @@ const styles = StyleSheet.create({
   sosText: {
     ...typography.display,
     color: familyHome.white,
-    letterSpacing: 2,
+    letterSpacing: 1,
+    fontSize: 34,
+    lineHeight: 38,
     zIndex: 1,
   },
   sosHold: {
@@ -695,72 +727,96 @@ const styles = StyleSheet.create({
     color: familyHome.white,
     marginTop: 4,
     zIndex: 1,
+    textAlign: 'center',
+    paddingHorizontal: spacing.sm,
+    fontSize: 9,
+    lineHeight: 12,
   },
-  sosHoldSub: {
-    ...typography.caption,
-    color: familyHome.white,
-    opacity: 0.9,
-    zIndex: 1,
-  },
-  sosHintRow: {
-    flex: 1,
+  sosHintStrong: {
+    ...typography.captionStrong,
+    color: familyHome.red,
+    textAlign: 'center',
+    marginTop: spacing.xs,
+    fontSize: 12,
   },
   sosHint: {
     ...typography.caption,
     color: familyHome.muted,
-    textAlign: 'left',
-    lineHeight: 18,
+    textAlign: 'center',
+    lineHeight: 15,
+    fontSize: 11,
   },
   error: {
     ...typography.body,
     color: familyHome.red,
   },
   sectionTitle: {
-    ...typography.subtitle,
+    ...typography.bodyStrong,
     color: familyHome.text,
+    fontSize: 14,
+  },
+  alertsPanel: {
+    borderWidth: 1,
+    borderColor: familyHome.border,
+    borderRadius: 14,
+    padding: spacing.md,
+    gap: spacing.sm,
+    backgroundColor: familyHome.white,
   },
   recipientGrid: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
+    gap: 4,
   },
   recipientCard: {
-    width: '48%',
-    flexGrow: 1,
-    borderWidth: 1,
-    borderColor: familyHome.border,
-    borderRadius: 16,
-    padding: spacing.md,
-    minHeight: 108,
-    backgroundColor: '#F7FBFA',
+    flex: 1,
+    paddingVertical: 2,
+    paddingHorizontal: 2,
+    backgroundColor: 'transparent',
+    alignItems: 'center',
   },
   recipientIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: familyHome.greenSoft,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 6,
+    marginBottom: 4,
   },
   recipientLabel: {
     ...typography.captionStrong,
     color: familyHome.text,
+    textAlign: 'center',
+    fontSize: 10,
+    lineHeight: 13,
   },
   recipientSub: {
     ...typography.caption,
     color: familyHome.muted,
     marginTop: 2,
+    textAlign: 'center',
+    fontSize: 9,
+    lineHeight: 12,
   },
   recipientStatus: {
     ...typography.captionStrong,
-    marginTop: 8,
+    marginTop: 4,
+    textAlign: 'center',
+    fontSize: 9,
   },
   statusPending: {
     color: familyHome.muted,
   },
   statusDone: {
     color: familyHome.greenDark,
+  },
+  activityPanel: {
+    borderWidth: 1,
+    borderColor: familyHome.border,
+    borderRadius: 14,
+    padding: spacing.md,
+    gap: spacing.sm,
+    backgroundColor: familyHome.white,
   },
   activityHead: {
     flexDirection: 'row',
@@ -776,23 +832,24 @@ const styles = StyleSheet.create({
     color: familyHome.muted,
   },
   activityList: {
-    gap: spacing.sm,
+    gap: 0,
   },
   activityRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: spacing.md,
-    borderWidth: 1,
-    borderColor: familyHome.border,
-    borderRadius: 16,
-    padding: spacing.lg,
-    minHeight: minTouchSize,
+    gap: spacing.sm,
+    paddingVertical: spacing.sm,
+    minHeight: 44,
+  },
+  activityRowBorder: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: familyHome.border,
   },
   activityDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginTop: 6,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginTop: 5,
   },
   dotOpen: {
     backgroundColor: familyHome.green,
@@ -804,16 +861,36 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   activityId: {
-    ...typography.bodyStrong,
+    ...typography.captionStrong,
     color: familyHome.text,
+    fontSize: 12,
   },
   activityMeta: {
     ...typography.caption,
     color: familyHome.muted,
-    marginTop: 2,
+    marginTop: 1,
+    lineHeight: 14,
+    fontSize: 10,
   },
-  activityStatus: {
+  activityBadge: {
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    alignSelf: 'center',
+  },
+  activityBadgeOpen: {
+    backgroundColor: familyHome.greenSoft,
+  },
+  activityBadgeClosed: {
+    backgroundColor: '#F0F0F0',
+  },
+  activityBadgeText: {
     ...typography.captionStrong,
+    color: familyHome.greenDark,
+    fontSize: 11,
+  },
+  activityBadgeTextClosed: {
+    color: familyHome.muted,
   },
   videoCard: {
     borderRadius: 16,
@@ -822,13 +899,62 @@ const styles = StyleSheet.create({
     borderColor: familyHome.border,
     backgroundColor: familyHome.white,
   },
+  videoCardCompact: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: familyHome.border,
+    backgroundColor: familyHome.white,
+    padding: spacing.sm,
+  },
+  videoThumb: {
+    width: 72,
+    height: 58,
+    borderRadius: 10,
+    overflow: 'hidden',
+    backgroundColor: '#123B7A',
+  },
+  videoThumbImage: {
+    width: '100%',
+    height: '100%',
+  },
+  videoThumbPlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.22)',
+  },
+  videoCompactCopy: {
+    flex: 1,
+    gap: 1,
+  },
+  watchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  watchLabel: {
+    ...typography.captionStrong,
+    color: familyHome.red,
+    fontSize: 10,
+  },
+  videoCompactTitle: {
+    ...typography.captionStrong,
+    color: familyHome.text,
+    fontSize: 12,
+  },
+  videoCompactBody: {
+    ...typography.caption,
+    color: familyHome.muted,
+    lineHeight: 14,
+    fontSize: 10,
+  },
   videoHero: {
-    height: 168,
+    height: 188,
     backgroundColor: '#123B7A',
     overflow: 'hidden',
-  },
-  videoHeroCompact: {
-    height: 148,
   },
   videoImage: {
     ...StyleSheet.absoluteFillObject,

@@ -2,7 +2,7 @@ import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'r
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar, Icon } from '@/components/ui';
 import { spacing, typography } from '@/constants/theme';
-import { AgeWellHeader } from '@/features/home/components/AgeWellHeader';
+import { ServicePageHeader } from '@/features/home/components/ServicePageHeader';
 import { familyHome } from '@/features/home/components/familyHomeTheme';
 import { MembershipServiceGate } from './MembershipServiceGate';
 import { MembershipServiceHero } from './MembershipServiceHero';
@@ -54,7 +54,7 @@ function CarePersonVisitBody({ title, person, videoHint, slug }: Props) {
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
-      <AgeWellHeader title={title} showBack showProfile={false} showBell={false} />
+      <ServicePageHeader />
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}

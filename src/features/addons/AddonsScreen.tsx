@@ -5,9 +5,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView } from '@/components/KeyboardAwareScrollView';
 import { Icon } from '@/components/ui';
 import { spacing, typography } from '@/constants/theme';
-import { AgeWellHeader } from '@/features/home/components/AgeWellHeader';
+import { ServicePageHeader } from '@/features/home/components/ServicePageHeader';
 import { familyHome } from '@/features/home/components/familyHomeTheme';
 import { ADD_ON_SERVICES } from '@/features/services/addOnServiceCatalog';
+import { MarketplaceServiceIcon } from '@/features/services/components/MarketplaceServiceIcon';
 import type { HomeServiceTile } from '@/features/services/serviceCatalog';
 import { useTabScreenBottomPad } from '@/utils/safeBottom';
 
@@ -43,7 +44,7 @@ export function AddonsScreen() {
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
-      <AgeWellHeader title="Add-on Services" showBack showProfile={false} showBell={false} />
+      <ServicePageHeader />
       <KeyboardAwareScrollView
         contentContainerStyle={[styles.content, { paddingBottom: bottomPad }]}
         showsVerticalScrollIndicator={false}
@@ -75,13 +76,15 @@ export function AddonsScreen() {
                   accessibilityLabel={item.title}
                   style={({ pressed }) => [
                     styles.gridCard,
-                    { backgroundColor: item.background },
                     pressed ? styles.pressed : null,
                   ]}
                 >
-                  <View style={[styles.iconCircle, { backgroundColor: familyHome.white }]}>
-                    <Icon name={item.icon} size={22} color={item.color} />
-                  </View>
+                  <MarketplaceServiceIcon
+                    serviceId={item.id}
+                    fallbackIcon={item.icon}
+                    fallbackColor={item.color}
+                    size={44}
+                  />
                   <Text style={styles.gridLabel} numberOfLines={3}>
                     {item.title}
                   </Text>
@@ -147,6 +150,9 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 112,
     borderRadius: 16,
+    borderWidth: 1,
+    borderColor: familyHome.border,
+    backgroundColor: familyHome.white,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.md,
     alignItems: 'center',
@@ -155,13 +161,6 @@ const styles = StyleSheet.create({
   },
   gridCardSpacer: {
     flex: 1,
-  },
-  iconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   gridLabel: {
     ...typography.captionStrong,

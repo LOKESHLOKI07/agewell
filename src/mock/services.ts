@@ -51,7 +51,7 @@ export const mockServices: ServiceCatalogItem[] = [
   },
   {
     id: 'svc-food',
-    title: 'Food Delivery',
+    title: 'Tiffin Box',
     description: 'Hot, nutritious meals delivered to your parent.',
     icon: 'restaurant-outline',
   },

@@ -1,6 +1,7 @@
 import type { HealthDocument, LabResult, ServiceRequest, ServiceRequestStatus } from '@/features/home/types/home';
 import { humanizeStatus } from '@/features/home/selectors/homeViewModel';
 import { formatRecordDate } from '@/features/health/selectors';
+import type { IconName } from '@/components/ui';
 
 export const MONTHLY_BLOOD_SERVICE_SLUG = 'monthly-blood-test';
 
@@ -26,6 +27,19 @@ export type MonthlyBloodStatusView =
       title: string;
       body: string;
     };
+
+export type MonthlyBloodActivityTone = 'completed' | 'progress' | 'available';
+
+export type MonthlyBloodActivityView = {
+  id: string;
+  title: string;
+  dateLabel: string | null;
+  summary: string;
+  statusLabel: string;
+  tone: MonthlyBloodActivityTone;
+  icon: IconName;
+  href: string;
+};
 
 function isOpenStatus(status: ServiceRequestStatus): boolean {
   return (
@@ -113,4 +127,63 @@ export function toMonthlyBloodStatusView(input: {
     title: 'No CBC on file this month',
     body: 'Request your included monthly CBC for home sample collection. Extra tests are available below.',
   };
+}
+
+export function monthlyBloodActivityToneMeta(tone: MonthlyBloodActivityTone): { color: string; soft: string } {
+  switch (tone) {
+    case 'completed':
+      return { color: '#3D8B40', soft: '#F3FAF4' };
+    case 'progress':
+      return { color: '#2F80ED', soft: '#F5F8FE' };
+    case 'available':
+      return { color: '#3D8B40', soft: '#F3FAF4' };
+  }
+}
+
+/** Recent monthly-blood activity from real requests, labs, and documents. */
+export function toMonthlyBloodActivityViews(input: {
+  requests: ServiceRequest[];
+  labs: LabResult[];
+  documents: HealthDocument[];
+  limit?: number;
+}): MonthlyBloodActivityView[] {
+  const limit = input.limit ?? 20;
+  const fromRequests: MonthlyBloodActivityView[] = filterMonthlyBloodRequests(input.requests).map((request) => {
+    const open = isOpenStatus(request.status);
+    const completed = request.status === 'COMPLETED';
+    return {
+      id: `req-${request.id}`,
+      title: request.serviceName?.trim() || 'Monthly Blood Test',
+      dateLabel: null,
+      summary: request.notes?.trim() || (open ? 'Home sample collection' : 'CBC'),
+      statusLabel: completed ? 'Completed' : open ? 'In Progress' : humanizeStatus(request.status),
+      tone: completed ? 'completed' : open ? 'progress' : 'available',
+      icon: open ? 'document-text-outline' : 'calendar-outline',
+      href: '/(tabs)/orders',
+    };
+  });
+
+  const fromLabs: MonthlyBloodActivityView[] = filterCbcLabs(input.labs).map((lab) => ({
+    id: `lab-${lab.id}`,
+    title: lab.testName?.trim() || 'Monthly Blood Test',
+    dateLabel: formatRecordDate(lab.date),
+    summary: lab.resultValue?.trim() || 'CBC (Home Sample Collection)',
+    statusLabel: 'Completed',
+    tone: 'completed' as const,
+    icon: 'calendar-outline' as IconName,
+    href: '/health/labs',
+  }));
+
+  const fromDocs: MonthlyBloodActivityView[] = filterBloodDocuments(input.documents).map((doc) => ({
+    id: `doc-${doc.id}`,
+    title: doc.documentType?.trim() || 'Blood Test Report',
+    dateLabel: null,
+    summary: 'Report on file',
+    statusLabel: doc.fileUrl ? 'Report Ready' : 'On File',
+    tone: 'available' as const,
+    icon: 'document-text-outline' as IconName,
+    href: '/health/documents',
+  }));
+
+  return [...fromRequests, ...fromLabs, ...fromDocs].slice(0, limit);
 }

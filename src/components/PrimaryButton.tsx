@@ -10,6 +10,8 @@ interface PrimaryButtonProps {
   pill?: boolean;
   /** When false, button sizes to content instead of stretching full width. */
   fullWidth?: boolean;
+  /** Destructive actions (e.g. Sign out) use emergency red. */
+  tone?: 'primary' | 'danger';
 }
 
 export function PrimaryButton({
@@ -20,8 +22,10 @@ export function PrimaryButton({
   accessibilityHint,
   pill = false,
   fullWidth = true,
+  tone = 'primary',
 }: PrimaryButtonProps) {
   const isDisabled = disabled || loading;
+  const danger = tone === 'danger';
 
   return (
     <Pressable
@@ -33,6 +37,7 @@ export function PrimaryButton({
       accessibilityState={{ disabled: isDisabled, busy: loading }}
       style={({ pressed }) => [
         styles.button,
+        danger ? styles.danger : null,
         pill ? styles.pill : null,
         !fullWidth ? styles.inline : null,
         pressed && !isDisabled ? styles.pressed : null,
@@ -53,6 +58,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: spacing.xxl,
     paddingVertical: spacing.md,
+  },
+  danger: {
+    backgroundColor: colors.emergency,
   },
   inline: {
     alignSelf: 'flex-start',

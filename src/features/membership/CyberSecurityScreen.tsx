@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Alert,
   Image,
@@ -9,22 +9,31 @@ import {
   Text,
   View,
 } from 'react-native';
-import { router, type Href } from 'expo-router';
+import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LoadingState, PrimaryButton, SecondaryButton } from '@/components';
 import type { IconName } from '@/components/ui';
 import { Icon } from '@/components/ui';
 import { spacing, typography } from '@/constants/theme';
-import { useServices } from '@/features/home/hooks/queries';
-import { AgeWellHeader } from '@/features/home/components/AgeWellHeader';
+import { useServiceRequests, useServices } from '@/features/home/hooks/queries';
+import { ServicePageHeader } from '@/features/home/components/ServicePageHeader';
 import { familyHome } from '@/features/home/components/familyHomeTheme';
+import { ServiceHelpBanner } from '@/features/membership/ServiceHelpBanner';
+import { MarketplaceServiceIcon } from '@/features/services/components/MarketplaceServiceIcon';
 import { useTabScreenBottomPad } from '@/utils/safeBottom';
+import { toDisplayDate } from '@/utils/date';
 import type { ServiceOffering } from './catalogTypes';
 import { parseOfferingMeta } from './catalogTypes';
 import { telHref } from './careManagerHours';
 import { MEMBERSHIP_SERVICE_AREA_LINE } from './membershipServicePageVariant';
 import { membershipPurchaseHref } from './planCatalog';
 import { SERVICE_HERO_IMAGES } from './serviceHeroes';
+import {
+  filterRequestsBySlug,
+  liveRequestToneMeta,
+  toLiveRequestViews,
+} from './liveServiceRequests';
+import { useHasActiveMembership } from './useHasActiveMembership';
 import { useMembershipServicePageVariant } from './useMembershipServicePageVariant';
 import { useMembershipSubmit } from './useMembershipSubmit';
 import { useServiceOfferings } from './useCatalog';
@@ -37,7 +46,6 @@ const LEAD =
   "Guidance on online scams & awareness by trained companion. Companion's guidance about fraud before investing and OTP sharing. Full cooperation after fraud to reduce losses and complaints registering/ follow up. Helps to keep your hard-earned money safe.";
 const DEFAULT_ABOUT =
   'We help you stay safe in the digital world. Our team provides guidance and support for common cyber security issues such as digital arrest scams, banking fraud, fake calls and messages, and more. You can call our support team or raise a request, and we will assist you with the next steps.';
-const LIVE_SUBTITLE = 'Stay aware. Stay safe. We are with you.';
 const CATEGORY_HINT = 'Choose the issue you are facing so we can guide and support you.';
 
 const GATE_FEATURES: { icon: IconName; title: string; body: string }[] = [
@@ -47,12 +55,127 @@ const GATE_FEATURES: { icon: IconName; title: string; body: string }[] = [
   { icon: 'document-text-outline', title: 'Support After Fraud', body: 'Help with complaint registration and follow-up.' },
 ];
 
+const FALLBACK_CATEGORIES: ServiceOffering[] = [
+  {
+    id: 'fallback-bank',
+    serviceSlug: SLUG,
+    title: 'Bank Account Related',
+    description: 'Suspicious transactions, UPI, card fraud, etc.',
+    badge: 'Security',
+    priceLabel: '',
+    image: null,
+    metaJson: null,
+    sortOrder: 0,
+    isActive: true,
+  },
+  {
+    id: 'fallback-mobile-app',
+    serviceSlug: SLUG,
+    title: 'Mobile Application Related',
+    description: 'Issues with banking apps, UPI apps, other apps.',
+    badge: 'Security',
+    priceLabel: '',
+    image: null,
+    metaJson: null,
+    sortOrder: 1,
+    isActive: true,
+  },
+  {
+    id: 'fallback-investment',
+    serviceSlug: SLUG,
+    title: 'Investment Related',
+    description: 'Fraudulent schemes, fake investment offers.',
+    badge: 'Security',
+    priceLabel: '',
+    image: null,
+    metaJson: null,
+    sortOrder: 2,
+    isActive: true,
+  },
+  {
+    id: 'fallback-digital-arrest',
+    serviceSlug: SLUG,
+    title: 'Digital Arrest Related',
+    description: 'Guidance on digital arrest scams.',
+    badge: 'Security',
+    priceLabel: '',
+    image: null,
+    metaJson: null,
+    sortOrder: 3,
+    isActive: true,
+  },
+  {
+    id: 'fallback-phone-hacked',
+    serviceSlug: SLUG,
+    title: 'Mobile Phone Hacked',
+    description: 'Lost access, data theft, unauthorised use.',
+    badge: 'Security',
+    priceLabel: '',
+    image: null,
+    metaJson: null,
+    sortOrder: 4,
+    isActive: true,
+  },
+  {
+    id: 'fallback-other',
+    serviceSlug: SLUG,
+    title: 'Any Other Assistance',
+    description: 'Other cyber security concerns.',
+    badge: 'Security',
+    priceLabel: '',
+    image: null,
+    metaJson: null,
+    sortOrder: 5,
+    isActive: true,
+  },
+];
+
+const FALLBACK_AWARENESS: ServiceOffering[] = [
+  {
+    id: 'fallback-video-arrest',
+    serviceSlug: SLUG,
+    title: 'Digital Arrest Scam',
+    description: 'How scammers impersonate police & cyber cells',
+    badge: 'YouTube Video',
+    priceLabel: '',
+    image: null,
+    metaJson: '{"kind":"video","duration":"5:28","url":"https://www.youtube.com/results?search_query=digital+arrest+scam"}',
+    sortOrder: 10,
+    isActive: true,
+  },
+  {
+    id: 'fallback-video-invest',
+    serviceSlug: SLUG,
+    title: 'Fake Investment Apps',
+    description: 'Spot fraudulent trading and investment apps',
+    badge: 'YouTube Video',
+    priceLabel: '',
+    image: null,
+    metaJson: '{"kind":"video","duration":"4:45","url":"https://www.youtube.com/results?search_query=fake+investment+app+scam"}',
+    sortOrder: 11,
+    isActive: true,
+  },
+  {
+    id: 'fallback-video-otp',
+    serviceSlug: SLUG,
+    title: 'OTP Sharing Fraud',
+    description: 'Never share OTP — stay safe from phishing',
+    badge: 'YouTube Video',
+    priceLabel: '',
+    image: null,
+    metaJson: '{"kind":"video","duration":"3:52","url":"https://www.youtube.com/results?search_query=otp+sharing+fraud+scam"}',
+    sortOrder: 12,
+    isActive: true,
+  },
+];
+
 const CATEGORY_LOOKS: { match: RegExp; icon: IconName; color: string; soft: string }[] = [
-  { match: /digital\s*arrest/i, icon: 'warning-outline', color: familyHome.red, soft: familyHome.redSoft },
-  { match: /bank|payment|upi/i, icon: 'card-outline', color: familyHome.blue, soft: familyHome.blueSoft },
-  { match: /whatsapp|social/i, icon: 'chatbubble-outline', color: familyHome.green, soft: familyHome.greenSoft },
-  { match: /fake\s*call|message|link|phish/i, icon: 'call-outline', color: familyHome.orange, soft: familyHome.orangeSoft },
-  { match: /identity|hack|account/i, icon: 'person-outline', color: familyHome.purple, soft: familyHome.purpleSoft },
+  { match: /bank\s*account|banking|payment|upi|card\s*fraud/i, icon: 'landmark', color: familyHome.red, soft: familyHome.redSoft },
+  { match: /mobile\s*application|app\s*related|banking\s*apps/i, icon: 'phone-portrait-outline', color: familyHome.blue, soft: familyHome.blueSoft },
+  { match: /investment/i, icon: 'banknote', color: familyHome.green, soft: familyHome.greenSoft },
+  { match: /digital\s*arrest/i, icon: 'warning-outline', color: familyHome.orange, soft: familyHome.orangeSoft },
+  { match: /phone\s*hacked|hack|identity/i, icon: 'call-outline', color: familyHome.purple, soft: familyHome.purpleSoft },
+  { match: /other|any\s*other/i, icon: 'chatbubble-outline', color: '#E91E8C', soft: '#FDF0F7' },
 ];
 
 function lookForCategory(title: string) {
@@ -75,6 +198,19 @@ function isRequestCategory(item: ServiceOffering) {
   return !isAwarenessOffering(item);
 }
 
+function membershipValidLabel(endDate: string | null | undefined): string | null {
+  if (!endDate) {
+    return null;
+  }
+  const parsed = new Date(endDate);
+  if (Number.isNaN(parsed.getTime())) {
+    const display = toDisplayDate(endDate);
+    return display ? `Membership valid upto ${display}` : null;
+  }
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return `Membership valid upto ${parsed.getDate()} ${months[parsed.getMonth()]} ${parsed.getFullYear()}`;
+}
+
 export function CyberSecurityGuidanceScreen() {
   const insets = useSafeAreaInsets();
   const bottomPad = useTabScreenBottomPad(spacing.xxl);
@@ -82,12 +218,7 @@ export function CyberSecurityGuidanceScreen() {
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
-      <AgeWellHeader
-        title={variant === 'serviceable_with_membership' ? 'Cyber Security Assistance' : 'Cyber Security Guidance'}
-        showBack
-        showProfile={false}
-        showBell
-      />
+      <ServicePageHeader />
 
       {variant === 'serviceable_with_membership' ? (
         <MemberLiveBody />
@@ -108,11 +239,14 @@ export function CyberSecurityGuidanceScreen() {
 function TitleBlock() {
   return (
     <View style={styles.titleRow}>
-      <View style={styles.titleIcon}>
-        <Icon name="shield-checkmark-outline" size={22} color={familyHome.white} />
-      </View>
+      <MarketplaceServiceIcon
+        serviceId={SLUG}
+        fallbackIcon="shield-checkmark-outline"
+        fallbackColor={familyHome.purple}
+        size={48}
+      />
       <View style={styles.flex}>
-        <Text style={styles.title}>CYBER SECURITY GUIDANCE</Text>
+        <Text style={styles.title}>Cyber Security Assistance</Text>
         <Text style={styles.lead}>{LEAD}</Text>
       </View>
     </View>
@@ -163,20 +297,7 @@ function FeaturesGrid() {
 
 function QuestionsRow() {
   return (
-    <Pressable
-      onPress={() => router.push('/account/help' as Href)}
-      style={({ pressed }) => [styles.helpBannerGreen, pressed ? styles.pressed : null]}
-      accessibilityRole="button"
-    >
-      <View style={styles.helpIconGreen}>
-        <Icon name="help-circle-outline" size={16} color={familyHome.white} />
-      </View>
-      <View style={styles.flex}>
-        <Text style={styles.helpTitleGreen}>Have Questions?</Text>
-        <Text style={styles.helpBodyGreen}>Our team is here to help. Reach out to us anytime.</Text>
-      </View>
-      <Icon name="chevron-forward" size={16} color={familyHome.greenDark} />
-    </Pressable>
+    <ServiceHelpBanner tone="green" />
   );
 }
 
@@ -280,11 +401,37 @@ function NoMembershipBody() {
 function MemberLiveBody() {
   const services = useServices();
   const catalog = useServiceOfferings(SLUG);
+  const requestsQuery = useServiceRequests();
+  const membership = useHasActiveMembership();
   const { submitting, submit } = useMembershipSubmit(SLUG);
+  const validTill = membershipValidLabel(membership.query.data?.endDate);
+  const [selectedId, setSelectedId] = useState('');
 
-  const offerings = catalog.data ?? [];
-  const categories = useMemo(() => offerings.filter(isRequestCategory), [offerings]);
-  const awareness = useMemo(() => offerings.filter(isAwarenessOffering), [offerings]);
+  const categories = useMemo(() => {
+    const fromApi = (catalog.data ?? []).filter(isRequestCategory);
+    const byTitle = new Map<string, ServiceOffering>();
+    for (const item of fromApi) {
+      const key = item.title.trim().toLowerCase();
+      if (!byTitle.has(key)) byTitle.set(key, item);
+    }
+    const looksLikeDesign = fromApi.some((item) =>
+      /bank account|mobile application|digital arrest related|investment related/i.test(item.title),
+    );
+    if (looksLikeDesign) {
+      return FALLBACK_CATEGORIES.map((fallback) => byTitle.get(fallback.title.toLowerCase()) ?? fallback);
+    }
+    return FALLBACK_CATEGORIES;
+  }, [catalog.data]);
+
+  const awareness = useMemo(() => {
+    const fromApi = (catalog.data ?? []).filter(isAwarenessOffering);
+    if (fromApi.length > 0) {
+      return fromApi.slice().sort((a, b) => a.sortOrder - b.sortOrder);
+    }
+    return FALLBACK_AWARENESS;
+  }, [catalog.data]);
+
+  const selected = categories.find((item) => item.id === selectedId) ?? null;
 
   const service = useMemo(
     () => (services.data ?? []).find((item) => item.slug === SLUG) ?? null,
@@ -294,6 +441,16 @@ function MemberLiveBody() {
   const hours = service?.callHoursText?.trim() || DEFAULT_HOURS;
   const about = service?.description?.trim() || DEFAULT_ABOUT;
   const phone = service?.supportPhone?.trim() || null;
+
+  const recent = useMemo(() => {
+    const mine = filterRequestsBySlug(requestsQuery.data?.items ?? [], SLUG);
+    return toLiveRequestViews(mine, { fallbackTitle: 'Cyber security', limit: 3 });
+  }, [requestsQuery.data?.items]);
+
+  const allCount = useMemo(
+    () => filterRequestsBySlug(requestsQuery.data?.items ?? [], SLUG).length,
+    [requestsQuery.data?.items],
+  );
 
   const onCall = () => {
     if (phone) {
@@ -306,9 +463,17 @@ function MemberLiveBody() {
   };
 
   const onSelectCategory = (item: ServiceOffering) => {
+    setSelectedId(item.id);
+  };
+
+  const onRaiseRequest = () => {
+    if (!selected) {
+      Alert.alert('Select a category', 'Please choose a category before raising a request.');
+      return;
+    }
     void submit(
-      `${item.title}. Cyber security guidance requested. ${item.description || ''}`.trim(),
-      `${item.title} request sent`,
+      `${selected.title}. Cyber security guidance requested. ${selected.description || ''}`.trim(),
+      `${selected.title} request sent`,
     );
   };
 
@@ -322,6 +487,14 @@ function MemberLiveBody() {
     });
   };
 
+  const onViewAllRequests = () => {
+    const mine = filterRequestsBySlug(requestsQuery.data?.items ?? [], SLUG);
+    const lines = toLiveRequestViews(mine, { fallbackTitle: 'Cyber security', limit: 20 })
+      .map((item) => `• ${item.title} — ${item.statusLabel} (${item.dateLabel})`)
+      .join('\n');
+    Alert.alert('Recent Activity', lines || 'No activity yet.');
+  };
+
   const onViewAllAwareness = () => {
     const lines = awareness
       .map((item) => {
@@ -330,51 +503,66 @@ function MemberLiveBody() {
         return `• ${item.title} (${kind}${meta.duration ? ` · ${meta.duration}` : ''})`;
       })
       .join('\n');
-    Alert.alert('Latest Cyber Crime Awareness', lines || 'No awareness items yet.');
+    Alert.alert('Cyber Fraud Stories & Awareness', lines || 'No awareness items yet.');
   };
 
   return (
     <ScrollView contentContainerStyle={styles.liveContent} showsVerticalScrollIndicator={false}>
-      <View style={styles.liveTitleRow}>
-        <View style={styles.liveTitleIcon}>
-          <Icon name="shield-checkmark-outline" size={22} color={familyHome.white} />
+      <View style={styles.liveTitleBlock}>
+        <View style={styles.liveTitleRow}>
+          <MarketplaceServiceIcon
+            serviceId={SLUG}
+            fallbackIcon="shield-checkmark-outline"
+            fallbackColor={familyHome.purple}
+            size={48}
+          />
+          <Text style={styles.liveTitle}>Cyber Security Assistance</Text>
         </View>
-        <View style={styles.flex}>
-          <Text style={styles.title}>Cyber Security Assistance</Text>
-          <Text style={styles.subtitle}>{LIVE_SUBTITLE}</Text>
-        </View>
+        {validTill ? (
+          <View style={styles.memberBadge}>
+            <Icon name="checkmark-circle-outline" size={14} color={familyHome.green} />
+            <Text style={styles.memberBadgeTitle}>{validTill}</Text>
+          </View>
+        ) : null}
       </View>
 
       <View style={styles.callCard}>
-        <View style={styles.callTop}>
-          <View style={styles.callRings}>
-            <View style={styles.ringOuter}>
-              <View style={styles.ringMid}>
-                <View style={styles.callIconWell}>
-                  <Icon name="call-outline" size={26} color={familyHome.white} />
-                </View>
+        <View style={styles.callRings}>
+          <View style={styles.ringOuter}>
+            <View style={styles.ringMid}>
+              <View style={styles.callIconWell}>
+                <Icon name="call-outline" size={16} color={familyHome.white} />
               </View>
             </View>
           </View>
-          <View style={styles.flex}>
-            <Text style={styles.callEyebrow}>Need immediate help?</Text>
-            <Text style={styles.callTitle}>Call Our Support</Text>
-            <Text style={styles.callBody}>
-              Talk to our team for guidance on any cyber security concern.
-            </Text>
-          </View>
         </View>
-        <Pressable
-          style={[styles.callCta, submitting ? styles.disabled : null]}
-          onPress={onCall}
-          disabled={submitting}
-          accessibilityRole="button"
-          accessibilityLabel="Call Support"
-        >
-          <Icon name="call-outline" size={18} color={familyHome.white} />
-          <Text style={styles.callCtaText}>{submitting ? 'Connecting…' : 'Call Support'}</Text>
-        </Pressable>
-        <Text style={styles.callHours}>Call timing: {hours}</Text>
+        <View style={styles.callCopy}>
+          <Text style={styles.callEyebrow} numberOfLines={1}>
+            Need immediate help?
+          </Text>
+          <Text style={styles.callTitle} numberOfLines={1}>
+            Call Our Support
+          </Text>
+          <Text style={styles.callBody} numberOfLines={2}>
+            Talk to our team for guidance on any cyber security concern.
+          </Text>
+        </View>
+        <View style={styles.callActions}>
+          <Pressable
+            style={[styles.callCta, submitting ? styles.disabled : null]}
+            onPress={onCall}
+            disabled={submitting}
+            accessibilityRole="button"
+            accessibilityLabel="Call Support"
+          >
+            <Icon name="call-outline" size={13} color={familyHome.white} />
+            <Text style={styles.callCtaText}>{submitting ? '…' : 'Call Support'}</Text>
+          </Pressable>
+          <Text style={styles.callHours}>
+            Call timing:{'\n'}
+            {hours}
+          </Text>
+        </View>
       </View>
 
       <View style={styles.sectionBlock}>
@@ -382,46 +570,119 @@ function MemberLiveBody() {
         <Text style={styles.sectionHint}>{CATEGORY_HINT}</Text>
       </View>
 
-      {catalog.isPending ? <Text style={styles.empty}>Loading categories…</Text> : null}
-      {catalog.isError ? (
+      {catalog.isPending && !catalog.data?.length ? (
+        <Text style={styles.empty}>Loading categories…</Text>
+      ) : null}
+      {catalog.isError && !catalog.data?.length ? (
         <Pressable onPress={() => void catalog.refetch()} accessibilityRole="button">
           <Text style={styles.viewAll}>Unable to load · Tap to retry</Text>
         </Pressable>
       ) : null}
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.servicesRow}>
+      <View style={styles.categoryGrid}>
         {categories.map((item) => {
           const look = lookForCategory(item.title);
+          const selectedCard = item.id === selectedId;
           return (
             <Pressable
               key={item.id}
               onPress={() => onSelectCategory(item)}
               disabled={submitting}
               style={[
-                styles.serviceChip,
-                { backgroundColor: look.soft, borderColor: look.color },
+                styles.categoryCard,
+                { backgroundColor: look.soft },
+                selectedCard ? styles.categoryCardSelected : null,
+                selectedCard ? { borderColor: look.color } : null,
                 submitting ? styles.disabled : null,
               ]}
               accessibilityRole="button"
+              accessibilityState={{ selected: selectedCard }}
               accessibilityLabel={item.title}
             >
-              <Icon name={look.icon} size={22} color={look.color} />
-              <Text style={[styles.serviceChipLabel, { color: look.color }]} numberOfLines={3}>
-                {item.title}
-              </Text>
+              <View style={styles.categoryIcon}>
+                <Icon name={look.icon} size={14} color={look.color} />
+              </View>
+              <View style={styles.categoryCopy}>
+                <Text style={[styles.categoryTitle, { color: look.color }]} numberOfLines={2}>
+                  {item.title}
+                </Text>
+                {item.description ? (
+                  <Text style={styles.categoryBody} numberOfLines={2}>
+                    {item.description}
+                  </Text>
+                ) : null}
+              </View>
+              <Icon name="chevron-forward" size={12} color={familyHome.muted} />
             </Pressable>
           );
         })}
-      </ScrollView>
+      </View>
+
+      <Pressable
+        onPress={onRaiseRequest}
+        disabled={submitting}
+        style={({ pressed }) => [
+          styles.raiseCta,
+          submitting ? styles.disabled : null,
+          pressed ? styles.pressed : null,
+        ]}
+        accessibilityRole="button"
+        accessibilityLabel="Raise a Support Request"
+      >
+        <View style={styles.raisePlus}>
+          <Icon name="plus-circle" size={20} color={familyHome.green} />
+        </View>
+        <Text style={styles.raiseCtaText}>
+          {submitting ? 'Sending…' : 'Raise a Support Request'}
+        </Text>
+        <Icon name="chevron-forward" size={18} color={familyHome.white} />
+      </Pressable>
+
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Recent Activity</Text>
+        {allCount > 0 ? (
+          <Pressable onPress={onViewAllRequests} accessibilityRole="button">
+            <Text style={styles.viewAll}>View All &gt;</Text>
+          </Pressable>
+        ) : null}
+      </View>
+
+      {requestsQuery.isPending ? <Text style={styles.empty}>Loading activity…</Text> : null}
+      {!requestsQuery.isPending && recent.length === 0 ? (
+        <Text style={styles.empty}>No activity yet. Call support or select a category above.</Text>
+      ) : null}
+
+      {recent.length > 0 ? (
+        <View style={styles.activityCard}>
+          {recent.map((item, index) => {
+            const look = lookForCategory(item.title);
+            const tone = liveRequestToneMeta(item.tone);
+            return (
+              <View
+                key={item.id}
+                style={[styles.requestRow, index < recent.length - 1 ? styles.requestDivider : null]}
+              >
+                <View style={[styles.requestIcon, { backgroundColor: look.soft }]}>
+                  <Icon name={look.icon} size={14} color={look.color} />
+                </View>
+                <View style={styles.flex}>
+                  <Text style={styles.requestDate}>{item.dateLabel}</Text>
+                  <Text style={styles.requestTitle}>{item.title}</Text>
+                  <Text style={styles.requestDetail}>{item.detail}</Text>
+                </View>
+                <View style={[styles.statusPill, { backgroundColor: tone.soft }]}>
+                  <Text style={[styles.statusPillText, { color: tone.color }]}>{item.statusLabel}</Text>
+                </View>
+                <Icon name="chevron-forward" size={14} color={familyHome.muted} />
+              </View>
+            );
+          })}
+        </View>
+      ) : null}
 
       <View style={styles.awarenessSection}>
-        <View style={styles.awarenessSectionHead}>
-          <View style={styles.flex}>
-            <Text style={styles.sectionTitle}>Latest Cyber Crime Awareness</Text>
-            <Text style={styles.sectionHint}>
-              Watch videos and read useful material to stay informed and protected.
-            </Text>
-          </View>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Cyber Fraud Stories & Awareness</Text>
           {awareness.length > 0 ? (
             <Pressable onPress={onViewAllAwareness} accessibilityRole="button">
               <Text style={styles.viewAll}>View All &gt;</Text>
@@ -429,16 +690,15 @@ function MemberLiveBody() {
           ) : null}
         </View>
 
-        {catalog.isPending ? <Text style={styles.empty}>Loading awareness…</Text> : null}
-
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.awarenessRow}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.awarenessRow}
+        >
           {awareness.map((item) => {
             const meta = parseOfferingMeta(item.metaJson);
             const kind = meta.kind?.toLowerCase();
             const isPdf = kind === 'pdf';
-            const overlay = item.description?.trim() || '';
-            const showOverlay = Boolean(overlay) && !isPdf && overlay === overlay.toUpperCase();
-
             return (
               <Pressable
                 key={item.id}
@@ -462,15 +722,8 @@ function MemberLiveBody() {
                         resizeMode="cover"
                       />
                     ) : (
-                      <View style={styles.videoThumbFallback}>
-                        <Icon name="shield-checkmark-outline" size={28} color="rgba(255,255,255,0.35)" />
-                      </View>
+                      <Image source={heroImage} style={styles.videoThumbImage} resizeMode="cover" />
                     )}
-                    {showOverlay ? (
-                      <Text style={styles.videoOverlayLabel} numberOfLines={2}>
-                        {overlay}
-                      </Text>
-                    ) : null}
                     <View style={styles.playBtn}>
                       <Icon name="play" size={16} color={familyHome.white} />
                     </View>
@@ -481,44 +734,30 @@ function MemberLiveBody() {
                     ) : null}
                   </View>
                 )}
-
-                <Text style={styles.awarenessTitle} numberOfLines={3}>
-                  {item.title}
-                </Text>
-
-                {isPdf ? (
-                  <View style={styles.pdfCta}>
-                    <Icon name="document-outline" size={14} color={familyHome.blue} />
-                    <Text style={styles.pdfCtaText}>Download PDF</Text>
-                  </View>
-                ) : (
-                  <View style={styles.youtubeRow}>
-                    <View style={styles.youtubeMark}>
-                      <Icon name="play" size={10} color={familyHome.white} />
-                    </View>
-                    <Text style={styles.youtubeLabel}>{item.badge || 'YouTube Video'}</Text>
-                  </View>
-                )}
+                <View style={styles.awarenessCopy}>
+                  <Text style={styles.awarenessTitle} numberOfLines={2}>
+                    {item.title}
+                  </Text>
+                  {item.description ? (
+                    <Text style={styles.awarenessBody} numberOfLines={2}>
+                      {item.description}
+                    </Text>
+                  ) : null}
+                </View>
               </Pressable>
             );
           })}
         </ScrollView>
-
-        {!catalog.isPending && awareness.length === 0 ? (
-          <Text style={styles.empty}>Awareness videos and PDFs will appear here.</Text>
-        ) : null}
       </View>
 
       <View style={styles.aboutCard}>
-        <View style={styles.aboutRow}>
+        <View style={styles.aboutHead}>
           <View style={styles.aboutIcon}>
-            <Icon name="help-circle-outline" size={18} color={familyHome.blue} />
+            <Icon name="help-circle-outline" size={14} color={familyHome.blue} />
           </View>
-          <View style={styles.flex}>
-            <Text style={styles.aboutTitle}>About This Service</Text>
-            <Text style={styles.aboutText}>{about}</Text>
-          </View>
+          <Text style={styles.aboutTitle}>About This Service</Text>
         </View>
+        <Text style={styles.aboutText}>{about}</Text>
       </View>
     </ScrollView>
   );
@@ -547,7 +786,7 @@ const styles = StyleSheet.create({
   subtitle: { ...typography.body, color: familyHome.muted },
   heroFull: {
     height: 188,
-    borderRadius: 18,
+    borderRadius: 16,
     overflow: 'hidden',
     backgroundColor: familyHome.border,
     position: 'relative',
@@ -742,225 +981,288 @@ const styles = StyleSheet.create({
   liveContent: {
     paddingHorizontal: spacing.xl,
     paddingBottom: spacing.xxxl,
-    gap: spacing.lg,
+    gap: spacing.md,
     paddingTop: spacing.sm,
   },
+  liveTitleBlock: { gap: spacing.sm },
   liveTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  liveTitleIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: familyHome.purple,
+  liveTitle: { ...typography.title, color: familyHome.text, flex: 1, fontSize: 22 },
+  memberBadge: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: familyHome.greenSoft,
+    borderRadius: 20,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 6,
   },
+  memberBadgeTitle: { ...typography.captionStrong, color: familyHome.greenDark },
   callCard: {
-    borderRadius: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    borderRadius: 14,
     backgroundColor: familyHome.greenSoft,
     borderWidth: 1,
     borderColor: '#D7ECD8',
-    padding: spacing.xl,
-    gap: spacing.md,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    minHeight: 72,
   },
-  callTop: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  callRings: { width: 88, height: 88, alignItems: 'center', justifyContent: 'center' },
+  callRings: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   ringOuter: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: 'rgba(61,139,64,0.12)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   ringMid: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: 'rgba(61,139,64,0.18)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   callIconWell: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: familyHome.green,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  callEyebrow: { ...typography.captionStrong, color: familyHome.greenDark },
-  callTitle: { ...typography.subtitle, color: familyHome.text, marginTop: 2 },
-  callBody: { ...typography.caption, color: familyHome.muted, lineHeight: 18, marginTop: 4 },
+  callCopy: { flex: 1, minWidth: 0, gap: 1, justifyContent: 'center' },
+  callEyebrow: {
+    ...typography.captionStrong,
+    color: familyHome.greenDark,
+    fontSize: 11,
+    lineHeight: 14,
+  },
+  callTitle: {
+    ...typography.bodyStrong,
+    color: familyHome.text,
+    fontSize: 15,
+    lineHeight: 18,
+  },
+  callBody: {
+    ...typography.caption,
+    color: familyHome.muted,
+    lineHeight: 14,
+    fontSize: 11,
+  },
+  callActions: { alignItems: 'center', gap: 3, flexShrink: 0, width: 88 },
   callCta: {
-    minHeight: 52,
-    borderRadius: 14,
+    minHeight: 36,
+    borderRadius: 10,
     backgroundColor: familyHome.green,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.sm,
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    alignSelf: 'stretch',
   },
-  callCtaText: { ...typography.bodyStrong, color: familyHome.white },
-  callHours: { ...typography.caption, color: familyHome.muted, textAlign: 'center' },
+  callCtaText: {
+    ...typography.captionStrong,
+    color: familyHome.white,
+    fontSize: 10,
+    lineHeight: 12,
+    textAlign: 'center',
+  },
+  callHours: {
+    ...typography.caption,
+    color: familyHome.muted,
+    fontSize: 8,
+    textAlign: 'center',
+    lineHeight: 10,
+  },
   sectionBlock: { gap: 4 },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: spacing.sm,
   },
-  sectionTitle: { ...typography.subtitle, color: familyHome.text },
-  sectionHint: { ...typography.caption, color: familyHome.muted, lineHeight: 18, marginTop: 4 },
+  sectionTitle: { ...typography.subtitle, color: familyHome.text, fontSize: 16, flexShrink: 1 },
+  sectionHint: { ...typography.caption, color: familyHome.muted, lineHeight: 16 },
   viewAll: { ...typography.captionStrong, color: familyHome.blue },
   empty: { ...typography.caption, color: familyHome.muted },
-  servicesRow: { gap: spacing.sm, paddingVertical: 2 },
-  serviceChip: {
-    width: 108,
-    minHeight: 104,
-    borderRadius: 16,
-    borderWidth: 2,
-    padding: spacing.sm,
+  categoryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  categoryCard: {
+    width: '48%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+    minHeight: 56,
+  },
+  categoryCardSelected: {
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 1,
+  },
+  categoryIcon: {
+    width: 26,
+    height: 26,
+    borderRadius: 8,
+    backgroundColor: familyHome.white,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
   },
-  serviceChipLabel: {
-    ...typography.captionStrong,
-    textAlign: 'center',
+  categoryCopy: { flex: 1, minWidth: 0, gap: 1 },
+  categoryTitle: { ...typography.captionStrong, fontSize: 11, lineHeight: 14 },
+  categoryBody: { ...typography.caption, color: familyHome.muted, fontSize: 9, lineHeight: 12 },
+  raiseCta: {
+    minHeight: 48,
+    borderRadius: 14,
+    backgroundColor: familyHome.green,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.lg,
+  },
+  raisePlus: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: familyHome.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  raiseCtaText: { ...typography.bodyStrong, color: familyHome.white, flex: 1, fontSize: 15 },
+  activityCard: {
+    borderWidth: 1,
+    borderColor: familyHome.border,
+    borderRadius: 14,
+    backgroundColor: familyHome.white,
+    overflow: 'hidden',
+  },
+  requestRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+  },
+  requestDivider: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: familyHome.border,
+  },
+  requestIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  requestDate: { ...typography.caption, color: familyHome.muted, fontSize: 11, lineHeight: 14 },
+  requestTitle: {
+    ...typography.bodyStrong,
+    color: familyHome.text,
+    fontSize: 13,
+    lineHeight: 16,
+    marginTop: 1,
+  },
+  requestDetail: {
+    ...typography.caption,
+    color: familyHome.muted,
     fontSize: 11,
     lineHeight: 14,
+    marginTop: 1,
   },
-  awarenessRow: { gap: spacing.md, paddingVertical: 2 },
-  awarenessSection: {
-    borderRadius: 16,
+  statusPill: {
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  statusPillText: { ...typography.captionStrong, fontSize: 10 },
+  awarenessSection: { gap: spacing.sm },
+  awarenessRow: { gap: spacing.sm, paddingVertical: 2 },
+  awarenessCard: {
+    width: 168,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: familyHome.border,
     backgroundColor: familyHome.white,
-    padding: spacing.lg,
-    gap: spacing.md,
-  },
-  awarenessSectionHead: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.md,
-  },
-  awarenessCard: {
-    width: 176,
-    borderRadius: 14,
-    backgroundColor: familyHome.white,
-    gap: spacing.sm,
+    overflow: 'hidden',
   },
   videoThumb: {
-    height: 108,
-    borderRadius: 12,
-    overflow: 'hidden',
-    backgroundColor: '#1A2332',
-    position: 'relative',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  videoThumbImage: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
     width: '100%',
-    height: '100%',
+    height: 96,
+    backgroundColor: '#1B2A4A',
   },
-  videoThumbFallback: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: '#1A2332',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  videoOverlayLabel: {
-    position: 'absolute',
-    left: 10,
-    right: 10,
-    top: 12,
-    ...typography.captionStrong,
-    color: familyHome.white,
-    fontSize: 12,
-    lineHeight: 16,
-    letterSpacing: 0.3,
-    textAlign: 'center',
-    textShadowColor: 'rgba(0,0,0,0.55)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
-  },
+  videoThumbImage: { width: '100%', height: '100%' },
   playBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(0,0,0,0.55)',
-    borderWidth: 2,
-    borderColor: familyHome.white,
+    ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingLeft: 2,
+    backgroundColor: 'rgba(0,0,0,0.22)',
   },
   durationBadge: {
     position: 'absolute',
-    right: 8,
-    bottom: 8,
-    backgroundColor: 'rgba(0,0,0,0.75)',
+    right: 6,
+    bottom: 6,
+    backgroundColor: 'rgba(0,0,0,0.55)',
     borderRadius: 4,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
   },
-  durationBadgeText: { ...typography.captionStrong, color: familyHome.white, fontSize: 10 },
+  durationBadgeText: { ...typography.caption, color: familyHome.white, fontSize: 10 },
   pdfThumb: {
-    height: 108,
-    borderRadius: 12,
-    backgroundColor: '#E8EEF5',
+    width: '100%',
+    height: 96,
+    backgroundColor: familyHome.blueSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
   pdfBadge: {
-    width: 52,
-    height: 64,
+    backgroundColor: familyHome.blue,
     borderRadius: 6,
-    backgroundColor: familyHome.red,
-    alignItems: 'center',
-    justifyContent: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
   },
-  pdfBadgeText: { ...typography.captionStrong, color: familyHome.white, fontSize: 12 },
-  awarenessTitle: { ...typography.bodyStrong, color: familyHome.blue, lineHeight: 20, fontSize: 13 },
-  youtubeRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  youtubeMark: {
-    width: 18,
-    height: 14,
-    borderRadius: 3,
-    backgroundColor: familyHome.red,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  youtubeLabel: { ...typography.caption, color: familyHome.muted, fontSize: 11 },
-  pdfCta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginTop: 2,
-  },
-  pdfCtaText: { ...typography.captionStrong, color: familyHome.blue },
+  pdfBadgeText: { ...typography.captionStrong, color: familyHome.white, fontSize: 11 },
+  awarenessCopy: { paddingHorizontal: 10, paddingVertical: 8, gap: 2 },
+  awarenessTitle: { ...typography.bodyStrong, color: familyHome.text, fontSize: 13, lineHeight: 16 },
+  awarenessBody: { ...typography.caption, color: familyHome.muted, fontSize: 11, lineHeight: 14 },
   aboutCard: {
-    borderRadius: 16,
+    borderRadius: 12,
     backgroundColor: familyHome.blueSoft,
-    padding: spacing.lg,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 6,
   },
-  aboutRow: { flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start' },
+  aboutHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   aboutIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     backgroundColor: familyHome.white,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  aboutTitle: { ...typography.subtitle, color: familyHome.text, marginBottom: 4 },
-  aboutText: { ...typography.body, color: familyHome.muted, lineHeight: 22 },
+  aboutTitle: { ...typography.bodyStrong, color: familyHome.text, fontSize: 14 },
+  aboutText: {
+    ...typography.caption,
+    color: familyHome.muted,
+    fontSize: 12,
+    lineHeight: 17,
+  },
 });
+

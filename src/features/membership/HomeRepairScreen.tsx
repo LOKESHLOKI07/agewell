@@ -1,24 +1,26 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Alert,
+  Dimensions,
   Image,
+  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
-import { router, type Href } from 'expo-router';
+import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { KeyboardAwareScrollView } from '@/components/KeyboardAwareScrollView';
 import { LoadingState, PrimaryButton, SecondaryButton } from '@/components';
 import type { IconName } from '@/components/ui';
 import { Icon } from '@/components/ui';
 import { spacing, typography } from '@/constants/theme';
 import { useServiceRequests } from '@/features/home/hooks/queries';
-import { AgeWellHeader } from '@/features/home/components/AgeWellHeader';
+import { ServicePageHeader } from '@/features/home/components/ServicePageHeader';
 import { familyHome } from '@/features/home/components/familyHomeTheme';
+import { ServiceHelpBanner } from '@/features/membership/ServiceHelpBanner';
+import { MarketplaceServiceIcon } from '@/features/services/components/MarketplaceServiceIcon';
 import { useTabScreenBottomPad } from '@/utils/safeBottom';
 import type { ServiceOffering } from './catalogTypes';
 import { MEMBERSHIP_SERVICE_AREA_LINE } from './membershipServicePageVariant';
@@ -36,34 +38,112 @@ import { useServiceOfferings } from './useCatalog';
 const heroImage = SERVICE_HERO_IMAGES['home-repair'];
 
 const SLUG = 'home-repair';
+const VIDEO_URL =
+  'https://www.youtube.com/results?search_query=Easy+Home+Maintenance+Tips+for+Seniors';
+const SERVICE_CARD_GAP = 8;
+const SERVICE_CARD_WIDTH = Math.floor(
+  (Dimensions.get('window').width - spacing.xl * 2 - SERVICE_CARD_GAP * 2) / 3,
+);
 const LEAD =
   'Get assistance with plumbing, electrical, carpentry, AC service & more. Verified professionals handle the work, while our care manager or companion coordinates and supervises the service. Charges apply as per the work required.';
-const LIVE_SUBTITLE = 'A safer, more comfortable home for you.';
-const PROMO_TITLE = 'Small repairs. Big peace of mind.';
-const PROMO_BODY =
-  'Trusted professionals handle the work while your care manager and companion coordinate and track every activity.';
-const CALLBACK_NOTE =
-  'Please Note:\n• Verified professionals ensure quality workmanship\n• Care manager tracks and supervises the service\n• Charges apply as per the work required';
+
+const INFO_BULLETS = [
+  'All work will be coordinated by your care manager.',
+  'Service charges apply, usually lower than market rates.',
+  'Verified and trusted professionals will be assigned.',
+];
 
 const GATE_FEATURES: { icon: IconName; title: string; body: string }[] = [
   { icon: 'water', title: 'Plumbing', body: 'Repairs & installations' },
-  { icon: 'sparkles', title: 'Electrical', body: 'Fixes & installations' },
-  { icon: 'create-outline', title: 'Carpentry', body: 'Repairs & custom work' },
-  { icon: 'cloud-offline-outline', title: 'AC Service', body: 'Maintenance & repairs' },
-  { icon: 'settings-outline', title: 'And More', body: 'Various home maintenance services' },
+  { icon: 'zap', title: 'Electrical', body: 'Fixes & installations' },
+  { icon: 'hammer', title: 'Carpentry', body: 'Repairs & custom work' },
+  { icon: 'snowflake', title: 'AC Service', body: 'Maintenance & repairs' },
+  { icon: 'paint-roller', title: 'Painting', body: 'Interior & touch-ups' },
+  { icon: 'ellipsis-horizontal', title: 'And More', body: 'Various home maintenance services' },
+];
+
+const FALLBACK_OFFERINGS: ServiceOffering[] = [
+  {
+    id: 'fallback-plumbing',
+    serviceSlug: SLUG,
+    title: 'Plumbing',
+    description: 'e.g. leakage, taps, bathroom & kitchen plumbing',
+    badge: 'Repair',
+    priceLabel: '',
+    image: null,
+    metaJson: null,
+    sortOrder: 0,
+    isActive: true,
+  },
+  {
+    id: 'fallback-electrical',
+    serviceSlug: SLUG,
+    title: 'Electrical',
+    description: 'e.g. lights, fans, switches & wiring',
+    badge: 'Repair',
+    priceLabel: '',
+    image: null,
+    metaJson: null,
+    sortOrder: 1,
+    isActive: true,
+  },
+  {
+    id: 'fallback-carpentry',
+    serviceSlug: SLUG,
+    title: 'Carpentry',
+    description: 'e.g. furniture, doors, cabinets & fittings',
+    badge: 'Repair',
+    priceLabel: '',
+    image: null,
+    metaJson: null,
+    sortOrder: 2,
+    isActive: true,
+  },
+  {
+    id: 'fallback-ac',
+    serviceSlug: SLUG,
+    title: 'AC Service',
+    description: 'e.g. cleaning, servicing & cooling repairs',
+    badge: 'Repair',
+    priceLabel: '',
+    image: null,
+    metaJson: null,
+    sortOrder: 3,
+    isActive: true,
+  },
+  {
+    id: 'fallback-painting',
+    serviceSlug: SLUG,
+    title: 'Painting',
+    description: 'e.g. wall painting, touch-ups & finishing',
+    badge: 'Repair',
+    priceLabel: '',
+    image: null,
+    metaJson: null,
+    sortOrder: 4,
+    isActive: true,
+  },
+  {
+    id: 'fallback-other',
+    serviceSlug: SLUG,
+    title: 'Other Maintenance',
+    description: 'e.g. civil work & other home maintenance',
+    badge: 'Repair',
+    priceLabel: '',
+    image: null,
+    metaJson: null,
+    sortOrder: 5,
+    isActive: true,
+  },
 ];
 
 const SERVICE_LOOKS: { match: RegExp; icon: IconName; color: string; soft: string }[] = [
-  { match: /electrical/i, icon: 'sparkles', color: familyHome.orange, soft: familyHome.orangeSoft },
   { match: /plumbing/i, icon: 'water', color: familyHome.blue, soft: familyHome.blueSoft },
-  { match: /carpentry/i, icon: 'create-outline', color: '#B5651D', soft: '#F8EDE3' },
-  {
-    match: /\bac\b|air.?cond/i,
-    icon: 'cloud-offline-outline',
-    color: familyHome.green,
-    soft: familyHome.greenSoft,
-  },
-  { match: /other/i, icon: 'settings-outline', color: familyHome.purple, soft: familyHome.purpleSoft },
+  { match: /electrical/i, icon: 'zap', color: familyHome.orange, soft: familyHome.orangeSoft },
+  { match: /carpentry/i, icon: 'hammer', color: '#B5651D', soft: '#F8EDE3' },
+  { match: /\bac\b|air.?cond/i, icon: 'snowflake', color: familyHome.green, soft: familyHome.greenSoft },
+  { match: /paint/i, icon: 'paint-roller', color: familyHome.purple, soft: familyHome.purpleSoft },
+  { match: /other/i, icon: 'ellipsis-horizontal', color: familyHome.muted, soft: '#F3F4F6' },
 ];
 
 function lookForService(title: string) {
@@ -71,9 +151,9 @@ function lookForService(title: string) {
     if (row.match.test(title)) return row;
   }
   return {
-    icon: 'settings-outline' as IconName,
-    color: familyHome.purple,
-    soft: familyHome.purpleSoft,
+    icon: 'home-outline' as IconName,
+    color: familyHome.blue,
+    soft: familyHome.blueSoft,
   };
 }
 
@@ -84,7 +164,7 @@ export function HomeRepairScreen() {
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
-      <AgeWellHeader title="House Maintenance" showBack showProfile={false} showBell />
+      <ServicePageHeader />
 
       {variant === 'serviceable_with_membership' ? (
         <MemberLiveBody />
@@ -105,11 +185,14 @@ export function HomeRepairScreen() {
 function TitleBlock() {
   return (
     <View style={styles.titleRow}>
-      <View style={styles.titleIcon}>
-        <Icon name="settings-outline" size={22} color={familyHome.greenDark} />
-      </View>
+      <MarketplaceServiceIcon
+        serviceId={SLUG}
+        fallbackIcon="home-outline"
+        fallbackColor={familyHome.blue}
+        size={48}
+      />
       <View style={styles.flex}>
-        <Text style={styles.title}>HOUSE MAINTENANCE</Text>
+        <Text style={styles.title}>House Maintenance</Text>
         <Text style={styles.lead}>{LEAD}</Text>
       </View>
     </View>
@@ -207,20 +290,7 @@ function OutsideAreaBody() {
           <Text style={styles.notifyBtnText}>{submitting ? 'Saving…' : 'Notify Me'}</Text>
         </Pressable>
       </View>
-      <Pressable
-        onPress={() => router.push('/account/help' as Href)}
-        style={({ pressed }) => [styles.helpBannerGreen, pressed ? styles.pressed : null]}
-        accessibilityRole="button"
-      >
-        <View style={styles.helpIconGreen}>
-          <Icon name="help-circle-outline" size={16} color={familyHome.white} />
-        </View>
-        <View style={styles.flex}>
-          <Text style={styles.helpTitleGreen}>Have Questions?</Text>
-          <Text style={styles.helpBodyGreen}>Our team is here to help. Reach out to us anytime.</Text>
-        </View>
-        <Icon name="chevron-forward" size={16} color={familyHome.greenDark} />
-      </Pressable>
+      <ServiceHelpBanner tone="green" />
     </View>
   );
 }
@@ -263,20 +333,7 @@ function NoMembershipBody() {
           onPress={() => router.push(membershipPurchaseHref())}
         />
       </View>
-      <Pressable
-        onPress={() => router.push('/account/help' as Href)}
-        style={({ pressed }) => [styles.helpBanner, pressed ? styles.pressed : null]}
-        accessibilityRole="button"
-      >
-        <View style={styles.contactIcon}>
-          <Icon name="help-circle-outline" size={16} color={familyHome.white} />
-        </View>
-        <View style={styles.flex}>
-          <Text style={styles.helpTitle}>Have Questions?</Text>
-          <Text style={styles.helpBody}>Our team is here to help. Reach out to us anytime.</Text>
-        </View>
-        <Icon name="chevron-forward" size={16} color={familyHome.blue} />
-      </Pressable>
+      <ServiceHelpBanner />
     </View>
   );
 }
@@ -286,16 +343,23 @@ function MemberLiveBody() {
   const requestsQuery = useServiceRequests();
   const { submitting, submit } = useMembershipSubmit(SLUG);
   const [selectedId, setSelectedId] = useState('');
-  const [phone, setPhone] = useState('');
-  const [when, setWhen] = useState('');
-  const [pickingService, setPickingService] = useState(false);
 
-  const offerings = catalog.data ?? [];
-  const selected = offerings.find((item) => item.id === selectedId) ?? offerings[0] ?? null;
+  const offerings = useMemo(() => {
+    const fromApi = catalog.data ?? [];
+    const byTitle = new Map<string, ServiceOffering>();
+    for (const item of fromApi) {
+      const key = item.title.trim().toLowerCase();
+      if (!byTitle.has(key)) byTitle.set(key, item);
+    }
+    const looksLikeDesign = fromApi.some((item) => /painting|other maintenance/i.test(item.title));
+    if (looksLikeDesign) {
+      return FALLBACK_OFFERINGS.map((fallback) => byTitle.get(fallback.title.toLowerCase()) ?? fallback);
+    }
+    // Prefer fallback so Painting + Other Maintenance always show as designed
+    return FALLBACK_OFFERINGS;
+  }, [catalog.data]);
 
-  useEffect(() => {
-    if (!selectedId && offerings[0]) setSelectedId(offerings[0].id);
-  }, [offerings, selectedId]);
+  const selected = offerings.find((item) => item.id === selectedId) ?? null;
 
   const recent = useMemo(() => {
     const mine = filterRequestsBySlug(requestsQuery.data?.items ?? [], SLUG);
@@ -312,208 +376,109 @@ function MemberLiveBody() {
     const lines = toLiveRequestViews(mine, { fallbackTitle: 'Maintenance request', limit: 20 })
       .map((item) => `• ${item.title} — ${item.statusLabel} (${item.dateLabel})`)
       .join('\n');
-    Alert.alert('My Requests', lines || 'No requests yet.');
+    Alert.alert('Activity Log', lines || 'No activity yet.');
   };
 
   const onSelectCategory = (item: ServiceOffering) => {
     setSelectedId(item.id);
-    setPickingService(false);
   };
 
-  const onRequestCallback = () => {
+  const onRaiseRequest = () => {
     if (!selected) {
-      Alert.alert('Select a category', 'Choose a service category first.');
+      Alert.alert('Select a category', 'Please choose a service category before raising a request.');
       return;
     }
     void submit(
-      [
-        `Repair: ${selected.title}.`,
-        phone.trim() ? `Phone: ${phone.trim()}.` : null,
-        when.trim() ? `Preferred: ${when.trim()}.` : null,
-      ]
-        .filter(Boolean)
-        .join(' '),
-      'Call back requested',
-    ).then((ok) => {
-      if (ok) setWhen('');
-    });
+      `Repair: ${selected.title}. ${selected.description || ''}`.trim(),
+      `${selected.title} request sent`,
+    );
   };
 
-  const selectedLook = lookForService(selected?.title ?? '');
-
   return (
-    <KeyboardAwareScrollView contentContainerStyle={styles.liveContent} showsVerticalScrollIndicator={false}>
+    <ScrollView contentContainerStyle={styles.liveContent} showsVerticalScrollIndicator={false}>
       <View style={styles.liveTitleRow}>
-        <View style={styles.liveTitleIcon}>
-          <Icon name="home-outline" size={22} color={familyHome.white} />
-        </View>
-        <View style={styles.flex}>
-          <Text style={styles.liveTitle}>House Maintenance</Text>
-          <Text style={styles.subtitle}>{LIVE_SUBTITLE}</Text>
-        </View>
-        <Pressable
-          onPress={onViewAllRequests}
-          style={styles.viewRequestsBtn}
-          accessibilityRole="button"
-          accessibilityLabel="View My Requests"
-        >
-          <Icon name="document-text-outline" size={14} color={familyHome.green} />
-          <Text style={styles.viewRequestsText}>View My{'\n'}Requests</Text>
-          <Icon name="chevron-forward" size={14} color={familyHome.green} />
-        </Pressable>
+        <MarketplaceServiceIcon
+          serviceId={SLUG}
+          fallbackIcon="home-outline"
+          fallbackColor={familyHome.blue}
+          size={40}
+        />
+        <Text style={styles.liveTitle}>House Maintenance</Text>
       </View>
 
-      <View style={styles.promoBanner}>
-        <View style={styles.promoIcon}>
-          <Icon name="home-outline" size={18} color={familyHome.blue} />
-        </View>
-        <View style={styles.flex}>
-          <Text style={styles.promoTitle}>{PROMO_TITLE}</Text>
-          <Text style={styles.promoBody}>{PROMO_BODY}</Text>
-        </View>
-      </View>
+      <Text style={styles.sectionTitle}>Select a Service Category</Text>
 
-      <View style={styles.sectionBlock}>
-        <Text style={styles.sectionTitle}>Select a Service Category</Text>
-        <Text style={styles.sectionHint}>Choose the type of home maintenance you need.</Text>
-      </View>
-
-      {catalog.isPending ? <Text style={styles.empty}>Loading categories…</Text> : null}
-      {catalog.isError ? (
+      {catalog.isPending && !catalog.data?.length ? (
+        <Text style={styles.empty}>Loading categories…</Text>
+      ) : null}
+      {catalog.isError && !catalog.data?.length ? (
         <Pressable onPress={() => void catalog.refetch()} accessibilityRole="button">
           <Text style={styles.viewAll}>Unable to load · Tap to retry</Text>
         </Pressable>
       ) : null}
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.servicesRow}>
+      <View style={styles.categoryGrid}>
         {offerings.map((item) => {
           const look = lookForService(item.title);
-          const active = item.id === (selectedId || offerings[0]?.id);
+          const selectedCard = item.id === selectedId;
           return (
             <Pressable
               key={item.id}
               onPress={() => onSelectCategory(item)}
+              disabled={submitting}
               style={[
-                styles.serviceChip,
-                { backgroundColor: look.soft, borderColor: active ? look.color : 'transparent' },
+                styles.categoryCard,
+                { backgroundColor: look.soft, width: SERVICE_CARD_WIDTH },
+                selectedCard ? styles.categoryCardSelected : null,
+                selectedCard ? { borderColor: look.color } : null,
+                submitting ? styles.disabled : null,
               ]}
               accessibilityRole="button"
-              accessibilityState={{ selected: active }}
+              accessibilityState={{ selected: selectedCard }}
               accessibilityLabel={item.title}
             >
-              <Icon name={look.icon} size={22} color={look.color} />
-              <Text style={[styles.serviceChipLabel, { color: look.color }]} numberOfLines={2}>
+              <View style={styles.categoryIcon}>
+                <Icon name={look.icon} size={20} color={look.color} />
+              </View>
+              <Text style={[styles.categoryTitle, { color: look.color }]} numberOfLines={2}>
                 {item.title}
               </Text>
-              {item.description ? (
-                <Text style={styles.serviceChipSub} numberOfLines={2}>
-                  {item.description}
-                </Text>
-              ) : null}
             </Pressable>
           );
         })}
-      </ScrollView>
-
-      <View style={styles.sectionBlock}>
-        <Text style={styles.sectionTitle}>Request a Call Back</Text>
-        <Text style={styles.sectionHint}>
-          Our team will call you at your preferred time to coordinate the repair.
-        </Text>
       </View>
 
-      <View style={styles.formCard}>
-        <View style={styles.selectedRow}>
-          <Text style={styles.fieldLabel}>Selected Category</Text>
-          <View style={styles.selectedInner}>
-            <View style={[styles.selectedIcon, { backgroundColor: selectedLook.soft }]}>
-              <Icon name={selectedLook.icon} size={18} color={selectedLook.color} />
-            </View>
-            <Text style={styles.selectedTitle} numberOfLines={2}>
-              {selected?.title ?? 'Choose a category'}
+      <Pressable
+        onPress={onRaiseRequest}
+        disabled={submitting}
+        style={({ pressed }) => [
+          styles.raiseCta,
+          submitting ? styles.disabled : null,
+          pressed ? styles.pressed : null,
+        ]}
+        accessibilityRole="button"
+        accessibilityLabel="Raise a Request"
+      >
+        <Icon name="call-outline" size={16} color={familyHome.white} />
+        <Text style={styles.raiseCtaText}>{submitting ? 'Sending…' : 'Raise a Request'}</Text>
+        <Icon name="chevron-forward" size={16} color={familyHome.white} />
+      </Pressable>
+
+      <View style={styles.infoBox}>
+        <View style={styles.infoIcon}>
+          <Icon name="help-circle-outline" size={14} color={familyHome.blue} />
+        </View>
+        <View style={styles.flex}>
+          {INFO_BULLETS.map((line) => (
+            <Text key={line} style={styles.infoBullet}>
+              • {line}
             </Text>
-            <Pressable
-              onPress={() => setPickingService((v) => !v)}
-              accessibilityRole="button"
-              accessibilityLabel="Change selected category"
-            >
-              <Text style={styles.changeLink}>Change &gt;</Text>
-            </Pressable>
-          </View>
-          {pickingService ? (
-            <View style={styles.pickerList}>
-              {offerings.map((item) => {
-                const look = lookForService(item.title);
-                const active = item.id === selected?.id;
-                return (
-                  <Pressable
-                    key={item.id}
-                    onPress={() => onSelectCategory(item)}
-                    style={[styles.pickerRow, active ? styles.pickerRowActive : null]}
-                    accessibilityRole="button"
-                  >
-                    <Icon name={look.icon} size={16} color={look.color} />
-                    <Text style={styles.pickerLabel}>{item.title}</Text>
-                    {active ? <Icon name="checkmark-circle-outline" size={16} color={familyHome.green} /> : null}
-                  </Pressable>
-                );
-              })}
-            </View>
-          ) : null}
-        </View>
-
-        <View style={styles.fieldsRow}>
-          <View style={styles.fieldHalf}>
-            <Text style={styles.fieldLabel}>Your Phone Number</Text>
-            <View style={styles.inputWrap}>
-              <Icon name="call-outline" size={16} color={familyHome.blue} />
-              <TextInput
-                value={phone}
-                onChangeText={setPhone}
-                placeholder="Enter mobile number"
-                placeholderTextColor={familyHome.muted}
-                style={styles.input}
-                keyboardType="phone-pad"
-                accessibilityLabel="Phone number"
-              />
-            </View>
-          </View>
-          <View style={styles.fieldHalf}>
-            <Text style={styles.fieldLabel}>Preferred Date & Time</Text>
-            <View style={styles.inputWrap}>
-              <Icon name="calendar-outline" size={16} color={familyHome.blue} />
-              <TextInput
-                value={when}
-                onChangeText={setWhen}
-                placeholder="Select date & time"
-                placeholderTextColor={familyHome.muted}
-                style={styles.input}
-                accessibilityLabel="Preferred date and time"
-              />
-              <Icon name="chevron-forward" size={14} color={familyHome.muted} />
-            </View>
-          </View>
-        </View>
-
-        <Pressable
-          style={[styles.callCta, submitting ? styles.disabled : null]}
-          onPress={onRequestCallback}
-          disabled={submitting}
-          accessibilityRole="button"
-          accessibilityLabel="Request Call Back"
-        >
-          <Icon name="call-outline" size={18} color={familyHome.white} />
-          <Text style={styles.callCtaText}>{submitting ? 'Sending…' : 'Request Call Back'}</Text>
-        </Pressable>
-
-        <View style={styles.noteBox}>
-          <Icon name="help-circle-outline" size={16} color={familyHome.blue} />
-          <Text style={styles.noteText}>{CALLBACK_NOTE}</Text>
+          ))}
         </View>
       </View>
 
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Recent Requests</Text>
+        <Text style={styles.sectionTitle}>Activity Log</Text>
         {allCount > 0 ? (
           <Pressable onPress={onViewAllRequests} accessibilityRole="button">
             <Text style={styles.viewAll}>View All &gt;</Text>
@@ -521,39 +486,65 @@ function MemberLiveBody() {
         ) : null}
       </View>
 
-      {requestsQuery.isPending ? <Text style={styles.empty}>Loading requests…</Text> : null}
+      {requestsQuery.isPending ? <Text style={styles.empty}>Loading activity…</Text> : null}
       {!requestsQuery.isPending && recent.length === 0 ? (
-        <Text style={styles.empty}>No requests yet. Request a call back above.</Text>
+        <Text style={styles.empty}>No activity yet. Select a category and raise a request.</Text>
       ) : null}
 
-      <View>
-        {recent.map((item, index) => {
-          const look = lookForService(item.title);
-          const tone = liveRequestToneMeta(item.tone);
-          return (
-            <View
-              key={item.id}
-              style={[styles.requestRow, index < recent.length - 1 ? styles.requestDivider : null]}
-            >
-              <View style={[styles.requestIcon, { backgroundColor: look.soft }]}>
-                <Icon name={look.icon} size={18} color={look.color} />
+      {recent.length > 0 ? (
+        <View style={styles.activityCard}>
+          {recent.map((item, index) => {
+            const look = lookForService(item.title);
+            const tone = liveRequestToneMeta(item.tone);
+            return (
+              <View
+                key={item.id}
+                style={[styles.requestRow, index < recent.length - 1 ? styles.requestDivider : null]}
+              >
+                <View style={[styles.requestIcon, { backgroundColor: look.soft }]}>
+                  <Icon name={look.icon} size={14} color={look.color} />
+                </View>
+                <View style={styles.flex}>
+                  <Text style={styles.requestDate}>{item.dateLabel}</Text>
+                  <Text style={styles.requestTitle}>{item.title}</Text>
+                  <Text style={styles.requestDetail}>{item.detail}</Text>
+                </View>
+                <View style={[styles.statusPill, { backgroundColor: tone.soft }]}>
+                  <Text style={[styles.statusPillText, { color: tone.color }]}>{item.statusLabel}</Text>
+                </View>
+                <Icon name="chevron-forward" size={14} color={familyHome.muted} />
               </View>
-              <View style={styles.flex}>
-                <Text style={styles.requestTitle}>{item.title}</Text>
-                <Text style={styles.requestDate}>{item.dateLabel}</Text>
-                <Text style={styles.requestDetail} numberOfLines={2}>
-                  {item.detail}
-                </Text>
-              </View>
-              <View style={[styles.statusPill, { backgroundColor: tone.soft }]}>
-                <Text style={[styles.statusPillText, { color: tone.color }]}>{item.statusLabel}</Text>
-              </View>
-              <Icon name="chevron-forward" size={18} color={familyHome.muted} />
-            </View>
-          );
-        })}
-      </View>
-    </KeyboardAwareScrollView>
+            );
+          })}
+        </View>
+      ) : null}
+
+      <Text style={styles.sectionTitle}>Learn with Video</Text>
+      <Pressable
+        onPress={() => void Linking.openURL(VIDEO_URL)}
+        accessibilityRole="button"
+        accessibilityLabel="Watch on YouTube: Easy Home Maintenance Tips"
+        style={({ pressed }) => [styles.videoCard, pressed ? styles.pressed : null]}
+      >
+        <View style={styles.videoThumb}>
+          <Image source={heroImage} style={styles.videoThumbImage} resizeMode="cover" />
+          <View style={styles.videoThumbPlay}>
+            <Icon name="play" size={14} color={familyHome.white} />
+          </View>
+          <Text style={styles.videoThumbDuration}>5:28</Text>
+        </View>
+        <View style={styles.videoCopy}>
+          <Text style={styles.videoTitle}>
+            Easy Home Maintenance Tips for a Safer & Comfortable Home
+          </Text>
+          <View style={styles.watchRow}>
+            <Icon name="play" size={11} color={familyHome.red} />
+            <Text style={styles.watchLabel}>YouTube Video</Text>
+          </View>
+        </View>
+        <Icon name="chevron-forward" size={14} color={familyHome.muted} />
+      </Pressable>
+    </ScrollView>
   );
 }
 
@@ -581,7 +572,7 @@ const styles = StyleSheet.create({
   subtitle: { ...typography.body, color: familyHome.muted },
   heroFull: {
     height: 188,
-    borderRadius: 18,
+    borderRadius: 16,
     overflow: 'hidden',
     backgroundColor: familyHome.border,
     position: 'relative',
@@ -761,189 +752,180 @@ const styles = StyleSheet.create({
   liveContent: {
     paddingHorizontal: spacing.xl,
     paddingBottom: spacing.xxxl,
-    gap: spacing.lg,
-    paddingTop: spacing.sm,
+    gap: 10,
+    paddingTop: 4,
   },
-  liveTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  liveTitleIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: familyHome.blue,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  viewRequestsBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    borderWidth: 1,
-    borderColor: familyHome.green,
-    borderRadius: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    maxWidth: 108,
-  },
-  viewRequestsText: {
-    ...typography.captionStrong,
-    color: familyHome.green,
-    fontSize: 10,
-    lineHeight: 13,
-  },
-  promoBanner: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.md,
-    backgroundColor: familyHome.blueSoft,
-    borderRadius: 16,
-    padding: spacing.lg,
-  },
-  promoIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    backgroundColor: familyHome.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  promoTitle: { ...typography.bodyStrong, color: familyHome.blueDark },
-  promoBody: { ...typography.caption, color: familyHome.text, marginTop: 4, lineHeight: 18 },
-  sectionBlock: { gap: 4 },
+  liveTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  liveTitle: { ...typography.title, color: familyHome.text, flex: 1, fontSize: 18, lineHeight: 22 },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  sectionTitle: { ...typography.subtitle, color: familyHome.text },
-  sectionHint: { ...typography.caption, color: familyHome.muted, lineHeight: 18 },
-  viewAll: { ...typography.captionStrong, color: familyHome.blue },
-  empty: { ...typography.caption, color: familyHome.muted },
-  servicesRow: { gap: spacing.sm, paddingVertical: 2 },
-  serviceChip: {
-    width: 108,
-    minHeight: 118,
-    borderRadius: 16,
-    borderWidth: 2,
-    padding: spacing.sm,
+  sectionTitle: { ...typography.subtitle, color: familyHome.text, fontSize: 14, lineHeight: 18 },
+  viewAll: { ...typography.captionStrong, color: familyHome.blue, fontSize: 11 },
+  empty: { ...typography.caption, color: familyHome.muted, fontSize: 11 },
+  categoryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: SERVICE_CARD_GAP,
+  },
+  categoryCard: {
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
+    paddingTop: 12,
+    paddingBottom: 10,
+    paddingHorizontal: 6,
     gap: 6,
+    minHeight: 88,
   },
-  serviceChipLabel: {
-    ...typography.captionStrong,
-    textAlign: 'center',
-    fontSize: 11,
-    lineHeight: 14,
+  categoryCardSelected: {
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 1,
   },
-  serviceChipSub: {
-    ...typography.caption,
-    color: familyHome.muted,
-    textAlign: 'center',
-    fontSize: 9,
-    lineHeight: 12,
-  },
-  formCard: {
-    borderRadius: 18,
-    backgroundColor: familyHome.greenSoft,
-    borderWidth: 1,
-    borderColor: '#D7ECD8',
-    padding: spacing.lg,
-    gap: spacing.md,
-  },
-  selectedRow: { gap: spacing.sm },
-  fieldLabel: { ...typography.captionStrong, color: familyHome.muted, marginBottom: 4 },
-  selectedInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    backgroundColor: familyHome.white,
-    borderRadius: 12,
-    padding: spacing.md,
-  },
-  selectedIcon: {
+  categoryIcon: {
     width: 36,
     height: 36,
-    borderRadius: 10,
+    borderRadius: 18,
+    backgroundColor: familyHome.white,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  selectedTitle: { ...typography.bodyStrong, color: familyHome.text, flex: 1 },
-  changeLink: { ...typography.captionStrong, color: familyHome.blue },
-  pickerList: {
-    backgroundColor: familyHome.white,
+  categoryTitle: {
+    ...typography.captionStrong,
+    fontSize: 11,
+    lineHeight: 14,
+    textAlign: 'center',
+  },
+  raiseCta: {
+    minHeight: 42,
     borderRadius: 12,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: familyHome.border,
-  },
-  pickerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 12,
-  },
-  pickerRowActive: { backgroundColor: familyHome.greenSoft },
-  pickerLabel: { ...typography.body, color: familyHome.text, flex: 1 },
-  fieldsRow: { flexDirection: 'row', gap: spacing.sm },
-  fieldHalf: { flex: 1 },
-  inputWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: familyHome.white,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: familyHome.border,
-    paddingHorizontal: spacing.sm,
-    minHeight: 46,
-  },
-  input: {
-    flex: 1,
-    ...typography.caption,
-    color: familyHome.text,
-    paddingVertical: 8,
-  },
-  callCta: {
-    minHeight: 52,
-    borderRadius: 14,
     backgroundColor: familyHome.green,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.sm,
+    gap: 8,
+    paddingHorizontal: spacing.md,
   },
-  callCtaText: { ...typography.bodyStrong, color: familyHome.white },
-  noteBox: {
+  raiseCtaText: { ...typography.bodyStrong, color: familyHome.white, flex: 1, fontSize: 14 },
+  infoBox: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: spacing.sm,
-    backgroundColor: familyHome.blueSoft,
+    gap: 8,
     borderRadius: 12,
-    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: '#C9D9F5',
+    backgroundColor: familyHome.blueSoft,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
   },
-  noteText: { ...typography.caption, color: familyHome.text, flex: 1, lineHeight: 18 },
+  infoIcon: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: familyHome.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 1,
+  },
+  infoBullet: {
+    ...typography.caption,
+    color: familyHome.muted,
+    fontSize: 11,
+    lineHeight: 15,
+    marginBottom: 2,
+  },
+  activityCard: {
+    borderWidth: 1,
+    borderColor: familyHome.border,
+    borderRadius: 12,
+    backgroundColor: familyHome.white,
+    overflow: 'hidden',
+  },
   requestRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
-    paddingVertical: spacing.md,
+    gap: 8,
+    paddingVertical: 9,
+    paddingHorizontal: 10,
   },
-  requestDivider: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: familyHome.border },
+  requestDivider: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: familyHome.border,
+  },
   requestIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+    width: 30,
+    height: 30,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  requestTitle: { ...typography.bodyStrong, color: familyHome.text },
-  requestDate: { ...typography.caption, color: familyHome.muted, marginTop: 2 },
-  requestDetail: { ...typography.caption, color: familyHome.muted, marginTop: 2 },
+  requestDate: { ...typography.caption, color: familyHome.muted, fontSize: 10, lineHeight: 12 },
+  requestTitle: {
+    ...typography.bodyStrong,
+    color: familyHome.text,
+    fontSize: 12,
+    lineHeight: 15,
+    marginTop: 1,
+  },
+  requestDetail: {
+    ...typography.caption,
+    color: familyHome.muted,
+    fontSize: 10,
+    lineHeight: 13,
+    marginTop: 1,
+  },
   statusPill: {
     borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
   },
-  statusPillText: { ...typography.captionStrong, fontSize: 11 },
+  statusPillText: { ...typography.captionStrong, fontSize: 9 },
+  videoCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: familyHome.border,
+    backgroundColor: '#F7F8FA',
+    padding: 8,
+  },
+  videoThumb: {
+    width: 72,
+    height: 56,
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: '#123B7A',
+  },
+  videoThumbImage: { width: '100%', height: '100%' },
+  videoThumbPlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.22)',
+  },
+  videoThumbDuration: {
+    position: 'absolute',
+    right: 4,
+    bottom: 4,
+    ...typography.caption,
+    color: familyHome.white,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: 4,
+    fontSize: 9,
+  },
+  videoCopy: { flex: 1, gap: 3 },
+  videoTitle: { ...typography.bodyStrong, color: familyHome.text, fontSize: 12, lineHeight: 15 },
+  watchRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  watchLabel: { ...typography.caption, color: familyHome.muted, fontSize: 10 },
 });
+

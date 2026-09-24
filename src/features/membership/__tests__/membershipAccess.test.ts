@@ -9,14 +9,14 @@ jest.mock('@/features/membership/openMembershipPurchase', () => ({
 jest.mock('@/features/home/components/familyHomeTheme', () => ({
   familyHome: {
     purple: '#7B5EA7',
-    purpleSoft: '#F3EDF8',
+    purpleSoft: '#F9F6FC',
     blue: '#2F80ED',
-    blueSoft: '#E8F1FF',
+    blueSoft: '#F5F8FE',
     green: '#4CAF50',
-    greenSoft: '#E8F5E9',
+    greenSoft: '#F3FAF4',
     orange: '#E67E22',
-    orangeSoft: '#FFF3E0',
-    yellowSoft: '#FFF8E1',
+    orangeSoft: '#FFF8F2',
+    yellowSoft: '#FFFCF0',
   },
 }));
 

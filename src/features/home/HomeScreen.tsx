@@ -21,6 +21,7 @@ import { FamilyAddOnServices, FamilyOurServicesGrid } from '@/features/home/comp
 import { FamilyWhyChooseAgeWell } from '@/features/home/components/FamilyWhyChooseAgeWell';
 import { familyHome } from '@/features/home/components/familyHomeTheme';
 import { AskAgeWellBar } from '@/features/concierge/AskAgeWellBar';
+import { CONCIERGE_UI_ENABLED } from '@/features/concierge/featureFlag';
 import { resolveHomeScreenVariant } from '@/features/home/homeVariant';
 import { invalidateTrackingQueries } from '@/features/tracking/queryKeys';
 import { useTabScreenBottomPad } from '@/utils/safeBottom';
@@ -68,13 +69,19 @@ export function HomeScreen() {
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
-      <FamilyHomeTopBar
-        unreadCount={home.viewModel.unreadNotificationCount}
-        profileName={home.viewModel.greetingName ?? email ?? greetingName}
-        profilePhotoUri={home.senior.data?.photo}
-        profileHref={'/(tabs)/profile' as Href}
-        showChat={variant === 'serviceable_with_membership'}
-      />
+      <View style={styles.stickyHeader}>
+        <FamilyHomeTopBar
+          unreadCount={home.viewModel.unreadNotificationCount}
+          profileName={home.viewModel.greetingName ?? email ?? greetingName}
+          profilePhotoUri={home.senior.data?.photo}
+          profileHref={'/(tabs)/profile' as Href}
+          showChat={CONCIERGE_UI_ENABLED && variant === 'serviceable_with_membership'}
+        />
+
+        {variant === 'non_serviceable' ? <FamilyUnserviceableAreaBanner /> : null}
+        {variant === 'serviceable_no_membership' ? <FamilyServiceableAreaBanner /> : null}
+        {variant === 'serviceable_with_membership' ? <FamilyServiceableAreaBanner flush /> : null}
+      </View>
 
       <ScrollView
         contentContainerStyle={styles.content}
@@ -85,7 +92,6 @@ export function HomeScreen() {
       >
         {variant === 'non_serviceable' ? (
           <>
-            <FamilyUnserviceableAreaBanner />
             <FamilyCompleteCareBanner />
             <FamilyOurServicesGrid />
             <FamilyAddOnServices />
@@ -95,7 +101,6 @@ export function HomeScreen() {
 
         {variant === 'serviceable_no_membership' ? (
           <>
-            <FamilyServiceableAreaBanner />
             <FamilyMembershipCtaCard />
             <FamilyOurServicesGrid />
             <FamilyAddOnServices />
@@ -106,14 +111,13 @@ export function HomeScreen() {
 
         {variant === 'serviceable_with_membership' && membership ? (
           <>
-            <FamilyServiceableAreaBanner flush />
             <FamilyMemberHeroCard
               greetingName={greetingName}
               senior={home.senior.data ?? null}
               membership={membership}
             />
-            <AskAgeWellBar />
-            <FamilyMembersStatus youName={greetingName} youPhotoUri={home.senior.data?.photo} />
+            {CONCIERGE_UI_ENABLED ? <AskAgeWellBar /> : null}
+            <FamilyMembersStatus />
             <FamilyUpcomingSplit requests={home.serviceRequests.data?.items ?? []} />
             <FamilyOurServicesGrid title="Our Membership Services" showViewAll />
             <FamilyAddOnServices showViewAll />
@@ -130,6 +134,12 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: familyHome.white,
+  },
+  stickyHeader: {
+    backgroundColor: familyHome.white,
+    zIndex: 2,
+    gap: spacing.sm,
+    paddingBottom: spacing.sm,
   },
   content: {
     flexGrow: 1,

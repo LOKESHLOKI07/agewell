@@ -8,14 +8,16 @@ import {
   Text,
   View,
 } from 'react-native';
-import { router, type Href } from 'expo-router';
+import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LoadingState, PrimaryButton, SecondaryButton } from '@/components';
 import type { IconName } from '@/components/ui';
 import { Icon } from '@/components/ui';
 import { spacing, typography } from '@/constants/theme';
-import { AgeWellHeader } from '@/features/home/components/AgeWellHeader';
+import { ServicePageHeader } from '@/features/home/components/ServicePageHeader';
 import { familyHome } from '@/features/home/components/familyHomeTheme';
+import { ServiceHelpBanner } from '@/features/membership/ServiceHelpBanner';
+import { MarketplaceServiceIcon } from '@/features/services/components/MarketplaceServiceIcon';
 import { useTabScreenBottomPad } from '@/utils/safeBottom';
 import type { ServiceOffering } from './catalogTypes';
 import { filterOfferingsByKind, parseOfferingMeta } from './catalogTypes';
@@ -31,7 +33,13 @@ const heroImage = SERVICE_HERO_IMAGES['events-trips'];
 const SLUG = 'events-trips';
 const LEAD =
   'Discover nearby events and activities on the AgeWell app. Get priority access to AgeWell tours across Maharashtra & India. Companion assistance with luggage, boarding, seating & hotel check-in/out plus medication & emergency support. (Tours cost extra).';
-const LIVE_SUBTITLE = 'Stay Active. Stay Connected.';
+
+const ABOUT_BULLETS = [
+  'Local area programs are shown based on your preferences and interests.',
+  'Our companion will assist you for coordination and participation.',
+  'Outstation trip catalogues are specially curated for senior citizens, with companion support throughout the trip.',
+  'Get exclusive and discounted packages for your family members with us.',
+];
 
 const GATE_FEATURES: { icon: IconName; title: string; body: string }[] = [
   {
@@ -45,7 +53,7 @@ const GATE_FEATURES: { icon: IconName; title: string; body: string }[] = [
     body: 'Get priority access to AgeWell tours',
   },
   {
-    icon: 'cart-outline',
+    icon: 'hand-helping',
     title: 'Companion Assistance',
     body: 'Support with luggage, boarding, seating & hotel check-in/out',
   },
@@ -56,48 +64,150 @@ const GATE_FEATURES: { icon: IconName; title: string; body: string }[] = [
   },
 ];
 
-type CategoryKey = 'local' | 'family' | 'senior';
+const FALLBACK_INTERESTS = [
+  'Spiritual',
+  'Music',
+  'Nature',
+  'History',
+  'Food',
+  'Wellness',
+  'Art & Culture',
+  'Shopping',
+  'Social Meetups',
+  'Short Trips',
+  'Long Tours',
+];
 
-const CATEGORIES: {
-  key: CategoryKey;
-  title: string;
-  body: string;
-  icon: IconName;
-  color: string;
-  soft: string;
-}[] = [
-  {
-    key: 'local',
-    title: 'Local Area Programs',
-    body: 'Events and activities happening near you based on your interests.',
-    icon: 'calendar-outline',
-    color: familyHome.green,
-    soft: familyHome.greenSoft,
-  },
-  {
-    key: 'family',
-    title: 'Family Tour Packages',
-    body: 'Explore curated tour packages for you and your family.',
-    icon: 'navigate',
-    color: familyHome.blue,
-    soft: familyHome.blueSoft,
-  },
-  {
-    key: 'senior',
-    title: 'Senior Citizen Tours',
-    body: 'Travel together with AgeWell members and our companion support.',
-    icon: 'people-outline',
-    color: familyHome.red,
-    soft: familyHome.redSoft,
-  },
+const INTEREST_ICONS: { match: RegExp; icon: IconName }[] = [
+  { match: /spiritual/i, icon: 'flower' },
+  { match: /music/i, icon: 'music' },
+  { match: /nature/i, icon: 'leaf' },
+  { match: /history/i, icon: 'landmark' },
+  { match: /food/i, icon: 'restaurant' },
+  { match: /wellness/i, icon: 'heart-outline' },
+  { match: /art|culture/i, icon: 'sparkles' },
+  { match: /shopping/i, icon: 'cart-outline' },
+  { match: /social|meetup/i, icon: 'people-outline' },
+  { match: /short/i, icon: 'car' },
+  { match: /long|tour/i, icon: 'bus' },
+];
+
+const TAG_TONES: { match: RegExp; color: string; soft: string }[] = [
+  { match: /spiritual|nature|wellness|yoga|walk/i, color: familyHome.green, soft: familyHome.greenSoft },
+  { match: /art|culture|history|relax/i, color: familyHome.blue, soft: familyHome.blueSoft },
+  { match: /food|beach|leisure/i, color: familyHome.orange, soft: familyHome.orangeSoft },
+  { match: /music|social|group/i, color: familyHome.purple, soft: familyHome.purpleSoft },
+  { match: /scenic|peaceful/i, color: familyHome.blue, soft: familyHome.blueSoft },
 ];
 
 const THUMB_COLORS = ['#7B9E87', '#5B7C99', '#8B6B8A', '#C4A35A', '#6A8F6B', '#9B6B5A'];
 
-function offeringKind(item: ServiceOffering): 'event' | 'tour' | 'senior' {
+const FALLBACK_EVENTS: ServiceOffering[] = [
+  {
+    id: 'fallback-temple',
+    serviceSlug: SLUG,
+    title: 'Temple Visit & Morning Walk',
+    description: 'Gentle morning walk and temple visit with fellow members nearby.',
+    badge: 'Local Event',
+    priceLabel: 'Included',
+    image: null,
+    metaJson: '{"kind":"event","when":"20 Sep","place":"Kandivali","tags":"Spiritual|Walk"}',
+    sortOrder: 0,
+    isActive: true,
+  },
+  {
+    id: 'fallback-art',
+    serviceSlug: SLUG,
+    title: 'Art Exhibition Visit',
+    description: 'Guided visit to a local art exhibition with light refreshments.',
+    badge: 'Local Event',
+    priceLabel: 'Included',
+    image: null,
+    metaJson: '{"kind":"event","when":"24 Sep","place":"Borivali","tags":"Art|Culture"}',
+    sortOrder: 1,
+    isActive: true,
+  },
+  {
+    id: 'fallback-yoga',
+    serviceSlug: SLUG,
+    title: 'Yoga in the Park',
+    description: 'Outdoor yoga session focused on mobility, balance and calm.',
+    badge: 'Local Event',
+    priceLabel: 'Included',
+    image: null,
+    metaJson: '{"kind":"event","when":"28 Sep","place":"Kandivali","tags":"Wellness|Yoga"}',
+    sortOrder: 2,
+    isActive: true,
+  },
+  {
+    id: 'fallback-picnic',
+    serviceSlug: SLUG,
+    title: 'Garden Picnic Morning',
+    description: 'Relaxed picnic morning in a nearby garden with members.',
+    badge: 'Local Event',
+    priceLabel: 'Included',
+    image: null,
+    metaJson: '{"kind":"event","when":"2 Oct","place":"Malad","tags":"Nature|Social"}',
+    sortOrder: 3,
+    isActive: true,
+  },
+];
+
+const FALLBACK_TRIPS: ServiceOffering[] = [
+  {
+    id: 'fallback-lonavala',
+    serviceSlug: SLUG,
+    title: 'Lonavala Getaway',
+    description: 'Scenic hills escape with companion support.',
+    badge: 'Outstation',
+    priceLabel: 'Charges apply',
+    image: null,
+    metaJson: '{"kind":"tour","duration":"3D / 2N","tags":"Nature|Relaxation"}',
+    sortOrder: 10,
+    isActive: true,
+  },
+  {
+    id: 'fallback-kerala',
+    serviceSlug: SLUG,
+    title: 'Kerala Backwaters',
+    description: 'Houseboat stay and peaceful backwater views.',
+    badge: 'Outstation',
+    priceLabel: 'Charges apply',
+    image: null,
+    metaJson: '{"kind":"tour","duration":"4D / 3N","tags":"Scenic|Peaceful"}',
+    sortOrder: 11,
+    isActive: true,
+  },
+  {
+    id: 'fallback-alibaug',
+    serviceSlug: SLUG,
+    title: 'Alibaug Beach Escape',
+    description: 'Beach and fort day outing with pickup and drop.',
+    badge: 'Outstation',
+    priceLabel: 'Charges apply',
+    image: null,
+    metaJson: '{"kind":"tour","duration":"2D / 1N","tags":"Beach|Leisure"}',
+    sortOrder: 12,
+    isActive: true,
+  },
+  {
+    id: 'fallback-statue',
+    serviceSlug: SLUG,
+    title: 'Statue of Unity',
+    description: 'Iconic monument visit with lodging and companion support.',
+    badge: 'Outstation',
+    priceLabel: 'Charges apply',
+    image: null,
+    metaJson: '{"kind":"senior","duration":"2D / 1N","tags":"History|Scenic"}',
+    sortOrder: 13,
+    isActive: true,
+  },
+];
+
+function offeringKind(item: ServiceOffering): 'event' | 'tour' | 'interest' {
   const kind = parseOfferingMeta(item.metaJson).kind?.toLowerCase();
-  if (kind === 'senior') return 'senior';
-  if (kind === 'tour' || kind === 'family' || kind === 'trip') return 'tour';
+  if (kind === 'interest') return 'interest';
+  if (kind === 'tour' || kind === 'family' || kind === 'trip' || kind === 'senior') return 'tour';
   return 'event';
 }
 
@@ -109,6 +219,45 @@ function splitTags(raw: string | undefined): string[] {
     .filter(Boolean);
 }
 
+function interestIcon(name: string): IconName {
+  for (const row of INTEREST_ICONS) {
+    if (row.match.test(name)) return row.icon;
+  }
+  return 'sparkles';
+}
+
+function tagTone(tag: string) {
+  for (const row of TAG_TONES) {
+    if (row.match.test(tag)) return row;
+  }
+  return { color: familyHome.blue, soft: familyHome.blueSoft };
+}
+
+function splitWhen(when: string | undefined): { day: string; month: string } | null {
+  if (!when?.trim()) return null;
+  const parts = when.trim().split(/\s+/);
+  if (parts.length < 2) return null;
+  return { day: parts[0]!, month: parts[1]! };
+}
+
+function defaultTagsFor(item: ServiceOffering, kind: 'event' | 'tour'): string[] {
+  const fromMeta = splitTags(parseOfferingMeta(item.metaJson).tags);
+  if (fromMeta.length > 0) return fromMeta;
+  const title = item.title.toLowerCase();
+  if (kind === 'event') {
+    if (/temple|spiritual|walk/i.test(title)) return ['Spiritual', 'Walk'];
+    if (/art|exhibition/i.test(title)) return ['Art', 'Culture'];
+    if (/yoga|wellness/i.test(title)) return ['Wellness', 'Yoga'];
+    if (/picnic|garden|nature/i.test(title)) return ['Nature', 'Social'];
+    return ['Local'];
+  }
+  if (/lonavala|nature|hill/i.test(title)) return ['Nature', 'Relaxation'];
+  if (/kerala|backwater/i.test(title)) return ['Scenic', 'Peaceful'];
+  if (/alibaug|beach/i.test(title)) return ['Beach', 'Leisure'];
+  if (/statue|unity|history/i.test(title)) return ['History', 'Scenic'];
+  return ['Outstation'];
+}
+
 export function EventsTripsScreen() {
   const insets = useSafeAreaInsets();
   const bottomPad = useTabScreenBottomPad(spacing.xxl);
@@ -116,7 +265,7 @@ export function EventsTripsScreen() {
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
-      <AgeWellHeader title="Local Area Events & Trips" showBack showProfile={false} showBell />
+      <ServicePageHeader />
 
       {variant === 'serviceable_with_membership' ? (
         <MemberLiveBody />
@@ -137,11 +286,14 @@ export function EventsTripsScreen() {
 function TitleBlock() {
   return (
     <View style={styles.titleRow}>
-      <View style={styles.titleIcon}>
-        <Icon name="location" size={22} color={familyHome.greenDark} />
-      </View>
+      <MarketplaceServiceIcon
+        serviceId={SLUG}
+        fallbackIcon="location"
+        fallbackColor={familyHome.purple}
+        size={48}
+      />
       <View style={styles.flex}>
-        <Text style={styles.title}>LOCAL EVENTS & TRIPS</Text>
+        <Text style={styles.title}>Local Area Events & Trips</Text>
         <Text style={styles.lead}>{LEAD}</Text>
       </View>
     </View>
@@ -238,20 +390,7 @@ function OutsideAreaBody() {
           <Text style={styles.notifyBtnText}>{submitting ? 'Saving…' : 'Notify Me'}</Text>
         </Pressable>
       </View>
-      <Pressable
-        onPress={() => router.push('/account/help' as Href)}
-        style={({ pressed }) => [styles.helpBannerGreen, pressed ? styles.pressed : null]}
-        accessibilityRole="button"
-      >
-        <View style={styles.helpIconGreen}>
-          <Icon name="help-circle-outline" size={16} color={familyHome.white} />
-        </View>
-        <View style={styles.flex}>
-          <Text style={styles.helpTitleGreen}>Have Questions?</Text>
-          <Text style={styles.helpBodyGreen}>Our team is here to help. Reach out to us anytime.</Text>
-        </View>
-        <Icon name="chevron-forward" size={16} color={familyHome.greenDark} />
-      </Pressable>
+      <ServiceHelpBanner tone="green" />
     </View>
   );
 }
@@ -294,20 +433,7 @@ function NoMembershipBody() {
           onPress={() => router.push(membershipPurchaseHref())}
         />
       </View>
-      <Pressable
-        onPress={() => router.push('/account/help' as Href)}
-        style={({ pressed }) => [styles.helpBanner, pressed ? styles.pressed : null]}
-        accessibilityRole="button"
-      >
-        <View style={styles.contactIcon}>
-          <Icon name="help-circle-outline" size={16} color={familyHome.white} />
-        </View>
-        <View style={styles.flex}>
-          <Text style={styles.helpTitle}>Have Questions?</Text>
-          <Text style={styles.helpBody}>Our team is here to help. Reach out to us anytime.</Text>
-        </View>
-        <Icon name="chevron-forward" size={16} color={familyHome.blue} />
-      </Pressable>
+      <ServiceHelpBanner />
     </View>
   );
 }
@@ -315,15 +441,15 @@ function NoMembershipBody() {
 function MemberLiveBody() {
   const catalog = useServiceOfferings(SLUG);
   const { submitting, submit } = useMembershipSubmit(SLUG);
-  const [interests, setInterests] = useState<string[]>([]);
+  const [interests, setInterests] = useState<string[]>(['Spiritual']);
   const [editMode, setEditMode] = useState(false);
-  const [activeCategory, setActiveCategory] = useState<CategoryKey | null>(null);
 
   const offerings = catalog.data ?? [];
-  const interestOptions = useMemo(
-    () => filterOfferingsByKind(offerings, 'interest').map((item) => item.title),
-    [offerings],
-  );
+
+  const interestOptions = useMemo(() => {
+    const fromApi = filterOfferingsByKind(offerings, 'interest').map((item) => item.title);
+    return fromApi.length > 0 ? fromApi : FALLBACK_INTERESTS;
+  }, [offerings]);
 
   useEffect(() => {
     if (interests.length === 0 && interestOptions[0]) {
@@ -331,18 +457,15 @@ function MemberLiveBody() {
     }
   }, [interestOptions, interests.length]);
 
-  const events = useMemo(
-    () => offerings.filter((item) => offeringKind(item) === 'event'),
-    [offerings],
-  );
-  const tours = useMemo(
-    () => offerings.filter((item) => offeringKind(item) === 'tour'),
-    [offerings],
-  );
-  const seniors = useMemo(
-    () => offerings.filter((item) => offeringKind(item) === 'senior'),
-    [offerings],
-  );
+  const events = useMemo(() => {
+    const fromApi = offerings.filter((item) => offeringKind(item) === 'event');
+    return fromApi.length > 0 ? fromApi : FALLBACK_EVENTS;
+  }, [offerings]);
+
+  const trips = useMemo(() => {
+    const fromApi = offerings.filter((item) => offeringKind(item) === 'tour');
+    return fromApi.length > 0 ? fromApi : FALLBACK_TRIPS;
+  }, [offerings]);
 
   const toggleInterest = (name: string) => {
     setInterests((prev) => {
@@ -359,8 +482,8 @@ function MemberLiveBody() {
     const when = meta.when ? ` · ${meta.when}` : '';
     const place = meta.place ? ` · ${meta.place}` : '';
     void submit(
-      `Book interest: ${item.title}${when}${place}. ${item.description || ''}`.trim(),
-      'Booking interest noted',
+      `Interest: ${item.title}${when}${place}. ${item.description || ''}`.trim(),
+      'Interest noted',
     );
   };
 
@@ -369,163 +492,166 @@ function MemberLiveBody() {
     Alert.alert(title, lines || 'No items yet.');
   };
 
+  const onFamilyPackages = () => {
+    void submit(
+      'Family trip packages enquiry. Please share exclusive packages for my family.',
+      'Family packages enquiry sent',
+    );
+  };
+
+  const onRequestCallback = () => {
+    void submit(
+      `Call back requested for Local Area Events & Trips. Interests: ${interests.join(', ') || 'none'}.`,
+      'Call back requested',
+    );
+  };
+
   return (
     <ScrollView contentContainerStyle={styles.liveContent} showsVerticalScrollIndicator={false}>
       <View style={styles.liveTitleRow}>
-        <View style={styles.liveTitleIcon}>
-          <Icon name="location" size={22} color={familyHome.white} />
+        <MarketplaceServiceIcon
+          serviceId={SLUG}
+          fallbackIcon="location"
+          fallbackColor={familyHome.purple}
+          size={40}
+        />
+        <Text style={styles.liveTitle}>Local Area Events & Trips</Text>
+      </View>
+
+      <View style={styles.block}>
+        <View style={styles.interestsHead}>
+          <Text style={styles.sectionTitle}>Your Interests</Text>
+          <Pressable
+            onPress={() => setEditMode((value) => !value)}
+            style={styles.editBtn}
+            accessibilityRole="button"
+            accessibilityLabel={editMode ? 'Done editing interests' : 'Edit interests'}
+          >
+            {editMode ? (
+              <Text style={styles.editBtnText}>Done</Text>
+            ) : (
+              <>
+                <Text style={styles.editBtnText}>Edit</Text>
+                <Icon name="create-outline" size={12} color={familyHome.blue} />
+              </>
+            )}
+          </Pressable>
         </View>
-        <View style={styles.flex}>
-          <Text style={styles.liveTitle}>Local Area Events & Trips</Text>
-          <Text style={styles.subtitle}>{LIVE_SUBTITLE}</Text>
+        <Text style={styles.sectionHint}>Select your interests to get personalized recommendations.</Text>
+
+        <View style={styles.chipWrap}>
+          {interestOptions.map((name) => {
+            const selected = interests.includes(name);
+            const icon = interestIcon(name);
+            return (
+              <Pressable
+                key={name}
+                onPress={() => toggleInterest(name)}
+                style={[
+                  styles.interestChip,
+                  selected ? styles.interestChipOn : null,
+                  editMode ? styles.interestChipEditing : null,
+                ]}
+                accessibilityRole="button"
+                accessibilityState={{ selected }}
+                accessibilityLabel={name}
+              >
+                <Icon
+                  name={icon}
+                  size={11}
+                  color={selected ? familyHome.green : familyHome.muted}
+                />
+                <Text style={[styles.interestChipText, selected ? styles.interestChipTextOn : null]}>
+                  {name}
+                </Text>
+              </Pressable>
+            );
+          })}
         </View>
       </View>
 
-      <View style={styles.discoveryBox}>
-        <View style={styles.discoveryIcon}>
-          <Icon name="people-outline" size={18} color={familyHome.blue} />
-        </View>
-        <Text style={styles.discoveryText}>
-          Discover curated programs matched to your interests — local events, family tours and senior citizen
-          trips with AgeWell companion support.
-        </Text>
-      </View>
-
-      <View style={styles.interestsHead}>
-        <Text style={styles.sectionTitle}>Your Interests</Text>
-        <Pressable
-          onPress={() => setEditMode((value) => !value)}
-          style={styles.editBtn}
-          accessibilityRole="button"
-          accessibilityLabel={editMode ? 'Done editing interests' : 'Edit interests'}
-        >
-          {editMode ? (
-            <Text style={styles.editBtnText}>Done</Text>
-          ) : (
-            <>
-              <Icon name="create-outline" size={14} color={familyHome.blue} />
-              <Text style={styles.editBtnText}>Edit</Text>
-            </>
-          )}
-        </Pressable>
-      </View>
-      <Text style={styles.sectionHint}>Select your interests to get personalized recommendations.</Text>
-
-      {interestOptions.length > 0 ? (
-      <View style={styles.chipWrap}>
-        {interestOptions.map((name) => {
-          const selected = interests.includes(name);
-          return (
-            <Pressable
-              key={name}
-              onPress={() => toggleInterest(name)}
-              style={[
-                styles.interestChip,
-                selected ? styles.interestChipOn : null,
-                editMode ? styles.interestChipEditing : null,
-              ]}
-              accessibilityRole="button"
-              accessibilityState={{ selected }}
-              accessibilityLabel={name}
-            >
-              <Text style={[styles.interestChipText, selected ? styles.interestChipTextOn : null]}>
-                {name}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
-      ) : (
-        <Text style={styles.sectionHint}>Interest options will appear here once configured in the catalog.</Text>
-      )}
-
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.categoryRow}
-      >
-        {CATEGORIES.map((item) => {
-          const selected = activeCategory === item.key;
-          return (
-            <Pressable
-              key={item.key}
-              onPress={() => setActiveCategory((prev) => (prev === item.key ? null : item.key))}
-              style={[
-                styles.categoryCard,
-                { backgroundColor: item.soft, borderColor: selected ? item.color : 'transparent' },
-              ]}
-              accessibilityRole="button"
-              accessibilityState={{ selected }}
-              accessibilityLabel={item.title}
-            >
-              <View style={[styles.categoryIcon, { backgroundColor: familyHome.white }]}>
-                <Icon name={item.icon} size={20} color={item.color} />
-              </View>
-              <Text style={[styles.categoryTitle, { color: item.color }]}>{item.title}</Text>
-              <Text style={styles.categoryBody}>{item.body}</Text>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
-
-      {catalog.isPending ? <Text style={styles.empty}>Loading events…</Text> : null}
-      {catalog.isError ? (
+      {catalog.isPending && !catalog.data?.length ? (
+        <Text style={styles.empty}>Loading events…</Text>
+      ) : null}
+      {catalog.isError && !catalog.data?.length ? (
         <Pressable onPress={() => void catalog.refetch()} accessibilityRole="button">
           <Text style={styles.viewAll}>Unable to load · Tap to retry</Text>
         </Pressable>
       ) : null}
 
-      {events.length > 0 ? (
-        <OfferingSection
-          title="Recommended for You"
-          items={events}
-          kind="event"
-          submitting={submitting}
-          onBook={onBook}
-          onViewAll={() => onViewAll('Recommended for You', events)}
-          highlight={activeCategory === 'local'}
-        />
-      ) : null}
+      <OfferingSection
+        title="Local Area Programs"
+        subtitle="Events and activities near you based on your interests."
+        items={events}
+        kind="event"
+        submitting={submitting}
+        onBook={onBook}
+        onViewAll={() => onViewAll('Local Area Programs', events)}
+      />
 
-      {tours.length > 0 ? (
-        <OfferingSection
-          title="Popular Tour Packages"
-          items={tours}
-          kind="tour"
-          submitting={submitting}
-          onBook={onBook}
-          onViewAll={() => onViewAll('Popular Tour Packages', tours)}
-          highlight={activeCategory === 'family'}
-        />
-      ) : null}
+      <OfferingSection
+        title="Outstation Trips (For AgeWell Members)"
+        subtitle="Explore curated senior-friendly tour packages with companion support."
+        items={trips}
+        kind="tour"
+        submitting={submitting}
+        onBook={onBook}
+        onViewAll={() => onViewAll('Outstation Trips', trips)}
+      />
 
-      {seniors.length > 0 ? (
-        <OfferingSection
-          title="Upcoming Senior Citizen Tours"
-          items={seniors}
-          kind="senior"
-          submitting={submitting}
-          onBook={onBook}
-          onViewAll={() => onViewAll('Upcoming Senior Citizen Tours', seniors)}
-          highlight={activeCategory === 'senior'}
-        />
-      ) : null}
+      <Pressable
+        onPress={onFamilyPackages}
+        disabled={submitting}
+        style={({ pressed }) => [
+          styles.familyPromo,
+          submitting ? styles.disabled : null,
+          pressed ? styles.pressed : null,
+        ]}
+        accessibilityRole="button"
+        accessibilityLabel="Get Exclusive Trip Packages for Your Family"
+      >
+        <View style={styles.familyPromoIcon}>
+          <Icon name="people-outline" size={16} color={familyHome.orange} />
+        </View>
+        <View style={styles.flex}>
+          <Text style={styles.familyPromoTitle}>Get Exclusive Trip Packages for Your Family</Text>
+          <Text style={styles.familyPromoBody} numberOfLines={2}>
+            Special discounted packages for AgeWell members' families.
+          </Text>
+        </View>
+        <Icon name="chevron-forward" size={14} color="#B45309" />
+      </Pressable>
 
-      {!catalog.isPending && events.length === 0 && tours.length === 0 && seniors.length === 0 ? (
-        <Text style={styles.empty}>Events and tours will appear here soon.</Text>
-      ) : null}
-
-      <View style={styles.noteCard}>
-        <Text style={styles.noteTitle}>Important Note</Text>
-        <Text style={styles.noteBullet}>
-          • Local area programs are part of your AgeWell membership (as per plan).
+      <Pressable
+        onPress={onRequestCallback}
+        disabled={submitting}
+        style={({ pressed }) => [
+          styles.raiseCta,
+          submitting ? styles.disabled : null,
+          pressed ? styles.pressed : null,
+        ]}
+        accessibilityRole="button"
+        accessibilityLabel="Request a Call Back"
+      >
+        <Icon name="call-outline" size={16} color={familyHome.white} />
+        <Text style={styles.raiseCtaText}>
+          {submitting ? 'Sending…' : 'Request a Call Back'}
         </Text>
-        <Text style={styles.noteBullet}>
-          • Family tour packages and Senior Citizen Tours are charged separately.
-        </Text>
-        <Text style={styles.noteBullet}>
-          • Contact for personalized locations or custom tour inquiries.
-        </Text>
+        <Icon name="chevron-forward" size={16} color={familyHome.white} />
+      </Pressable>
+
+      <View style={styles.aboutCard}>
+        <View style={styles.aboutHead}>
+          <View style={styles.aboutIcon}>
+            <Icon name="help-circle-outline" size={12} color={familyHome.blue} />
+          </View>
+          <Text style={styles.aboutTitle}>About This Service</Text>
+        </View>
+        {ABOUT_BULLETS.map((line) => (
+          <Text key={line} style={styles.aboutBullet}>
+            • {line}
+          </Text>
+        ))}
       </View>
     </ScrollView>
   );
@@ -533,29 +659,30 @@ function MemberLiveBody() {
 
 function OfferingSection({
   title,
+  subtitle,
   items,
   kind,
   submitting,
   onBook,
   onViewAll,
-  highlight,
 }: {
   title: string;
+  subtitle: string;
   items: ServiceOffering[];
-  kind: 'event' | 'tour' | 'senior';
+  kind: 'event' | 'tour';
   submitting: boolean;
   onBook: (item: ServiceOffering) => void;
   onViewAll: () => void;
-  highlight: boolean;
 }) {
   return (
-    <View style={[styles.sectionBlock, highlight ? styles.sectionHighlight : null]}>
+    <View style={styles.sectionBlock}>
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>{title}</Text>
+        <Text style={[styles.sectionTitle, styles.sectionTitleFlex]}>{title}</Text>
         <Pressable onPress={onViewAll} accessibilityRole="button">
           <Text style={styles.viewAll}>View All &gt;</Text>
         </Pressable>
       </View>
+      <Text style={styles.sectionHint}>{subtitle}</Text>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -584,17 +711,23 @@ function OfferingCard({
   onPress,
 }: {
   item: ServiceOffering;
-  kind: 'event' | 'tour' | 'senior';
+  kind: 'event' | 'tour';
   colorIndex: number;
   submitting: boolean;
   onPress: () => void;
 }) {
   const meta = parseOfferingMeta(item.metaJson);
-  const tags = splitTags(meta.tags);
+  const tags = defaultTagsFor(item, kind);
   const thumbColor = THUMB_COLORS[colorIndex % THUMB_COLORS.length];
   const place = meta.place?.trim();
-  const when = meta.when?.trim();
+  const whenParts = splitWhen(meta.when);
   const duration = meta.duration?.trim();
+  const shortBody =
+    kind === 'tour'
+      ? tags.length > 0
+        ? `${tags[0]}${tags[1] ? `, ${tags[1].toLowerCase()}` : ''}`
+        : item.description?.trim() || ''
+      : '';
 
   return (
     <Pressable
@@ -608,53 +741,48 @@ function OfferingCard({
         {item.image ? (
           <Image source={{ uri: item.image }} style={styles.thumbImage} resizeMode="cover" />
         ) : (
-          <Icon name="location" size={28} color="rgba(255,255,255,0.45)" />
+          <Image source={heroImage} style={styles.thumbImage} resizeMode="cover" />
         )}
-        {kind === 'event' && place ? (
-          <View style={styles.placeBadge}>
-            <Icon name="location" size={10} color={familyHome.white} />
-            <Text style={styles.placeBadgeText}>{place}</Text>
+        {kind === 'event' && whenParts ? (
+          <View style={styles.dateBadge}>
+            <Text style={styles.dateDay}>{whenParts.day}</Text>
+            <Text style={styles.dateMonth}>{whenParts.month}</Text>
           </View>
         ) : null}
-        {(kind === 'tour' || kind === 'senior') && duration ? (
+        {kind === 'tour' && duration ? (
           <View style={styles.durationBadge}>
             <Text style={styles.durationBadgeText}>{duration}</Text>
           </View>
         ) : null}
       </View>
 
-      {kind === 'event' && when ? <Text style={styles.cardMeta}>{when}</Text> : null}
-      {kind === 'senior' && when ? <Text style={styles.cardMeta}>{when}</Text> : null}
-
       <Text style={styles.cardTitle} numberOfLines={2}>
         {item.title}
       </Text>
 
-      {kind === 'event' && item.description ? (
-        <Text style={styles.cardBody} numberOfLines={2}>
-          {item.description}
+      {kind === 'event' && place ? (
+        <View style={styles.placeRow}>
+          <Icon name="location" size={11} color={familyHome.muted} />
+          <Text style={styles.placeText}>{place}</Text>
+        </View>
+      ) : null}
+
+      {kind === 'tour' && shortBody ? (
+        <Text style={styles.cardBody} numberOfLines={1}>
+          {shortBody}
         </Text>
       ) : null}
 
-      {kind === 'event' ? (
-        <View style={styles.localBadge}>
-          <Text style={styles.localBadgeText}>{item.badge || 'Local Event'}</Text>
-        </View>
-      ) : null}
-
-      {(kind === 'tour' || kind === 'senior') && tags.length > 0 ? (
+      {tags.length > 0 ? (
         <View style={styles.tagRow}>
-          {tags.map((tag) => (
-            <View key={tag} style={styles.tagChip}>
-              <Text style={styles.tagChipText}>{tag}</Text>
-            </View>
-          ))}
-        </View>
-      ) : null}
-
-      {(kind === 'tour' || kind === 'senior') && tags.length === 0 && item.badge ? (
-        <View style={styles.tagChip}>
-          <Text style={styles.tagChipText}>{item.badge}</Text>
+          {tags.slice(0, 2).map((tag) => {
+            const tone = tagTone(tag);
+            return (
+              <View key={tag} style={[styles.tagChip, { backgroundColor: tone.soft }]}>
+                <Text style={[styles.tagChipText, { color: tone.color }]}>{tag}</Text>
+              </View>
+            );
+          })}
         </View>
       ) : null}
     </Pressable>
@@ -685,7 +813,7 @@ const styles = StyleSheet.create({
   subtitle: { ...typography.body, color: familyHome.muted },
   heroFull: {
     height: 188,
-    borderRadius: 18,
+    borderRadius: 16,
     overflow: 'hidden',
     backgroundColor: familyHome.border,
     position: 'relative',
@@ -864,175 +992,193 @@ const styles = StyleSheet.create({
   liveContent: {
     paddingHorizontal: spacing.xl,
     paddingBottom: spacing.xxxl,
-    gap: spacing.md,
-    paddingTop: spacing.sm,
+    gap: 10,
+    paddingTop: 4,
   },
-  liveTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  liveTitleIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: familyHome.purple,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  discoveryBox: {
-    flexDirection: 'row',
-    gap: spacing.md,
-    backgroundColor: familyHome.blueSoft,
-    borderRadius: 16,
-    padding: spacing.lg,
-    alignItems: 'flex-start',
-  },
-  discoveryIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: familyHome.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  discoveryText: { ...typography.caption, color: familyHome.text, lineHeight: 18, flex: 1 },
+  liveTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  liveTitle: { ...typography.title, color: familyHome.text, flex: 1, fontSize: 18, lineHeight: 22 },
+  block: { gap: 4 },
   interestsHead: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  editBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingVertical: 4,
-    paddingHorizontal: 6,
-  },
-  editBtnText: { ...typography.captionStrong, color: familyHome.blue },
-  sectionBlock: { gap: spacing.sm },
-  sectionHighlight: {
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: familyHome.blue,
-    padding: spacing.md,
-    marginHorizontal: -spacing.sm,
-  },
+  editBtn: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  editBtnText: { ...typography.captionStrong, color: familyHome.blue, fontSize: 12 },
+  sectionBlock: { gap: 4 },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-  },
-  sectionTitle: { ...typography.subtitle, color: familyHome.text },
-  sectionHint: { ...typography.caption, color: familyHome.muted, lineHeight: 18 },
-  viewAll: { ...typography.captionStrong, color: familyHome.blue },
-  empty: { ...typography.caption, color: familyHome.muted },
-  chipWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: spacing.sm,
   },
+  sectionTitle: { ...typography.subtitle, color: familyHome.text, fontSize: 14, lineHeight: 18 },
+  sectionTitleFlex: { flex: 1 },
+  sectionHint: { ...typography.caption, color: familyHome.muted, fontSize: 11, lineHeight: 14 },
+  viewAll: { ...typography.captionStrong, color: familyHome.blue, fontSize: 11 },
+  empty: { ...typography.caption, color: familyHome.muted, fontSize: 11 },
+  chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 5 },
   interestChip: {
-    borderRadius: 999,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
     borderWidth: 1,
     borderColor: familyHome.border,
+    borderRadius: 14,
+    paddingHorizontal: 7,
+    paddingVertical: 4,
     backgroundColor: familyHome.white,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
   },
   interestChipOn: {
     backgroundColor: familyHome.greenSoft,
     borderColor: familyHome.green,
   },
-  interestChipEditing: {
-    borderStyle: 'dashed',
+  interestChipEditing: { opacity: 1 },
+  interestChipText: { ...typography.caption, color: familyHome.muted, fontSize: 11, lineHeight: 13 },
+  interestChipTextOn: {
+    ...typography.captionStrong,
+    color: familyHome.greenDark,
+    fontSize: 11,
+    lineHeight: 13,
   },
-  interestChipText: { ...typography.captionStrong, color: familyHome.muted },
-  interestChipTextOn: { color: familyHome.greenDark },
-  categoryRow: { gap: spacing.md, paddingVertical: 2 },
-  categoryCard: {
-    width: 168,
-    borderRadius: 16,
-    borderWidth: 2,
-    padding: spacing.md,
-    gap: 8,
-  },
-  categoryIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  categoryTitle: { ...typography.captionStrong, fontSize: 13 },
-  categoryBody: { ...typography.caption, color: familyHome.muted, lineHeight: 16, fontSize: 11 },
-  offerRow: { gap: spacing.md, paddingVertical: 2 },
+  offerRow: { gap: 8, paddingTop: 2 },
   offerCard: {
-    width: 196,
-    borderRadius: 14,
+    width: 142,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: familyHome.border,
     backgroundColor: familyHome.white,
-    padding: spacing.sm,
-    gap: 6,
+    overflow: 'hidden',
+    paddingBottom: 8,
   },
   thumb: {
-    height: 110,
-    borderRadius: 12,
-    overflow: 'hidden',
+    width: '100%',
+    height: 78,
     alignItems: 'center',
     justifyContent: 'center',
-    position: 'relative',
+    overflow: 'hidden',
   },
-  thumbImage: {
-    ...StyleSheet.absoluteFillObject,
-    width: '100%',
-    height: '100%',
-  },
-  placeBadge: {
+  thumbImage: { width: '100%', height: '100%' },
+  dateBadge: {
     position: 'absolute',
-    left: 8,
-    bottom: 8,
-    flexDirection: 'row',
+    left: 6,
+    top: 6,
+    minWidth: 34,
+    borderRadius: 7,
+    backgroundColor: familyHome.white,
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(0,0,0,0.55)',
-    borderRadius: 999,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
   },
-  placeBadgeText: { ...typography.captionStrong, color: familyHome.white, fontSize: 10 },
+  dateDay: { ...typography.bodyStrong, color: familyHome.greenDark, fontSize: 12, lineHeight: 14 },
+  dateMonth: { ...typography.caption, color: familyHome.muted, fontSize: 9, lineHeight: 10 },
   durationBadge: {
     position: 'absolute',
-    right: 8,
-    top: 8,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  durationBadgeText: { ...typography.captionStrong, color: familyHome.white, fontSize: 10 },
-  cardMeta: { ...typography.caption, color: familyHome.muted, fontSize: 11 },
-  cardTitle: { ...typography.bodyStrong, color: familyHome.text, lineHeight: 20, fontSize: 14 },
-  cardBody: { ...typography.caption, color: familyHome.muted, lineHeight: 16 },
-  localBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: familyHome.greenSoft,
+    right: 6,
+    top: 6,
     borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
   },
-  localBadgeText: { ...typography.captionStrong, color: familyHome.greenDark, fontSize: 11 },
-  tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  durationBadgeText: { ...typography.captionStrong, color: familyHome.white, fontSize: 9 },
+  cardTitle: {
+    ...typography.bodyStrong,
+    color: familyHome.text,
+    fontSize: 12,
+    lineHeight: 15,
+    paddingHorizontal: 8,
+    marginTop: 6,
+  },
+  placeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 8,
+    marginTop: 2,
+  },
+  placeText: { ...typography.caption, color: familyHome.muted, fontSize: 10, lineHeight: 12 },
+  cardBody: {
+    ...typography.caption,
+    color: familyHome.muted,
+    fontSize: 10,
+    lineHeight: 12,
+    paddingHorizontal: 8,
+    marginTop: 2,
+  },
+  tagRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
+    paddingHorizontal: 8,
+    marginTop: 5,
+  },
   tagChip: {
-    backgroundColor: familyHome.blueSoft,
     borderRadius: 999,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
   },
-  tagChipText: { ...typography.captionStrong, color: familyHome.blue, fontSize: 10 },
-  noteCard: {
-    borderRadius: 16,
+  tagChipText: { ...typography.captionStrong, fontSize: 9 },
+  familyPromo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#F5D0A9',
+    backgroundColor: '#FFF6EB',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+  },
+  familyPromoIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: familyHome.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  familyPromoTitle: { ...typography.bodyStrong, color: '#B45309', fontSize: 12, lineHeight: 15 },
+  familyPromoBody: {
+    ...typography.caption,
+    color: '#9A6B3F',
+    fontSize: 10,
+    lineHeight: 13,
+    marginTop: 1,
+  },
+  raiseCta: {
+    minHeight: 42,
+    borderRadius: 12,
+    backgroundColor: familyHome.green,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingHorizontal: spacing.md,
+  },
+  raiseCtaText: { ...typography.bodyStrong, color: familyHome.white, flex: 1, fontSize: 14 },
+  aboutCard: {
+    borderRadius: 12,
     backgroundColor: familyHome.blueSoft,
-    padding: spacing.lg,
-    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    gap: 3,
   },
-  noteTitle: { ...typography.subtitle, color: familyHome.text, marginBottom: 4 },
-  noteBullet: { ...typography.caption, color: familyHome.text, lineHeight: 18 },
+  aboutHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  aboutIcon: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: familyHome.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  aboutTitle: { ...typography.bodyStrong, color: familyHome.text, fontSize: 13 },
+  aboutBullet: {
+    ...typography.caption,
+    color: familyHome.muted,
+    fontSize: 11,
+    lineHeight: 15,
+  },
 });
+

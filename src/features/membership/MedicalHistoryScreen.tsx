@@ -3,7 +3,7 @@ import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'r
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from '@/components/ui';
 import { spacing, typography } from '@/constants/theme';
-import { AgeWellHeader } from '@/features/home/components/AgeWellHeader';
+import { ServicePageHeader } from '@/features/home/components/ServicePageHeader';
 import { familyHome } from '@/features/home/components/familyHomeTheme';
 import { filterOfferingsByKind, parseOfferingMeta } from './catalogTypes';
 import { MembershipServiceHero } from './MembershipServiceHero';
@@ -46,7 +46,7 @@ function MedicalHistoryLive() {
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
-      <AgeWellHeader title="Medical History" showBack showProfile={false} showBell={false} />
+      <ServicePageHeader />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <MembershipServiceHero slug="medical-history" />
         <Text style={styles.hint}>Reports by category and date · companion & support assist uploads</Text>

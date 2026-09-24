@@ -33,6 +33,7 @@ export function AdminProfileScreen() {
         title="Sign out?"
         message="You will need to sign in again."
         confirmLabel="Logout"
+        destructive
         onConfirm={() => {
           setConfirmVisible(false);
           setSigningOut(true);

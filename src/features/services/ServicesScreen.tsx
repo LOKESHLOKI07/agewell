@@ -15,6 +15,7 @@ import { AgeWellHeader } from '@/features/home/components/AgeWellHeader';
 import { familyHome } from '@/features/home/components/familyHomeTheme';
 import { useHasActiveMembership } from '@/features/membership/useHasActiveMembership';
 import { useTabScreenBottomPad } from '@/utils/safeBottom';
+import { MarketplaceServiceIcon } from './components/MarketplaceServiceIcon';
 import { allMarketplaceServices, type MarketplaceService } from './serviceCatalog';
 
 const GRID_COLUMNS = 3;
@@ -57,10 +58,11 @@ export function ServicesScreen() {
         contentContainerStyle={[styles.content, { paddingBottom: bottomPad }]}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.subtitle}>
-          Single Membership — 21 services in brochure order.
-          {!hasMembership ? ' Browse freely; membership is required to use a service.' : ''}
-        </Text>
+        {!hasMembership ? (
+          <Text style={styles.subtitle}>
+            Browse freely; membership is required to use a service.
+          </Text>
+        ) : null}
 
         <View style={styles.searchWrap}>
           <Icon name="search-outline" size={18} color={familyHome.muted} />
@@ -85,13 +87,15 @@ export function ServicesScreen() {
                   accessibilityLabel={`${service.title}. ${service.description}`}
                   style={({ pressed }) => [
                     styles.gridCard,
-                    { backgroundColor: service.background },
                     pressed ? styles.pressed : null,
                   ]}
                 >
-                  <View style={[styles.iconCircle, { backgroundColor: familyHome.white }]}>
-                    <Icon name={service.icon} size={22} color={service.color} />
-                  </View>
+                  <MarketplaceServiceIcon
+                    serviceId={service.id}
+                    fallbackIcon={service.icon}
+                    fallbackColor={service.color}
+                    size={44}
+                  />
                   <Text style={styles.gridLabel} numberOfLines={3}>
                     {service.title}
                   </Text>
@@ -158,6 +162,9 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 112,
     borderRadius: 16,
+    borderWidth: 1,
+    borderColor: familyHome.border,
+    backgroundColor: familyHome.white,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.md,
     alignItems: 'center',
@@ -166,13 +173,6 @@ const styles = StyleSheet.create({
   },
   gridCardSpacer: {
     flex: 1,
-  },
-  iconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   gridLabel: {
     ...typography.captionStrong,

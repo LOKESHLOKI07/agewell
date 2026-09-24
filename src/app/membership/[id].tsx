@@ -22,7 +22,8 @@ const READY_REDIRECTS: Record<string, Href> = {
   legal: '/membership/legal' as Href,
   'local-transport': '/membership/local-transport' as Href,
   transport: '/membership/transport' as Href,
-  'home-inspection': '/membership/home-inspection' as Href,
+  'personalised-diet-plan': '/membership/personalised-diet-plan' as Href,
+  'home-inspection': '/membership/personalised-diet-plan' as Href,
   cctv: '/membership/cctv' as Href,
   // Add-on / legacy extras still reachable by deep link
   food: '/membership/food' as Href,

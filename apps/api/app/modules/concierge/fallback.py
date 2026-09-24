@@ -41,9 +41,9 @@ def parse_intent_fallback(message: str) -> dict:
             "intent": ConciergeIntent.chat.value,
             "confidence": 0.9,
             "reply": (
-                "I can help with Emergency Support, Care Manager, Companion, Medicines, Health Check, "
-                "Blood Test, Doctor visit, Groceries, Errands, Cyber Security, Banking, CA, Events, "
-                "House Maintenance, Pooja, Legal, Transport, Home Inspection, and CCTV. "
+                "I can help with Emergency Support, Care Manager, Companion Support, Medicines, Health Checks, "
+                "Blood Test, Doctor visit, Personalised Diet Plan, Groceries, Errands, Banking, Events, "
+                "Cyber Security, CA, Legal, House Maintenance, Transport, Pooja, and CCTV. "
                 "Tell me what you need in your own words."
             ),
             "parameters": {},
