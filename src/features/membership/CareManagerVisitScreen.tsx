@@ -16,6 +16,7 @@ import { Avatar, Icon, type IconName } from '@/components/ui';
 import { getApiErrorMessage } from '@/api/errors';
 import { minTouchSize, spacing, typography } from '@/constants/theme';
 import { ServicePageHeader } from '@/features/home/components/ServicePageHeader';
+import { SERVICE_AREA_CITIES } from '@/features/auth/serviceArea';
 import { familyHome } from '@/features/home/components/familyHomeTheme';
 import { MarketplaceServiceIcon } from '@/features/services/components/MarketplaceServiceIcon';
 import { useTabScreenBottomPad } from '@/utils/safeBottom';
@@ -40,12 +41,14 @@ import {
 } from './careManagerMappers';
 import type { AssignedCareManager, CareActivity } from './careManagerTypes';
 import { resolveCareManagerPageVariant } from './careManagerVariant';
+import { MembershipNoMembershipPreview } from './MembershipNoMembershipPreview';
 import { membershipPurchaseHref } from './planCatalog';
-import { SERVICE_HERO_IMAGES } from './serviceHeroes';
+import { SERVICE_HERO_IMAGES } from './serviceHeroes'
+import { servicePageType } from './servicePageType';
 import { useHasActiveMembership } from './useHasActiveMembership';
 
 const VIDEO_URL = 'https://www.youtube.com/results?search_query=Meet+Our+Care+Managers+AgeWell';
-const SERVICE_AREA_LINE = 'Kandivali & Borivali, Mumbai';
+const SERVICE_AREA_LINE = SERVICE_AREA_CITIES;
 const HOURS_LABEL = '10 AM - 6 PM';
 
 const SUPPORT_FEATURES: { icon: IconName; title: string; line: string; bg: string; color: string }[] = [
@@ -196,7 +199,7 @@ export function CareManagerVisitScreen() {
 
         {variant === 'loading' ? <LoadingState message="Loading Care Manager..." /> : null}
         {variant === 'non_serviceable' ? <ComingSoonBody /> : null}
-        {variant === 'unassigned' ? <UnassignedBody /> : null}
+        {variant === 'unassigned' ? <MembershipNoMembershipPreview slug="care-manager" /> : null}
         {variant === 'assigned' && assigned?.careManager ? (
           <AssignedBody
             manager={assigned.careManager}
@@ -608,7 +611,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  title: { ...typography.title, color: '#123B7A' },
+  title: { ...servicePageType.pageTitle, color: '#123B7A' },
   memberBadge: {
     alignSelf: 'flex-start',
     flexDirection: 'row',
@@ -641,8 +644,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#F5C2C4',
   },
-  soonTitle: { ...typography.bodyStrong, color: familyHome.red },
-  soonBody: { ...typography.caption, color: familyHome.text, marginTop: 4, lineHeight: 18 },
+  soonTitle: { ...servicePageType.bannerTitle, color: familyHome.red },
+  soonBody: { ...servicePageType.bannerBody, color: familyHome.text, marginTop: 4 },
   infoBanner: {
     flexDirection: 'row',
     gap: spacing.md,
@@ -651,8 +654,8 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     alignItems: 'center',
   },
-  infoTitle: { ...typography.bodyStrong, color: familyHome.blueDark },
-  infoBody: { ...typography.caption, color: familyHome.text, marginTop: 2, lineHeight: 18 },
+  infoTitle: { ...servicePageType.bannerTitle, color: familyHome.blueDark },
+  infoBody: { ...servicePageType.bannerBody, color: familyHome.text, marginTop: 4 },
   availableBanner: {
     flexDirection: 'row',
     gap: spacing.md,
@@ -660,7 +663,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: spacing.lg,
   },
-  availableTitle: { ...typography.bodyStrong, color: familyHome.greenDark },
+  availableTitle: { ...typography.bodyStrong, color: familyHome.greenDark, fontSize: 14, lineHeight: 18 },
   availableBody: { ...typography.caption, color: familyHome.text, marginTop: 4, lineHeight: 18 },
   memberBanner: {
     flexDirection: 'row',

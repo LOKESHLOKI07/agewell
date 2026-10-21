@@ -4,6 +4,23 @@ import type { ImageSourcePropType } from 'react-native';
 export const SERVICE_BANNER_HEIGHT = 188;
 export const SERVICE_BANNER_RADIUS = 16;
 
+/** Bundled meal photos for Tiffin Box breakfast / lunch / dinner cards. */
+export const TIFFIN_MEAL_IMAGES = {
+  breakfast: require('../../../assets/services/meals/breakfast.png'),
+  lunch: require('../../../assets/services/meals/lunch.png'),
+  dinner: require('../../../assets/services/meals/dinner.png'),
+} as const satisfies Record<string, ImageSourcePropType>;
+
+/** Resolve a bundled meal photo from an offering title (e.g. "Breakfast"). */
+export function tiffinMealImage(title: string, index = 0): ImageSourcePropType {
+  const lower = title.toLowerCase();
+  if (/dinner|night|evening/.test(lower)) return TIFFIN_MEAL_IMAGES.dinner;
+  if (/lunch|afternoon/.test(lower) || index === 1) return TIFFIN_MEAL_IMAGES.lunch;
+  if (/breakfast|morning/.test(lower) || index === 0) return TIFFIN_MEAL_IMAGES.breakfast;
+  if (index === 2) return TIFFIN_MEAL_IMAGES.dinner;
+  return TIFFIN_MEAL_IMAGES.lunch;
+}
+
 /** Bundled flat hero art for membership service screens (slug → asset). */
 export const SERVICE_HERO_IMAGES: Record<string, ImageSourcePropType> = {
   'emergency-sos': require('../../../assets/services/hero-emergency-sos.png'),

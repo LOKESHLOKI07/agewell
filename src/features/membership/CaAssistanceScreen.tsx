@@ -24,12 +24,14 @@ import { useTabScreenBottomPad } from '@/utils/safeBottom';
 import type { ServiceOffering } from './catalogTypes';
 import { MEMBERSHIP_SERVICE_AREA_LINE } from './membershipServicePageVariant';
 import { membershipPurchaseHref } from './planCatalog';
-import { SERVICE_HERO_IMAGES } from './serviceHeroes';
+import { SERVICE_HERO_IMAGES } from './serviceHeroes'
+import { servicePageType } from './servicePageType';
 import {
   filterRequestsBySlug,
   liveRequestToneMeta,
   toLiveRequestViews,
 } from './liveServiceRequests';
+import { MembershipNoMembershipPreview } from './MembershipNoMembershipPreview';
 import { useMembershipServicePageVariant } from './useMembershipServicePageVariant';
 import { useMembershipSubmit } from './useMembershipSubmit';
 import { useServiceOfferings } from './useCatalog';
@@ -49,105 +51,6 @@ const GATE_FEATURES: { icon: IconName; title: string; body: string }[] = [
   { icon: 'calculator', title: 'Financial Guidance', body: 'Advice on investments, savings and tax planning' },
   { icon: 'people-outline', title: 'Support for Other CA Services', body: 'Assistance for various financial matters' },
   { icon: 'shield-checkmark-outline', title: 'Trusted & Reliable', body: 'Get guidance from qualified and experienced CA' },
-];
-
-const FALLBACK_OFFERINGS: ServiceOffering[] = [
-  {
-    id: 'fallback-consultation',
-    serviceSlug: SLUG,
-    title: 'CA Consultation',
-    description: 'Need guidance on tax planning.',
-    badge: 'Finance',
-    priceLabel: 'Support call',
-    image: null,
-    metaJson: null,
-    sortOrder: 0,
-    isActive: true,
-  },
-  {
-    id: 'fallback-itr',
-    serviceSlug: SLUG,
-    title: 'ITR Filing Support',
-    description: 'Help with ITR filing for FY 2025-26.',
-    badge: 'Finance',
-    priceLabel: 'Support call',
-    image: null,
-    metaJson: null,
-    sortOrder: 1,
-    isActive: true,
-  },
-  {
-    id: 'fallback-financial',
-    serviceSlug: SLUG,
-    title: 'Financial Guidance',
-    description: 'Advice on investments, savings and planning.',
-    badge: 'Finance',
-    priceLabel: 'Support call',
-    image: null,
-    metaJson: null,
-    sortOrder: 2,
-    isActive: true,
-  },
-  {
-    id: 'fallback-income-tax',
-    serviceSlug: SLUG,
-    title: 'Income Tax Queries',
-    description: 'General income tax questions and clarifications.',
-    badge: 'Finance',
-    priceLabel: 'Support call',
-    image: null,
-    metaJson: null,
-    sortOrder: 3,
-    isActive: true,
-  },
-  {
-    id: 'fallback-tax-planning',
-    serviceSlug: SLUG,
-    title: 'Tax Planning',
-    description: 'Plan taxes efficiently for the year ahead.',
-    badge: 'Finance',
-    priceLabel: 'Support call',
-    image: null,
-    metaJson: null,
-    sortOrder: 4,
-    isActive: true,
-  },
-  {
-    id: 'fallback-gst',
-    serviceSlug: SLUG,
-    title: 'GST / Other Tax Help',
-    description: 'Clarification on GST filing.',
-    badge: 'Finance',
-    priceLabel: 'Support call',
-    image: null,
-    metaJson: null,
-    sortOrder: 5,
-    isActive: true,
-  },
-  {
-    id: 'fallback-investment',
-    serviceSlug: SLUG,
-    title: 'Investment Tax Guidance',
-    description: 'Tax implications of investments and returns.',
-    badge: 'Finance',
-    priceLabel: 'Support call',
-    image: null,
-    metaJson: null,
-    sortOrder: 6,
-    isActive: true,
-  },
-  {
-    id: 'fallback-other',
-    serviceSlug: SLUG,
-    title: 'Other CA Assistance',
-    description: 'Any other CA related assistance.',
-    badge: 'Finance',
-    priceLabel: 'Support call',
-    image: null,
-    metaJson: null,
-    sortOrder: 7,
-    isActive: true,
-  },
 ];
 
 const SERVICE_LOOKS: { match: RegExp; icon: IconName; color: string; soft: string }[] = [
@@ -314,48 +217,7 @@ function OutsideAreaBody() {
 }
 
 function NoMembershipBody() {
-  return (
-    <View style={styles.stack}>
-      <TitleBlock />
-      <HeroBanner
-        tone="membership"
-        body="Get professional guidance from our CA for your tax and financial needs."
-      />
-      <FeaturesGrid />
-      <View style={styles.membershipCard}>
-        <View style={styles.membershipHead}>
-          <View style={styles.lockWell}>
-            <Icon name="lock-closed-outline" size={16} color="#B45309" />
-          </View>
-          <View style={styles.flex}>
-            <Text style={styles.membershipTitle}>Membership Required</Text>
-            <Text style={styles.membershipBody}>
-              CA Assistance is available only for AgeWell members.
-            </Text>
-          </View>
-        </View>
-        <Pressable
-          onPress={() => router.push(membershipPurchaseHref())}
-          style={({ pressed }) => [styles.joinPromo, pressed ? styles.pressed : null]}
-          accessibilityRole="button"
-        >
-          <View style={styles.flex}>
-            <Text style={styles.joinPromoTitle}>Join AgeWell Membership</Text>
-            <Text style={styles.joinPromoBody}>
-              Get access to CA Assistance and many other services for a safer, healthier and happier life.
-            </Text>
-          </View>
-          <Icon name="chevron-forward" size={16} color="#B45309" />
-        </Pressable>
-        <PrimaryButton label="Join Membership  →" onPress={() => router.push(membershipPurchaseHref())} />
-        <SecondaryButton
-          label="View Membership Plans"
-          onPress={() => router.push(membershipPurchaseHref())}
-        />
-      </View>
-      <ServiceHelpBanner />
-    </View>
-  );
+  return <MembershipNoMembershipPreview slug={SLUG} />;
 }
 
 function MemberLiveBody() {
@@ -364,15 +226,7 @@ function MemberLiveBody() {
   const { submitting, submit } = useMembershipSubmit(SLUG);
   const [selectedId, setSelectedId] = useState('');
 
-  const offerings = useMemo(() => {
-    const fromApi = catalog.data ?? [];
-    const byTitle = new Map<string, ServiceOffering>();
-    for (const item of fromApi) {
-      const key = item.title.trim().toLowerCase();
-      if (!byTitle.has(key)) byTitle.set(key, item);
-    }
-    return FALLBACK_OFFERINGS.map((fallback) => byTitle.get(fallback.title.toLowerCase()) ?? fallback);
-  }, [catalog.data]);
+  const offerings = useMemo(() => catalog.data ?? [], [catalog.data]);
 
   const selected = offerings.find((item) => item.id === selectedId) ?? null;
 
@@ -430,6 +284,9 @@ function MemberLiveBody() {
         <Pressable onPress={() => void catalog.refetch()} accessibilityRole="button">
           <Text style={styles.viewAll}>Unable to load · Tap to retry</Text>
         </Pressable>
+      ) : null}
+      {!catalog.isPending && !catalog.isError && offerings.length === 0 ? (
+        <Text style={styles.empty}>No options configured yet.</Text>
       ) : null}
 
       <View style={styles.categoryGrid}>
@@ -578,8 +435,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  title: { ...typography.title, color: familyHome.text },
-  liveTitle: { ...typography.title, color: familyHome.text, fontSize: 22 },
+  title: { ...servicePageType.pageTitle, color: familyHome.text },
+  liveTitle: { ...servicePageType.pageTitle, color: familyHome.text},
   lead: { ...typography.body, color: familyHome.muted, lineHeight: 22, marginTop: 4 },
   subtitle: { ...typography.body, color: familyHome.muted },
   heroCard: {
@@ -651,8 +508,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  soonTitle: { ...typography.bodyStrong, color: familyHome.red },
-  soonBody: { ...typography.caption, color: familyHome.text, marginTop: 4, lineHeight: 18 },
+  soonTitle: { ...servicePageType.bannerTitle, color: familyHome.red },
+  soonBody: { ...servicePageType.bannerBody, color: familyHome.text, marginTop: 4 },
   notifyCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -730,8 +587,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  membershipTitle: { ...typography.bodyStrong, color: familyHome.text },
-  membershipBody: { ...typography.caption, color: familyHome.muted, marginTop: 2, lineHeight: 18 },
+  membershipTitle: { ...servicePageType.bannerTitle, color: familyHome.text },
+  membershipBody: { ...servicePageType.bannerBody, color: familyHome.muted, marginTop: 2 },
   joinPromo: {
     flexDirection: 'row',
     alignItems: 'center',

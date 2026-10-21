@@ -23,6 +23,7 @@ import { ServiceHelpBanner } from '@/features/membership/ServiceHelpBanner';
 import { MarketplaceServiceIcon } from '@/features/services/components/MarketplaceServiceIcon';
 import { homeQueryKeys } from '@/features/home/api/homeQueryKeys';
 import { useServiceRequests } from '@/features/home/hooks/queries';
+import { MembershipNoMembershipPreview } from './MembershipNoMembershipPreview';
 import { MEMBERSHIP_SERVICE_AREA_LINE } from './membershipServicePageVariant';
 import {
   medicineOrderToneMeta,
@@ -31,6 +32,7 @@ import {
 } from './medicineOrders';
 import { membershipPurchaseHref } from './planCatalog';
 import { SERVICE_HERO_IMAGES } from './serviceHeroes';
+import { servicePageType } from './servicePageType';
 import { useMembershipServicePageVariant } from './useMembershipServicePageVariant';
 import { useMembershipSubmit } from './useMembershipSubmit';
 import { useHasActiveMembership } from './useHasActiveMembership';
@@ -199,18 +201,7 @@ export function MedicineDeliveryScreen() {
         ) : null}
 
         {variant === 'serviceable_no_membership' ? (
-          <>
-            <ServiceTitleBlock />
-            <MarketingBanner
-              headline={['Your Medicines, ', 'Our Care']}
-              subline="Safe. Reliable. At Your Doorstep."
-              callout={null}
-              tone="navy"
-            />
-            <BenefitRow />
-            <MembershipRequiredFooter />
-            <HelpFooter />
-          </>
+          <MembershipNoMembershipPreview slug="medicine" />
         ) : null}
 
         {variant === 'serviceable_with_membership' ? (
@@ -604,7 +595,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flexShrink: 0,
   },
-  title: { ...typography.title, color: '#123B7A', flexShrink: 1 },
+  title: { ...servicePageType.pageTitle, color: '#123B7A', flexShrink: 1 },
   lead: { ...typography.caption, color: familyHome.muted, lineHeight: 18 },
 
   bannerCard: {
@@ -673,8 +664,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#F5C2C4',
   },
-  soonTitle: { ...typography.bodyStrong, color: familyHome.red },
-  soonBody: { ...typography.caption, color: familyHome.text, marginTop: 4, lineHeight: 18 },
+  soonTitle: { ...servicePageType.bannerTitle, color: familyHome.red },
+  soonBody: { ...servicePageType.bannerBody, color: familyHome.text, marginTop: 4 },
   disabledCta: {
     minHeight: minTouchSize,
     borderRadius: 14,
@@ -704,8 +695,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  membershipTitle: { ...typography.bodyStrong, color: '#B45309' },
-  membershipBody: { ...typography.caption, color: familyHome.text, marginTop: 2, lineHeight: 18 },
+  membershipTitle: { ...servicePageType.bannerTitle, color: '#B45309' },
+  membershipBody: { ...servicePageType.bannerBody, color: familyHome.text, marginTop: 2 },
   joinPromo: {
     flexDirection: 'row',
     alignItems: 'center',

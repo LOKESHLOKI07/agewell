@@ -420,6 +420,7 @@ export function AdminServiceEditScreen() {
   const [callHoursText, setCallHoursText] = useState('');
   const [supportPhone, setSupportPhone] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
+  const [savedMessage, setSavedMessage] = useState<string | null>(null);
   const ops = findMembershipOps(service?.slug);
   const hasOfferings =
     Boolean(service?.slug) &&
@@ -493,9 +494,14 @@ export function AdminServiceEditScreen() {
                   accessibilityRole="link"
                   style={styles.itemsLinkWrap}
                 >
-                  <Text style={styles.inboxLink}>Manage catalogue items & images →</Text>
+                  <Text style={styles.inboxLink}>
+                    {service.slug === 'food'
+                      ? 'Manage meal plans & prices →'
+                      : 'Manage plans, prices & catalogue items →'}
+                  </Text>
                 </Pressable>
-              ) : service?.slug === 'grocery' ? (
+              ) : null}
+              {service?.slug === 'grocery' ? (
                 <Pressable
                   onPress={() => router.push('/(admin)/catalog/grocery' as Href)}
                   accessibilityRole="link"
@@ -503,13 +509,14 @@ export function AdminServiceEditScreen() {
                 >
                   <Text style={styles.inboxLink}>Manage grocery catalog →</Text>
                 </Pressable>
-              ) : service?.slug === 'food' ? (
+              ) : null}
+              {service?.slug === 'food' ? (
                 <Pressable
                   onPress={() => router.push('/(admin)/catalog/food' as Href)}
                   accessibilityRole="link"
                   style={styles.itemsLinkWrap}
                 >
-                  <Text style={styles.inboxLink}>Manage tiffin catalog →</Text>
+                  <Text style={styles.inboxLink}>Manage cuisine menu →</Text>
                 </Pressable>
               ) : null}
             </View>
@@ -547,11 +554,17 @@ export function AdminServiceEditScreen() {
             ) : null}
           </View>
           {formError ? <Text style={styles.error}>{formError}</Text> : null}
+          {savedMessage ? (
+            <Text style={styles.success} accessibilityLiveRegion="polite">
+              {savedMessage}
+            </Text>
+          ) : null}
           <PrimaryButton
             label="Save changes"
             loading={update.isPending}
             onPress={() => {
               setFormError(null);
+              setSavedMessage(null);
               update.mutate(
                 {
                   name,
@@ -561,7 +574,13 @@ export function AdminServiceEditScreen() {
                   callHoursText: callHoursText.trim() || null,
                   supportPhone: supportPhone.trim() || null,
                 },
-                { onError: (error) => setFormError(getAdminErrorMessage(error)) },
+                {
+                  onSuccess: () => {
+                    setSavedMessage('Saved successfully');
+                    Alert.alert('Saved successfully', 'Your changes have been saved.');
+                  },
+                  onError: (error) => setFormError(getAdminErrorMessage(error)),
+                },
               );
             }}
           />
@@ -854,6 +873,11 @@ const styles = StyleSheet.create({
   error: {
     ...typography.caption,
     color: colors.emergency,
+    marginBottom: spacing.md,
+  },
+  success: {
+    ...typography.bodyStrong,
+    color: colors.safe,
     marginBottom: spacing.md,
   },
   slugBlock: {

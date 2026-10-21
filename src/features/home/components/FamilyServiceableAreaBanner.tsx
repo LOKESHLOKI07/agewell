@@ -1,9 +1,10 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { Icon } from '@/components/ui';
 import { spacing, typography } from '@/constants/theme';
+import { SERVICE_AREA_CITIES } from '@/features/auth/serviceArea';
 import { familyHome } from './familyHomeTheme';
 
-const SERVICE_AREA_LABEL = 'Kandivali & Borivali, Mumbai';
+const SERVICE_AREA_LABEL = SERVICE_AREA_CITIES;
 
 export function FamilyServiceableAreaBanner({ flush = false }: { flush?: boolean }) {
   return (

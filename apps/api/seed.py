@@ -54,6 +54,11 @@ BINGO_TITLE = "Bingo"
 BINGO_DESCRIPTION = "Fun"
 BINGO_CAPACITY = 20
 
+# Demo: in Kandivali/Borivali service area, but no active membership.
+IN_AREA_NO_MEMBERSHIP_EMAIL = "senior.nomember@example.com"
+IN_AREA_NO_MEMBERSHIP_PHONE = "1122334455"
+IN_AREA_NO_MEMBERSHIP_PASSWORD = "password123"
+
 
 async def repair_emergency_copy(session: AsyncSession) -> None:
     await session.execute(
@@ -129,6 +134,75 @@ async def seed_operations_user(session: AsyncSession) -> None:
         )
     )
     await session.commit()
+
+
+async def seed_in_area_no_membership_senior(session: AsyncSession) -> None:
+    """Ensure a Kandivali senior exists with no membership (for buy-plan UI demos)."""
+    user = (
+        await session.execute(select(User).where(User.email == IN_AREA_NO_MEMBERSHIP_EMAIL))
+    ).scalar_one_or_none()
+    if not user:
+        user = User(
+            id=uuid.uuid4(),
+            email=IN_AREA_NO_MEMBERSHIP_EMAIL,
+            phone=IN_AREA_NO_MEMBERSHIP_PHONE,
+            role=RoleEnum.SENIOR,
+            hashed_password=get_password_hash(IN_AREA_NO_MEMBERSHIP_PASSWORD),
+        )
+        session.add(user)
+        await session.flush()
+        print(f"Created user {IN_AREA_NO_MEMBERSHIP_EMAIL}")
+    else:
+        user.hashed_password = get_password_hash(IN_AREA_NO_MEMBERSHIP_PASSWORD)
+        user.role = RoleEnum.SENIOR
+        user.phone = IN_AREA_NO_MEMBERSHIP_PHONE
+
+    senior = (
+        await session.execute(select(Senior).where(Senior.user_id == user.id))
+    ).scalar_one_or_none()
+    if not senior:
+        senior = Senior(
+            id=uuid.uuid4(),
+            user_id=user.id,
+            first_name="Priya",
+            last_name="Shah",
+            date_of_birth=date(1948, 6, 15),
+            address="Kandivali East, Mumbai",
+            emergency_contact="9876543210",
+            preferred_hospital="Apex Hospital, Kandivali",
+            in_service_area=True,
+            location_query="Kandivali East, Mumbai",
+            location_source="manual",
+        )
+        session.add(senior)
+        await session.flush()
+        print(f"Created senior profile for {IN_AREA_NO_MEMBERSHIP_EMAIL}")
+    else:
+        senior.first_name = senior.first_name or "Priya"
+        senior.last_name = senior.last_name or "Shah"
+        senior.address = "Kandivali East, Mumbai"
+        senior.in_service_area = True
+        senior.location_query = "Kandivali East, Mumbai"
+        senior.location_source = "manual"
+        if not senior.preferred_hospital:
+            senior.preferred_hospital = "Apex Hospital, Kandivali"
+
+    # Remove any membership rows so this account always demos the no-membership gate.
+    memberships = (
+        await session.execute(select(Membership).where(Membership.senior_id == senior.id))
+    ).scalars().all()
+    for row in memberships:
+        await session.execute(
+            delete(MembershipUsageLedger).where(MembershipUsageLedger.membership_id == row.id)
+        )
+        await session.delete(row)
+    if memberships:
+        print(f"Removed {len(memberships)} membership row(s) for {IN_AREA_NO_MEMBERSHIP_EMAIL}")
+
+    await session.commit()
+    print(
+        f"In-area no-membership demo ready: {IN_AREA_NO_MEMBERSHIP_EMAIL} / {IN_AREA_NO_MEMBERSHIP_PASSWORD}"
+    )
 
 
 async def seed_bingo_event(session: AsyncSession) -> None:
@@ -366,6 +440,25 @@ async def seed_service_offerings(session: AsyncSession) -> int:
         if legacy:
             legacy.is_active = False
 
+    # Retire renamed add-on option rows from earlier seeds.
+    for service_slug, old_title in (
+        ("emergency-companion", "8 Hours"),
+        ("emergency-companion", "10 Hours"),
+        ("stool-cleaning", "Monthly Plan"),
+        ("ayurvedic-massage", "45 mins"),
+        ("ayurvedic-massage", "60 mins"),
+    ):
+        legacy = (
+            await session.execute(
+                select(ServiceOffering).where(
+                    ServiceOffering.service_slug == service_slug,
+                    ServiceOffering.title == old_title,
+                )
+            )
+        ).scalar_one_or_none()
+        if legacy:
+            legacy.is_active = False
+
     touched = 0
     for item in SEED_SERVICE_OFFERINGS:
         existing = (
@@ -587,6 +680,7 @@ async def seed_data():
             await repair_john_service_area(session)
             await repair_care_manager_assignment(session)
             await seed_operations_user(session)
+            await seed_in_area_no_membership_senior(session)
             await seed_bingo_event(session)
             count = await seed_membership_services(session)
             catalog_count = await seed_delivery_catalogs(session)
@@ -680,6 +774,7 @@ async def seed_data():
         await seed_delivery_catalogs(session)
         await seed_service_offerings(session)
         await seed_membership_plans(session)
+        await seed_in_area_no_membership_senior(session)
         cyber = (
             await session.execute(select(Service).where(Service.slug == "cyber-security"))
         ).scalar_one()

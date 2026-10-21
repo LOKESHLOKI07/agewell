@@ -28,9 +28,11 @@ import {
   type CompanionActivityView,
   type CompanionProfileView,
 } from './companionVisitModel';
+import { MembershipNoMembershipPreview } from './MembershipNoMembershipPreview';
 import { MEMBERSHIP_SERVICE_AREA_LINE } from './membershipServicePageVariant';
 import { membershipPurchaseHref } from './planCatalog';
-import { SERVICE_HERO_IMAGES } from './serviceHeroes';
+import { SERVICE_HERO_IMAGES } from './serviceHeroes'
+import { servicePageType } from './servicePageType';
 import { useMembershipServicePageVariant } from './useMembershipServicePageVariant';
 import { useMembershipSubmit } from './useMembershipSubmit';
 import { useHasActiveMembership } from './useHasActiveMembership';
@@ -38,7 +40,7 @@ import { useSystemBottomInset } from '@/utils/safeBottom';
 import { toDisplayDate } from '@/utils/date';
 
 const VIDEO_URL = 'https://www.youtube.com/results?search_query=How+Companion+Support+Makes+a+Difference+AgeWell';
-const SERVICE_AREA_SHORT = 'Kandivali & Borivali, Mumbai';
+const SERVICE_AREA_SHORT = 'Kandivali, Borivali, Warora, Bhadravati & Wani';
 const HOURS_LABEL = '10 AM - 6 PM';
 
 const GATE_BENEFITS: { icon: IconName; title: string; line: string }[] = [
@@ -230,15 +232,7 @@ export function CompanionVisitScreen() {
         ) : null}
 
         {variant === 'serviceable_no_membership' ? (
-          <>
-            <ServiceTitleBlock />
-            <MarketingBanner
-              headline={['Friendly Companionship for ', 'Brighter Days']}
-              subline="A friend by your side, always."
-            />
-            <BenefitRow items={GATE_BENEFITS} />
-            <MembershipRequiredFooter />
-          </>
+          <MembershipNoMembershipPreview slug="companion" />
         ) : null}
 
         {variant === 'serviceable_with_membership' && !memberDataLoading ? (
@@ -628,7 +622,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flexShrink: 0,
   },
-  title: { ...typography.title, color: '#123B7A', flexShrink: 1 },
+  title: { ...servicePageType.pageTitle, color: '#123B7A', flexShrink: 1 },
   lead: { ...typography.caption, color: familyHome.muted, lineHeight: 18 },
 
   bannerCard: {
@@ -704,8 +698,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#F5C2C4',
   },
-  soonTitle: { ...typography.bodyStrong, color: familyHome.red },
-  soonBody: { ...typography.caption, color: familyHome.text, marginTop: 4, lineHeight: 18 },
+  soonTitle: { ...servicePageType.bannerTitle, color: familyHome.red },
+  soonBody: { ...servicePageType.bannerBody, color: familyHome.text, marginTop: 4 },
   infoBanner: {
     flexDirection: 'row',
     gap: spacing.md,
@@ -714,8 +708,8 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     alignItems: 'flex-start',
   },
-  infoTitle: { ...typography.bodyStrong, color: familyHome.blueDark },
-  infoBody: { ...typography.caption, color: familyHome.text, marginTop: 4, lineHeight: 18 },
+  infoTitle: { ...servicePageType.bannerTitle, color: familyHome.blueDark },
+  infoBody: { ...servicePageType.bannerBody, color: familyHome.text, marginTop: 4 },
   disabledCta: {
     minHeight: minTouchSize,
     borderRadius: 14,
@@ -745,8 +739,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  membershipTitle: { ...typography.bodyStrong, color: '#B45309' },
-  membershipBody: { ...typography.caption, color: familyHome.text, marginTop: 2, lineHeight: 18 },
+  membershipTitle: { ...servicePageType.bannerTitle, color: '#B45309' },
+  membershipBody: { ...servicePageType.bannerBody, color: familyHome.text, marginTop: 2 },
   joinPromo: {
     flexDirection: 'row',
     alignItems: 'center',

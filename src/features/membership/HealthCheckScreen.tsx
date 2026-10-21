@@ -30,6 +30,7 @@ import { homeQueryKeys } from '@/features/home/api/homeQueryKeys';
 import { useServiceRequests } from '@/features/home/hooks/queries';
 import { useHealthDocuments, useLabResults } from '@/features/health/hooks';
 import { healthQueryKeys } from '@/features/health/queryKeys';
+import { MembershipNoMembershipPreview } from './MembershipNoMembershipPreview';
 import { MEMBERSHIP_SERVICE_AREA_LINE } from './membershipServicePageVariant';
 import {
   healthReportToneMeta,
@@ -37,7 +38,8 @@ import {
   type HealthReportView,
 } from './healthCheckModel';
 import { membershipPurchaseHref } from './planCatalog';
-import { SERVICE_HERO_IMAGES } from './serviceHeroes';
+import { SERVICE_HERO_IMAGES } from './serviceHeroes'
+import { servicePageType } from './servicePageType';
 import { useMembershipServicePageVariant } from './useMembershipServicePageVariant';
 import type { ServiceOffering } from './catalogTypes';
 import { useMembershipSubmit } from './useMembershipSubmit';
@@ -191,18 +193,7 @@ export function HealthCheckScreen() {
         ) : null}
 
         {variant === 'serviceable_no_membership' ? (
-          <>
-            <TitleBlock />
-            <HeroBanner tone="photo" />
-            <IncludedSection
-              title="What's Included (Free for Members)"
-              items={includedOfferings}
-              loading={catalog.isPending}
-            />
-            <MembershipRequiredFooter />
-            <MoreWithMembership extras={extraOfferings} />
-            <ServiceHelpBanner />
-          </>
+          <MembershipNoMembershipPreview slug="health-check" />
         ) : null}
 
         {variant === 'serviceable_with_membership' ? (
@@ -615,7 +606,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  title: { ...typography.title, color: '#123B7A' },
+  title: { ...servicePageType.pageTitle, color: '#123B7A' },
   lead: { ...typography.caption, color: familyHome.muted, marginTop: 4, lineHeight: 18 },
 
   heroCard: {
@@ -694,8 +685,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#F5C2C4',
   },
-  soonTitle: { ...typography.bodyStrong, color: familyHome.red },
-  soonBody: { ...typography.caption, color: familyHome.text, marginTop: 4, lineHeight: 18 },
+  soonTitle: { ...servicePageType.bannerTitle, color: familyHome.red },
+  soonBody: { ...servicePageType.bannerBody, color: familyHome.text, marginTop: 4 },
 
   membershipCard: {
     backgroundColor: familyHome.yellowSoft,
@@ -714,8 +705,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  membershipTitle: { ...typography.bodyStrong, color: '#B45309' },
-  membershipBody: { ...typography.caption, color: familyHome.text, marginTop: 2, lineHeight: 18 },
+  membershipTitle: { ...servicePageType.bannerTitle, color: '#B45309' },
+  membershipBody: { ...servicePageType.bannerBody, color: familyHome.text, marginTop: 2 },
   joinPromo: {
     flexDirection: 'row',
     alignItems: 'center',

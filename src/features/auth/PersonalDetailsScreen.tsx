@@ -24,12 +24,11 @@ import {
   ONBOARDING_LANGUAGES,
   formatDateOfBirthFromDate,
   getVerifiedEmail,
-  getGoogleFullName,
   parseDateOfBirth,
+  personalDetailsFormDefaults,
   personalDetailsSchema,
   sanitizeDateOfBirthManualInput,
   setOnboardingProfile,
-  splitFullName,
   type PersonalDetailsValues,
 } from './onboardingProfile';
 import { setOnboardingAuthMethod, type OnboardingAuthMethod } from './onboardingLocation';
@@ -43,7 +42,6 @@ export function PersonalDetailsScreen() {
   const setLocale = useI18nStore((state) => state.setLocale);
   const [languageOpen, setLanguageOpen] = useState(false);
   const verifiedEmail = getVerifiedEmail();
-  const googleName = splitFullName(getGoogleFullName());
   const {
     control,
     handleSubmit,
@@ -52,15 +50,7 @@ export function PersonalDetailsScreen() {
     formState: { errors, isSubmitting },
   } = useForm<PersonalDetailsValues>({
     resolver: zodResolver(personalDetailsSchema),
-    defaultValues: {
-      firstName: googleName.firstName,
-      lastName: googleName.lastName,
-      phone: '',
-      email: verifiedEmail,
-      dateOfBirth: '',
-      language: undefined,
-      address: '',
-    },
+    defaultValues: personalDetailsFormDefaults(),
   });
 
   const method = normalizeMethod(params.method);

@@ -1,8 +1,9 @@
 import { useEffect } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { router, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AgeWellLogo, brandGreen } from '@/components/AgeWellLogo';
+import { KeyboardAwareScrollView } from '@/components/KeyboardAwareScrollView';
 import { spacing, typography } from '@/constants/theme';
 import { isCareApp } from '@/config/appVariant';
 import { AuthMethodButtons } from './AuthMethodButtons';
@@ -11,6 +12,8 @@ import { useGoogleSignIn } from './useGoogleSignIn';
 
 export function WelcomeScreen() {
   const insets = useSafeAreaInsets();
+  const { height, width } = useWindowDimensions();
+  const compact = height < 720 || width < 380;
   const { continueWithGoogle, ready, busy, error } = useGoogleSignIn();
 
   useEffect(() => {
@@ -37,23 +40,36 @@ export function WelcomeScreen() {
   };
 
   return (
-    <View
-      style={[
-        styles.root,
-        { paddingTop: insets.top + spacing.xxxl, paddingBottom: insets.bottom + spacing.xl },
+    <KeyboardAwareScrollView
+      style={styles.root}
+      contentContainerStyle={[
+        styles.content,
+        {
+          paddingTop: insets.top + (compact ? spacing.lg : spacing.xxxl),
+          paddingBottom: insets.bottom + spacing.xl,
+        },
       ]}
+      showsVerticalScrollIndicator={false}
     >
-      <View style={styles.hero}>
-        <AgeWellLogo />
-        <Text style={styles.title}>{isCareApp() ? 'Welcome to AgeWell Care' : 'Welcome to AgeWell'}</Text>
-        <Text style={styles.subtitle}>
+      <View style={[styles.hero, compact ? styles.heroCompact : null]}>
+        <AgeWellLogo compact={compact} />
+        <Text
+          style={[styles.title, compact ? styles.titleCompact : null]}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.72}
+          maxFontSizeMultiplier={1.2}
+        >
+          {isCareApp() ? 'Welcome to AgeWell Care' : 'Welcome to AgeWell'}
+        </Text>
+        <Text style={styles.subtitle} maxFontSizeMultiplier={1.2}>
           {isCareApp()
             ? 'For care managers, companions, and delivery executives.'
             : 'Trusted support for you and your loved ones.'}
         </Text>
       </View>
 
-      <View style={styles.methods}>
+      <View style={[styles.methods, compact ? styles.methodsCompact : null]}>
         <AuthMethodButtons
           onGoogle={isCareApp() ? undefined : onGoogle}
           onMobile={() => router.push(isCareApp() ? ('/(auth)/select-role' as const) : createAccountHref('mobile'))}
@@ -66,12 +82,16 @@ export function WelcomeScreen() {
           accessibilityLabel="Already have an account? Sign in"
           style={({ pressed }) => [styles.signIn, pressed ? styles.pressed : null]}
         >
-          <Text style={styles.signInText}>Already have an account? Sign in</Text>
+          <Text style={styles.signInText} maxFontSizeMultiplier={1.2}>
+            Already have an account? Sign in
+          </Text>
         </Pressable>
       </View>
 
+      <View style={styles.footerSpacer} />
+
       <View style={styles.footer}>
-        <Text style={styles.legal}>
+        <Text style={styles.legal} maxFontSizeMultiplier={1.2}>
           By continuing, you agree to our{'\n'}
           <Text
             style={styles.legalLink}
@@ -94,7 +114,7 @@ export function WelcomeScreen() {
           </Text>
         </Text>
       </View>
-    </View>
+    </KeyboardAwareScrollView>
   );
 }
 
@@ -102,11 +122,17 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: '#FFFFFF',
+  },
+  content: {
+    flexGrow: 1,
     paddingHorizontal: 28,
   },
   hero: {
     alignItems: 'center',
     paddingTop: spacing.xl,
+  },
+  heroCompact: {
+    paddingTop: spacing.sm,
   },
   title: {
     fontFamily: 'Poppins_700Bold',
@@ -116,6 +142,12 @@ const styles = StyleSheet.create({
     color: '#1A1A1A',
     textAlign: 'center',
     marginTop: 56,
+    width: '100%',
+  },
+  titleCompact: {
+    fontSize: 22,
+    lineHeight: 28,
+    marginTop: 20,
   },
   subtitle: {
     ...typography.body,
@@ -127,6 +159,9 @@ const styles = StyleSheet.create({
   methods: {
     marginTop: 48,
     gap: 14,
+  },
+  methodsCompact: {
+    marginTop: 28,
   },
   signIn: {
     minHeight: 44,
@@ -145,10 +180,13 @@ const styles = StyleSheet.create({
     color: brandGreen,
     textAlign: 'center',
   },
+  footerSpacer: {
+    flexGrow: 1,
+    minHeight: 24,
+  },
   footer: {
-    flex: 1,
-    justifyContent: 'flex-end',
     paddingHorizontal: spacing.md,
+    paddingTop: spacing.lg,
     paddingBottom: spacing.sm,
   },
   legal: {

@@ -1,11 +1,12 @@
-import { Alert, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Animated, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams, type Href } from 'expo-router';
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ConfirmDialog, PrimaryButton, SecondaryButton, StatusPill, TextField } from '@/components';
 import { Icon, IconWell, type IconName } from '@/components/ui';
 import { colors, minTouchSize, radius, shadows, spacing, typography } from '@/constants/theme';
 import {
   OFFERING_SERVICE_SLUGS,
+  parseOfferingMeta,
   type OfferingServiceSlug,
   type ServiceOffering,
 } from '@/features/membership/catalogTypes';
@@ -20,6 +21,7 @@ import { ADD_ON_SERVICES } from '@/features/services/addOnServiceCatalog';
 import { MARKETPLACE_SERVICES } from '@/features/services/serviceCatalog';
 import { AdminQueryView } from './components/AdminQueryView';
 import { AdminScreen } from './components/AdminScreen';
+import { AdminSearchPicker } from './components/AdminSearchPicker';
 import { getAdminErrorMessage, getSectionState } from './selectors';
 import { ADDON_SLUG_ORDER, EXTRA_CATALOG_SLUGS, adminCatalogPath } from './servicesAdminModel';
 import { useAdminLayout } from './useAdminLayout';
@@ -29,6 +31,19 @@ const EXTRA_LABELS: Record<(typeof EXTRA_CATALOG_SLUGS)[number], string> = {
   'medical-history': 'Medical History',
   'tech-assistance': 'Tech Assistance',
 };
+
+/** Badge / kind options shown in the edit dropdown. */
+const KIND_OPTIONS = [
+  { id: 'Included', title: 'Included', subtitle: 'Free for members' },
+  { id: 'Extra', title: 'Extra', subtitle: 'Charges apply' },
+  { id: 'Plan', title: 'Plan', subtitle: 'Priced plan / package' },
+  { id: 'Option', title: 'Option', subtitle: 'Bookable choice' },
+  { id: 'Feature', title: 'Feature', subtitle: 'Highlight on service page' },
+  { id: 'Benefit', title: 'Benefit', subtitle: 'Benefit list item' },
+  { id: 'Interest', title: 'Interest', subtitle: 'Events & trips interest' },
+  { id: 'Event', title: 'Event', subtitle: 'Local event' },
+  { id: 'Trip', title: 'Trip', subtitle: 'Trip package' },
+] as const;
 
 type CatalogChip = {
   slug: string;
@@ -57,7 +72,7 @@ function addonChips(): CatalogChip[] {
     icon: item.icon,
     color: item.color,
     background: item.background,
-    dedicated: item.id === 'food',
+    dedicated: false,
   }));
 }
 
@@ -75,6 +90,23 @@ function allCatalogChips(): CatalogChip[] {
   return [...membershipChips(), ...addonChips(), ...extraChips()];
 }
 
+/** Keep meta.kind in sync with Badge so Plan/Option rows show on member booking screens. */
+function metaJsonWithKindFromBadge(badge: string, existing: string | null | undefined): string | null {
+  const kind = badge.trim().toLowerCase();
+  if (!kind) return existing ?? null;
+  const meta = parseOfferingMeta(existing);
+  meta.kind = kind;
+  return JSON.stringify(meta);
+}
+
+function resolveKindLabel(item: ServiceOffering): string {
+  const fromMeta = parseOfferingMeta(item.metaJson).kind?.trim();
+  const raw = (fromMeta || item.badge || '').trim();
+  if (!raw) return '';
+  const match = KIND_OPTIONS.find((option) => option.id.toLowerCase() === raw.toLowerCase());
+  return match?.id ?? raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
+}
+
 function openCatalog(slug: string) {
   router.replace(adminCatalogPath(slug) as Href);
 }
@@ -83,7 +115,7 @@ export function AdminServiceOfferingsHubScreen() {
   return (
     <AdminScreen
       title="Service Catalog"
-      subtitle="Choose a membership service to add items. Add-ons are listed separately."
+      subtitle="Pick a service to edit its plans, prices, and catalogue items. Changes reflect on the member app."
     >
       <ChipSection title="Single membership (21)" chips={membershipChips()} selected={null} />
       <ChipSection title="Add-ons" chips={addonChips()} selected={null} />
@@ -118,7 +150,38 @@ export function AdminServiceOfferingsScreen() {
   const [badge, setBadge] = useState('');
   const [priceLabel, setPriceLabel] = useState('');
   const [image, setImage] = useState<string | null>(null);
+  const [editingMetaJson, setEditingMetaJson] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const successOpacity = useRef(new Animated.Value(0)).current;
+  const successScale = useRef(new Animated.Value(0.92)).current;
+  const successTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showSuccess = useCallback(
+    (message: string) => {
+      if (successTimer.current) clearTimeout(successTimer.current);
+      setSuccessMessage(message);
+      successOpacity.setValue(0);
+      successScale.setValue(0.92);
+      Animated.parallel([
+        Animated.timing(successOpacity, { toValue: 1, duration: 220, useNativeDriver: true }),
+        Animated.spring(successScale, { toValue: 1, friction: 7, tension: 80, useNativeDriver: true }),
+      ]).start();
+      Alert.alert('Saved successfully', 'Your changes have been saved.');
+      successTimer.current = setTimeout(() => {
+        Animated.timing(successOpacity, { toValue: 0, duration: 280, useNativeDriver: true }).start(() => {
+          setSuccessMessage(null);
+        });
+      }, 2800);
+    },
+    [successOpacity, successScale],
+  );
+
+  useEffect(() => {
+    return () => {
+      if (successTimer.current) clearTimeout(successTimer.current);
+    };
+  }, []);
 
   const state = getSectionState({
     isPending: query.isPending,
@@ -138,15 +201,17 @@ export function AdminServiceOfferingsScreen() {
     setBadge('');
     setPriceLabel('');
     setImage(null);
+    setEditingMetaJson(null);
   };
 
   const startEdit = (item: ServiceOffering) => {
     setEditingId(item.id);
     setTitle(item.title);
     setDescription(item.description);
-    setBadge(item.badge);
+    setBadge(resolveKindLabel(item));
     setPriceLabel(item.priceLabel);
     setImage(item.image);
+    setEditingMetaJson(item.metaJson);
     setFormError(null);
   };
 
@@ -161,7 +226,7 @@ export function AdminServiceOfferingsScreen() {
 
   const selectService = (slug: string) => {
     const chip = chips.find((item) => item.slug === slug);
-    if (chip?.dedicated || slug === 'grocery' || slug === 'food') {
+    if (chip?.dedicated || slug === 'grocery') {
       openCatalog(slug);
       return;
     }
@@ -176,7 +241,12 @@ export function AdminServiceOfferingsScreen() {
       setFormError('Enter a title.');
       return;
     }
+    if (!badge.trim()) {
+      setFormError('Select a kind (Included, Extra, Plan…).');
+      return;
+    }
     setFormError(null);
+    const metaJson = metaJsonWithKindFromBadge(badge, editingMetaJson);
     const payload = {
       serviceSlug,
       title: cleanedTitle,
@@ -184,19 +254,26 @@ export function AdminServiceOfferingsScreen() {
       badge: badge.trim(),
       priceLabel: priceLabel.trim(),
       image,
+      metaJson,
     };
     if (editingId) {
       updateItem.mutate(
         { id: editingId, ...payload },
         {
-          onSuccess: () => resetForm(),
+          onSuccess: () => {
+            resetForm();
+            showSuccess('Saved successfully');
+          },
           onError: (error) => setFormError(getAdminErrorMessage(error)),
         },
       );
       return;
     }
     createItem.mutate(payload, {
-      onSuccess: () => resetForm(),
+      onSuccess: () => {
+        resetForm();
+        showSuccess('Saved successfully');
+      },
       onError: (error) => setFormError(getAdminErrorMessage(error)),
     });
   };
@@ -208,8 +285,8 @@ export function AdminServiceOfferingsScreen() {
       title={`${serviceLabel} items`}
       subtitle={
         addonSelected
-          ? 'Add-on catalogue items. These are not part of the 21 membership services.'
-          : 'These items appear on the member service screen.'
+          ? 'Add-on plans and prices. Edit a row above — changes show on the member app after save.'
+          : 'Membership catalogue items and prices. Edit a row above — changes show on the member app after save.'
       }
     >
       <Pressable
@@ -228,11 +305,76 @@ export function AdminServiceOfferingsScreen() {
 
       {formError ? <Text style={styles.error}>{formError}</Text> : null}
 
+      <View style={styles.listPanel}>
+        <Text style={styles.panelTitle}>Existing plans & prices</Text>
+        <Text style={styles.panelHint}>
+          Tap the pencil on a row to edit its rate. Changes show on the member service screen after save.
+        </Text>
+        <AdminQueryView
+          state={state}
+          error={query.error}
+          onRetry={() => void query.refetch()}
+          loadingMessage="Loading items..."
+          emptyTitle="No items yet"
+          emptyMessage="Seed the API or add the first catalogue item for this service."
+        >
+          <View style={styles.itemList}>
+            {items.map((item) => (
+              <View key={item.id} style={styles.itemCard}>
+                {item.image ? (
+                  <Image source={{ uri: item.image }} style={styles.itemThumb} accessibilityLabel={`${item.title} image`} />
+                ) : (
+                  <View style={[styles.itemThumb, styles.itemThumbEmpty]}>
+                    <Icon name="document-outline" size={18} color={colors.textMuted} />
+                  </View>
+                )}
+                <View style={styles.flex}>
+                  <View style={styles.previewTitleRow}>
+                    <Text style={styles.serviceName}>{item.title}</Text>
+                    {item.badge ? <StatusPill label={item.badge} tone="info" /> : null}
+                  </View>
+                  <Text style={styles.itemMeta} numberOfLines={2}>
+                    {item.description || 'No description'}
+                  </Text>
+                  <Text style={styles.itemPrice}>{item.priceLabel || 'No price label'}</Text>
+                </View>
+                <View style={styles.itemActions}>
+                  <Pressable
+                    onPress={() =>
+                      updateItem.mutate(
+                        { id: item.id, isActive: !item.isActive },
+                        { onError: (error) => setFormError(getAdminErrorMessage(error)) },
+                      )
+                    }
+                    accessibilityRole="button"
+                    accessibilityLabel={item.isActive ? `Hide ${item.title}` : `Show ${item.title}`}
+                  >
+                    <Text style={styles.link}>{item.isActive ? 'Active' : 'Hidden'}</Text>
+                  </Pressable>
+                  <Pressable onPress={() => startEdit(item)} accessibilityRole="button" accessibilityLabel={`Edit ${item.title}`}>
+                    <Icon name="create-outline" size={18} color={colors.sidebarActive} />
+                  </Pressable>
+                  <Pressable
+                    onPress={() => setPendingDelete({ id: item.id, name: item.title })}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Delete ${item.title}`}
+                  >
+                    <Icon name="trash-outline" size={18} color={colors.emergency} />
+                  </Pressable>
+                </View>
+              </View>
+            ))}
+          </View>
+        </AdminQueryView>
+      </View>
+
       <View style={isDesktop ? styles.formGrid : styles.stack}>
         <View style={[styles.panel, styles.formCol]}>
           <Text style={styles.panelTitle}>{editingId ? 'Edit item' : 'Add item'}</Text>
           <Text style={styles.panelHint}>
-            Fill in the details to {editingId ? 'update this' : 'add a new'} item to {serviceLabel}.
+            {editingId
+              ? 'Update the price label and save — the member app will show the new rate.'
+              : 'Fill in the details to add a new item to this service.'}
           </Text>
           <TextField label="Title *" value={title} onChangeText={setTitle} placeholder="e.g. SOS Helpline" />
           <TextField
@@ -242,13 +384,20 @@ export function AdminServiceOfferingsScreen() {
             placeholder="Describe the item and when it is used."
             multiline
           />
-          <TextField
-            label="Badge (e.g. helpers, specialty)"
-            value={badge}
-            onChangeText={setBadge}
-            placeholder="e.g. 24x7, Urgent, Priority"
+          <AdminSearchPicker
+            label="Kind *"
+            placeholder="Search Included, Extra, Plan…"
+            options={[...KIND_OPTIONS]}
+            value={badge || null}
+            onChange={(id) => setBadge(id ?? '')}
+            confirmLabel="Select kind"
           />
-          <TextField label="Price / slot label" value={priceLabel} onChangeText={setPriceLabel} placeholder="e.g. 500 or Free" />
+          <TextField
+            label="Price / plan label"
+            value={priceLabel}
+            onChangeText={setPriceLabel}
+            placeholder="e.g. ₹3,500 / month"
+          />
           <Text style={styles.uploadLabel}>Upload image</Text>
           <Pressable
             onPress={() => void onPickImage()}
@@ -272,6 +421,19 @@ export function AdminServiceOfferingsScreen() {
             <Pressable onPress={() => setImage(null)} accessibilityRole="button" accessibilityLabel="Remove image">
               <Text style={styles.link}>Remove image</Text>
             </Pressable>
+          ) : null}
+          {successMessage ? (
+            <Animated.View
+              style={[
+                styles.successBanner,
+                { opacity: successOpacity, transform: [{ scale: successScale }] },
+              ]}
+              accessibilityLiveRegion="polite"
+              accessibilityRole="alert"
+            >
+              <Icon name="checkmark-circle-outline" size={22} color={colors.white} />
+              <Text style={styles.successText}>{successMessage}</Text>
+            </Animated.View>
           ) : null}
           <View style={styles.formActions}>
             {editingId ? <SecondaryButton label="Cancel" fullWidth={false} onPress={resetForm} /> : null}
@@ -312,69 +474,12 @@ export function AdminServiceOfferingsScreen() {
             </View>
             <Text style={styles.tipsLine}>Use a clear and concise title.</Text>
             <Text style={styles.tipsLine}>Add a short, helpful description.</Text>
-            <Text style={styles.tipsLine}>Use a relevant badge (e.g. Urgent, 24x7).</Text>
+            <Text style={styles.tipsLine}>Pick Included or Extra from the Kind dropdown (or Plan / Option).</Text>
             <Text style={styles.tipsLine}>Upload a clear icon or image for quick recognition.</Text>
             <Text style={styles.tipsLine}>Keep the price / slot label simple (₹500, Free, Per visit).</Text>
           </View>
         </View>
       </View>
-
-      <AdminQueryView
-        state={state}
-        error={query.error}
-        onRetry={() => void query.refetch()}
-        loadingMessage="Loading items..."
-        emptyTitle="No items yet"
-        emptyMessage="Add the first catalogue item for this service."
-      >
-        <View style={styles.itemList}>
-          {items.map((item) => (
-            <View key={item.id} style={styles.itemCard}>
-              {item.image ? (
-                <Image source={{ uri: item.image }} style={styles.itemThumb} accessibilityLabel={`${item.title} image`} />
-              ) : (
-                <View style={[styles.itemThumb, styles.itemThumbEmpty]}>
-                  <Icon name="document-outline" size={18} color={colors.textMuted} />
-                </View>
-              )}
-              <View style={styles.flex}>
-                <View style={styles.previewTitleRow}>
-                  <Text style={styles.serviceName}>{item.title}</Text>
-                  {item.badge ? <StatusPill label={item.badge} tone="info" /> : null}
-                </View>
-                <Text style={styles.itemMeta} numberOfLines={2}>
-                  {item.description || 'No description'}
-                </Text>
-                <Text style={styles.itemMeta}>{item.priceLabel || 'No price label'}</Text>
-              </View>
-              <View style={styles.itemActions}>
-                <Pressable
-                  onPress={() =>
-                    updateItem.mutate(
-                      { id: item.id, isActive: !item.isActive },
-                      { onError: (error) => setFormError(getAdminErrorMessage(error)) },
-                    )
-                  }
-                  accessibilityRole="button"
-                  accessibilityLabel={item.isActive ? `Hide ${item.title}` : `Show ${item.title}`}
-                >
-                  <Text style={styles.link}>{item.isActive ? 'Active' : 'Hidden'}</Text>
-                </Pressable>
-                <Pressable onPress={() => startEdit(item)} accessibilityRole="button" accessibilityLabel={`Edit ${item.title}`}>
-                  <Icon name="create-outline" size={18} color={colors.sidebarActive} />
-                </Pressable>
-                <Pressable
-                  onPress={() => setPendingDelete({ id: item.id, name: item.title })}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Delete ${item.title}`}
-                >
-                  <Icon name="trash-outline" size={18} color={colors.emergency} />
-                </Pressable>
-              </View>
-            </View>
-          ))}
-        </View>
-      </AdminQueryView>
 
       <ConfirmDialog
         visible={Boolean(pendingDelete)}
@@ -515,6 +620,14 @@ const styles = StyleSheet.create({
     ...shadows.card,
     gap: spacing.md,
   },
+  listPanel: {
+    backgroundColor: colors.white,
+    borderRadius: radius.lg,
+    padding: spacing.xl,
+    ...shadows.card,
+    gap: spacing.md,
+    marginBottom: spacing.lg,
+  },
   panelTitle: {
     ...typography.heading,
     color: colors.text,
@@ -623,6 +736,22 @@ const styles = StyleSheet.create({
     color: colors.emergency,
     marginBottom: spacing.md,
   },
+  successBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.safe,
+    borderRadius: radius.lg,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.md,
+    ...shadows.card,
+  },
+  successText: {
+    ...typography.bodyStrong,
+    color: colors.white,
+    flex: 1,
+  },
   itemList: {
     gap: spacing.md,
   },
@@ -649,6 +778,11 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.textSecondary,
     marginTop: 2,
+  },
+  itemPrice: {
+    ...typography.captionStrong,
+    color: colors.text,
+    marginTop: 4,
   },
   itemActions: {
     flexDirection: 'row',

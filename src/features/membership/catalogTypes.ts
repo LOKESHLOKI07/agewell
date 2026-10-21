@@ -127,8 +127,9 @@ export const OFFERING_SERVICE_SLUGS = [
   'transport',
   'pooja',
   'cctv',
-  // Home add-ons (food uses the dedicated food catalog)
+  // Home add-ons (food meal plans live here; cuisine menu stays on dedicated food catalog)
   'emergency-companion',
+  'food',
   'stool-cleaning',
   'maid-assistance',
   'ayurvedic-massage',

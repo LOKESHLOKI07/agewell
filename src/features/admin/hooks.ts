@@ -42,6 +42,7 @@ import {
   fetchAdminVisitTasks,
   fetchAdminVisits,
   reviewAdminMembershipRequest,
+  updateAdminMembershipRequestStage,
   updateAdminCareManager,
   updateAdminEmergencyStatus,
   updateAdminSenior,
@@ -390,6 +391,30 @@ export function useReviewAdminMembershipRequest() {
       reviewAdminMembershipRequest(input.id, input.status),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['admin', 'memberships'] });
+    },
+  });
+}
+
+export function useUpdateAdminMembershipRequestStage() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      id: string;
+      stage?: string;
+      visitScheduledStart?: string;
+      visitScheduledEnd?: string;
+      careManagerId?: string | null;
+      companionId?: string | null;
+      clearCareManager?: boolean;
+      clearCompanion?: boolean;
+    }) => updateAdminMembershipRequestStage(input.id, input),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['admin', 'memberships'] }),
+        queryClient.invalidateQueries({ queryKey: ['membership', 'requests'] }),
+        queryClient.invalidateQueries({ queryKey: homeQueryKeys.membershipCurrent }),
+        queryClient.invalidateQueries({ queryKey: ['admin', 'seniors'] }),
+      ]);
     },
   });
 }

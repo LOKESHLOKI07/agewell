@@ -3,6 +3,7 @@ import { useAuthStore } from '@/features/auth/authStore';
 import type { ListPage } from '@/features/home/types/home';
 import {
   acknowledgeEmergency,
+  cancelEmergency,
   createEmergency,
   fetchEmergencyCase,
   fetchEmergencyCases,
@@ -89,6 +90,16 @@ export function useAcknowledgeEmergency() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => acknowledgeEmergency(id),
+    onSuccess: async (updated) => {
+      await invalidateEmergency(queryClient, updated.id);
+    },
+  });
+}
+
+export function useCancelEmergency() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => cancelEmergency(id),
     onSuccess: async (updated) => {
       await invalidateEmergency(queryClient, updated.id);
     },

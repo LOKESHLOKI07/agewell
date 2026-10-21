@@ -3,19 +3,30 @@ import { colors, typography } from '@/constants/theme';
 import { isCareApp } from '@/config/appVariant';
 import { Icon } from '@/components/ui';
 import { useAuthStore } from '@/features/auth/authStore';
+import { getServiceAreaAvailable } from '@/features/auth/serviceAreaPreference';
+import { useServicesLive } from '@/features/auth/useServicesLive';
 import { authenticatedHomeHref, isMemberHomeRole } from '@/features/auth/roleRouting';
 import { brandGreen } from '@/components/AgeWellLogo';
+import { useSeniorProfile } from '@/features/home/hooks/queries';
 import { SosTabButton } from '@/features/membership/components/SosTabButton';
 import { useSafeTabBarStyle } from '@/utils/safeBottom';
 
 export default function TabsLayout() {
   const role = useAuthStore((state) => state.user?.role);
   const tabBarStyle = useSafeTabBarStyle();
+  const senior = useSeniorProfile();
+  const servicesLive = useServicesLive();
   if (isCareApp()) {
     return <Redirect href={authenticatedHomeHref(role ?? 'SENIOR') as Href} />;
   }
   if (role && !isMemberHomeRole(role)) {
     return <Redirect href={authenticatedHomeHref(role) as Href} />;
+  }
+  if (isMemberHomeRole(role)) {
+    const localKnown = getServiceAreaAvailable();
+    if (!(senior.isPending && localKnown === null) && !servicesLive) {
+      return <Redirect href={'/account/service-unavailable' as Href} />;
+    }
   }
 
   return (

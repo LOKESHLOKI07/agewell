@@ -25,11 +25,11 @@ export function setOnboardingAuthMethod(method: OnboardingAuthMethod) {
   draft.method = method;
 }
 
-export function setOnboardingGps(latitude: number, longitude: number) {
+export function setOnboardingGps(latitude: number, longitude: number, query?: string | null) {
   draft.source = 'gps';
   draft.latitude = latitude;
   draft.longitude = longitude;
-  draft.query = null;
+  draft.query = query?.trim() || null;
 }
 
 export function setOnboardingManualLocation(query: string) {
@@ -58,7 +58,7 @@ export function onboardingLocationApiFields() {
     return {
       locationLat: loc.latitude,
       locationLng: loc.longitude,
-      locationQuery: null as string | null,
+      locationQuery: loc.query,
       locationSource: 'gps' as const,
     };
   }

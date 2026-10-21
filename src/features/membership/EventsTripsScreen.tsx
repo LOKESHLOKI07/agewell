@@ -23,7 +23,9 @@ import type { ServiceOffering } from './catalogTypes';
 import { filterOfferingsByKind, parseOfferingMeta } from './catalogTypes';
 import { MEMBERSHIP_SERVICE_AREA_LINE } from './membershipServicePageVariant';
 import { membershipPurchaseHref } from './planCatalog';
-import { SERVICE_HERO_IMAGES } from './serviceHeroes';
+import { SERVICE_HERO_IMAGES } from './serviceHeroes'
+import { servicePageType } from './servicePageType';
+import { MembershipNoMembershipPreview } from './MembershipNoMembershipPreview';
 import { useMembershipServicePageVariant } from './useMembershipServicePageVariant';
 import { useMembershipSubmit } from './useMembershipSubmit';
 import { useServiceOfferings } from './useCatalog';
@@ -64,20 +66,6 @@ const GATE_FEATURES: { icon: IconName; title: string; body: string }[] = [
   },
 ];
 
-const FALLBACK_INTERESTS = [
-  'Spiritual',
-  'Music',
-  'Nature',
-  'History',
-  'Food',
-  'Wellness',
-  'Art & Culture',
-  'Shopping',
-  'Social Meetups',
-  'Short Trips',
-  'Long Tours',
-];
-
 const INTEREST_ICONS: { match: RegExp; icon: IconName }[] = [
   { match: /spiritual/i, icon: 'flower' },
   { match: /music/i, icon: 'music' },
@@ -101,115 +89,6 @@ const TAG_TONES: { match: RegExp; color: string; soft: string }[] = [
 ];
 
 const THUMB_COLORS = ['#7B9E87', '#5B7C99', '#8B6B8A', '#C4A35A', '#6A8F6B', '#9B6B5A'];
-
-const FALLBACK_EVENTS: ServiceOffering[] = [
-  {
-    id: 'fallback-temple',
-    serviceSlug: SLUG,
-    title: 'Temple Visit & Morning Walk',
-    description: 'Gentle morning walk and temple visit with fellow members nearby.',
-    badge: 'Local Event',
-    priceLabel: 'Included',
-    image: null,
-    metaJson: '{"kind":"event","when":"20 Sep","place":"Kandivali","tags":"Spiritual|Walk"}',
-    sortOrder: 0,
-    isActive: true,
-  },
-  {
-    id: 'fallback-art',
-    serviceSlug: SLUG,
-    title: 'Art Exhibition Visit',
-    description: 'Guided visit to a local art exhibition with light refreshments.',
-    badge: 'Local Event',
-    priceLabel: 'Included',
-    image: null,
-    metaJson: '{"kind":"event","when":"24 Sep","place":"Borivali","tags":"Art|Culture"}',
-    sortOrder: 1,
-    isActive: true,
-  },
-  {
-    id: 'fallback-yoga',
-    serviceSlug: SLUG,
-    title: 'Yoga in the Park',
-    description: 'Outdoor yoga session focused on mobility, balance and calm.',
-    badge: 'Local Event',
-    priceLabel: 'Included',
-    image: null,
-    metaJson: '{"kind":"event","when":"28 Sep","place":"Kandivali","tags":"Wellness|Yoga"}',
-    sortOrder: 2,
-    isActive: true,
-  },
-  {
-    id: 'fallback-picnic',
-    serviceSlug: SLUG,
-    title: 'Garden Picnic Morning',
-    description: 'Relaxed picnic morning in a nearby garden with members.',
-    badge: 'Local Event',
-    priceLabel: 'Included',
-    image: null,
-    metaJson: '{"kind":"event","when":"2 Oct","place":"Malad","tags":"Nature|Social"}',
-    sortOrder: 3,
-    isActive: true,
-  },
-];
-
-const FALLBACK_TRIPS: ServiceOffering[] = [
-  {
-    id: 'fallback-lonavala',
-    serviceSlug: SLUG,
-    title: 'Lonavala Getaway',
-    description: 'Scenic hills escape with companion support.',
-    badge: 'Outstation',
-    priceLabel: 'Charges apply',
-    image: null,
-    metaJson: '{"kind":"tour","duration":"3D / 2N","tags":"Nature|Relaxation"}',
-    sortOrder: 10,
-    isActive: true,
-  },
-  {
-    id: 'fallback-kerala',
-    serviceSlug: SLUG,
-    title: 'Kerala Backwaters',
-    description: 'Houseboat stay and peaceful backwater views.',
-    badge: 'Outstation',
-    priceLabel: 'Charges apply',
-    image: null,
-    metaJson: '{"kind":"tour","duration":"4D / 3N","tags":"Scenic|Peaceful"}',
-    sortOrder: 11,
-    isActive: true,
-  },
-  {
-    id: 'fallback-alibaug',
-    serviceSlug: SLUG,
-    title: 'Alibaug Beach Escape',
-    description: 'Beach and fort day outing with pickup and drop.',
-    badge: 'Outstation',
-    priceLabel: 'Charges apply',
-    image: null,
-    metaJson: '{"kind":"tour","duration":"2D / 1N","tags":"Beach|Leisure"}',
-    sortOrder: 12,
-    isActive: true,
-  },
-  {
-    id: 'fallback-statue',
-    serviceSlug: SLUG,
-    title: 'Statue of Unity',
-    description: 'Iconic monument visit with lodging and companion support.',
-    badge: 'Outstation',
-    priceLabel: 'Charges apply',
-    image: null,
-    metaJson: '{"kind":"senior","duration":"2D / 1N","tags":"History|Scenic"}',
-    sortOrder: 13,
-    isActive: true,
-  },
-];
-
-function offeringKind(item: ServiceOffering): 'event' | 'tour' | 'interest' {
-  const kind = parseOfferingMeta(item.metaJson).kind?.toLowerCase();
-  if (kind === 'interest') return 'interest';
-  if (kind === 'tour' || kind === 'family' || kind === 'trip' || kind === 'senior') return 'tour';
-  return 'event';
-}
 
 function splitTags(raw: string | undefined): string[] {
   if (!raw?.trim()) return [];
@@ -396,60 +275,21 @@ function OutsideAreaBody() {
 }
 
 function NoMembershipBody() {
-  return (
-    <View style={styles.stack}>
-      <TitleBlock />
-      <GateHero tone="membership" />
-      <FeaturesGrid />
-      <View style={styles.membershipCard}>
-        <View style={styles.membershipHead}>
-          <View style={styles.lockWell}>
-            <Icon name="lock-closed-outline" size={16} color="#B45309" />
-          </View>
-          <View style={styles.flex}>
-            <Text style={styles.membershipTitle}>Membership Required</Text>
-            <Text style={styles.membershipBody}>
-              Local Events & Trips is available only for AgeWell members.
-            </Text>
-          </View>
-        </View>
-        <Pressable
-          onPress={() => router.push(membershipPurchaseHref())}
-          style={({ pressed }) => [styles.joinPromo, pressed ? styles.pressed : null]}
-          accessibilityRole="button"
-        >
-          <View style={styles.flex}>
-            <Text style={styles.joinPromoTitle}>Join AgeWell Membership</Text>
-            <Text style={styles.joinPromoBody}>
-              Get access to Local Events & Trips and many more supportive services for a safer, healthier and
-              happier life.
-            </Text>
-          </View>
-          <Icon name="chevron-forward" size={16} color="#B45309" />
-        </Pressable>
-        <PrimaryButton label="Join Membership  →" onPress={() => router.push(membershipPurchaseHref())} />
-        <SecondaryButton
-          label="View Membership Plans"
-          onPress={() => router.push(membershipPurchaseHref())}
-        />
-      </View>
-      <ServiceHelpBanner />
-    </View>
-  );
+  return <MembershipNoMembershipPreview slug={SLUG} />;
 }
 
 function MemberLiveBody() {
   const catalog = useServiceOfferings(SLUG);
   const { submitting, submit } = useMembershipSubmit(SLUG);
-  const [interests, setInterests] = useState<string[]>(['Spiritual']);
+  const [interests, setInterests] = useState<string[]>([]);
   const [editMode, setEditMode] = useState(false);
 
   const offerings = catalog.data ?? [];
 
-  const interestOptions = useMemo(() => {
-    const fromApi = filterOfferingsByKind(offerings, 'interest').map((item) => item.title);
-    return fromApi.length > 0 ? fromApi : FALLBACK_INTERESTS;
-  }, [offerings]);
+  const interestOptions = useMemo(
+    () => filterOfferingsByKind(offerings, 'interest').map((item) => item.title),
+    [offerings],
+  );
 
   useEffect(() => {
     if (interests.length === 0 && interestOptions[0]) {
@@ -457,14 +297,14 @@ function MemberLiveBody() {
     }
   }, [interestOptions, interests.length]);
 
-  const events = useMemo(() => {
-    const fromApi = offerings.filter((item) => offeringKind(item) === 'event');
-    return fromApi.length > 0 ? fromApi : FALLBACK_EVENTS;
-  }, [offerings]);
+  const events = useMemo(() => filterOfferingsByKind(offerings, 'event'), [offerings]);
 
   const trips = useMemo(() => {
-    const fromApi = offerings.filter((item) => offeringKind(item) === 'tour');
-    return fromApi.length > 0 ? fromApi : FALLBACK_TRIPS;
+    const tours = filterOfferingsByKind(offerings, 'tour');
+    const seniors = filterOfferingsByKind(offerings, 'senior');
+    const families = filterOfferingsByKind(offerings, 'family');
+    const tripsOnly = filterOfferingsByKind(offerings, 'trip');
+    return [...tours, ...seniors, ...families, ...tripsOnly].sort((a, b) => a.sortOrder - b.sortOrder);
   }, [offerings]);
 
   const toggleInterest = (name: string) => {
@@ -538,6 +378,13 @@ function MemberLiveBody() {
           </Pressable>
         </View>
         <Text style={styles.sectionHint}>Select your interests to get personalized recommendations.</Text>
+
+        {catalog.isPending && interestOptions.length === 0 ? (
+          <Text style={styles.empty}>Loading interests…</Text>
+        ) : null}
+        {!catalog.isPending && interestOptions.length === 0 ? (
+          <Text style={styles.empty}>No interests available yet.</Text>
+        ) : null}
 
         <View style={styles.chipWrap}>
           {interestOptions.map((name) => {
@@ -683,22 +530,26 @@ function OfferingSection({
         </Pressable>
       </View>
       <Text style={styles.sectionHint}>{subtitle}</Text>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.offerRow}
-      >
-        {items.map((item, index) => (
-          <OfferingCard
-            key={item.id}
-            item={item}
-            kind={kind}
-            colorIndex={index}
-            submitting={submitting}
-            onPress={() => onBook(item)}
-          />
-        ))}
-      </ScrollView>
+      {items.length === 0 ? (
+        <Text style={styles.empty}>Nothing listed yet.</Text>
+      ) : (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.offerRow}
+        >
+          {items.map((item, index) => (
+            <OfferingCard
+              key={item.id}
+              item={item}
+              kind={kind}
+              colorIndex={index}
+              submitting={submitting}
+              onPress={() => onBook(item)}
+            />
+          ))}
+        </ScrollView>
+      )}
     </View>
   );
 }
@@ -807,8 +658,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  title: { ...typography.title, color: familyHome.text },
-  liveTitle: { ...typography.title, color: familyHome.text, fontSize: 22 },
+  title: { ...servicePageType.pageTitle, color: familyHome.text },
+  liveTitle: { ...servicePageType.pageTitle, color: familyHome.text},
   lead: { ...typography.body, color: familyHome.muted, lineHeight: 22, marginTop: 4 },
   subtitle: { ...typography.body, color: familyHome.muted },
   heroFull: {
@@ -836,12 +687,7 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   heroFullCopy: { flex: 1, gap: 6, paddingBottom: 2 },
-  heroFullHeadline: {
-    ...typography.subtitle,
-    color: familyHome.text,
-    lineHeight: 28,
-    fontSize: 22,
-  },
+  heroFullHeadline: { ...servicePageType.heroHeadline },
   heroFullAccent: { color: familyHome.greenDark },
   heroFullBody: {
     ...typography.caption,
@@ -896,8 +742,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  soonTitle: { ...typography.bodyStrong, color: familyHome.red },
-  soonBody: { ...typography.caption, color: familyHome.text, marginTop: 4, lineHeight: 18 },
+  soonTitle: { ...servicePageType.bannerTitle, color: familyHome.red },
+  soonBody: { ...servicePageType.bannerBody, color: familyHome.text, marginTop: 4 },
   notifyCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -975,8 +821,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  membershipTitle: { ...typography.bodyStrong, color: familyHome.text },
-  membershipBody: { ...typography.caption, color: familyHome.muted, marginTop: 2, lineHeight: 18 },
+  membershipTitle: { ...servicePageType.bannerTitle, color: familyHome.text },
+  membershipBody: { ...servicePageType.bannerBody, color: familyHome.muted, marginTop: 2 },
   joinPromo: {
     flexDirection: 'row',
     alignItems: 'center',

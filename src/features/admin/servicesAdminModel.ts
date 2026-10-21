@@ -80,9 +80,7 @@ export function adminCatalogPath(slug: string): string {
   if (slug === 'grocery') {
     return '/(admin)/catalog/grocery';
   }
-  if (slug === 'food') {
-    return '/(admin)/catalog/food';
-  }
+  // Meal-plan offerings for Tiffin Box; cuisine/menu remains at /(admin)/catalog/food
   return `/(admin)/catalog/offerings/${slug}`;
 }
 

@@ -32,7 +32,7 @@ export type CompanionProfileView = {
   traits: string | null;
 };
 
-const SERVICE_AREA_FALLBACK = 'Kandivali & Borivali';
+const SERVICE_AREA_FALLBACK = 'Kandivali, Borivali, Warora, Bhadravati & Wani';
 
 function toneForActivityType(type: CareActivity['activityType']): CompanionActivityTone {
   switch (type) {

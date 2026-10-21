@@ -51,3 +51,8 @@ export function membershipPurchaseHref(planKey?: MembershipPlanKey): Href {
   }
   return { pathname: '/account/purchase', params: { plan: planKey } };
 }
+
+/** Multi-step AgeWell membership application (visit → review → pay). */
+export function membershipApplyHref(planKey: MembershipPlanKey): Href {
+  return { pathname: '/account/apply', params: { plan: planKey } };
+}

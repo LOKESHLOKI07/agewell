@@ -17,6 +17,7 @@ from app.modules.memberships.schemas import (
     MembershipRequestCreate,
     MembershipRequestResponse,
     MembershipRequestReview,
+    MembershipRequestStageUpdate,
     MembershipRequestStatus,
     MembershipUsageItem,
 )
@@ -138,3 +139,26 @@ async def review_membership_request(
     service: MembershipService = Depends(get_membership_service),
 ):
     return await service.review_request(request_id, payload.status)
+
+
+@router.patch("/requests/{request_id}/stage", response_model=MembershipRequestResponse)
+async def update_membership_request_stage(
+    request_id: UUID,
+    payload: MembershipRequestStageUpdate,
+    _staff: User = Depends(require_staff),
+    service: MembershipService = Depends(get_membership_service),
+):
+    return await service.update_request_stage(request_id, payload)
+
+
+@router.post("/requests/{request_id}/pay", response_model=MembershipRequestResponse)
+async def pay_membership_request(
+    request_id: UUID,
+    current_user: User = Depends(get_current_user),
+    access: AccessService = Depends(get_access_service),
+    service: MembershipService = Depends(get_membership_service),
+):
+    senior_id = await access.resolve_senior_id(current_user, None)
+    if senior_id is None:
+        raise HTTPException(status_code=400, detail="senior_id is required")
+    return await service.confirm_payment(request_id, senior_id=senior_id)

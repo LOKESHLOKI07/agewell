@@ -9,6 +9,7 @@ import {
   onboardingAccountFields,
   parseDateOfBirth,
   sanitizeDateOfBirthManualInput,
+  personalDetailsFormDefaults,
   personalDetailsSchema,
   setCreatedPassword,
   setOnboardingProfile,
@@ -82,6 +83,29 @@ describe('personal details', () => {
       lastName: 'Sharma',
       preferredLanguage: 'hi',
       password: 'AgeWellPass1',
+    });
+  });
+
+  it('restores saved personal details when the user comes back to change their number', () => {
+    setOnboardingProfile(
+      personalDetailsSchema.parse({
+        firstName: 'Lokesh',
+        lastName: 'Nardil',
+        phone: '9876543210',
+        email: 'lokeshnardil@gmail.com',
+        dateOfBirth: '15-03-1950',
+        language: 'en',
+        address: 'Kandivali West',
+      }),
+    );
+    expect(personalDetailsFormDefaults()).toMatchObject({
+      firstName: 'Lokesh',
+      lastName: 'Nardil',
+      phone: '9876543210',
+      email: 'lokeshnardil@gmail.com',
+      dateOfBirth: '15-03-1950',
+      language: 'en',
+      address: 'Kandivali West',
     });
   });
 

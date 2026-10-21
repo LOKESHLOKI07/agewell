@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
+import { resolveServiceAreaFromSenior } from '@/features/auth/serviceArea';
 import {
   canAvailServices,
-  setServiceAreaAvailable,
+  setServiceAreaResolution,
 } from '@/features/auth/serviceAreaPreference';
 import { useSeniorProfile } from '@/features/home/hooks/queries';
 
@@ -17,8 +18,16 @@ export function useServicesLive(): boolean {
     if (!senior.data) {
       return;
     }
-    void setServiceAreaAvailable(senior.data.inServiceArea);
-  }, [senior.data?.inServiceArea, senior.data]);
+    void setServiceAreaResolution(
+      resolveServiceAreaFromSenior({
+        inServiceArea: senior.data.inServiceArea,
+        locationQuery: senior.data.locationQuery,
+        locationLat: senior.data.locationLat,
+        locationLng: senior.data.locationLng,
+        address: senior.data.address,
+      }),
+    );
+  }, [senior.data]);
 
   if (senior.data) {
     return senior.data.inServiceArea;

@@ -563,7 +563,7 @@ export function AdminSeniorDetailScreen() {
                       <DetailInfoField label="Checked location" value={adminSeniorLocationLabel(senior)} />
                       <DetailInfoField
                         label="Service area"
-                        value={senior.inServiceArea ? 'In area (Kandivali / Borivali)' : 'Outside service area'}
+                        value={senior.inServiceArea ? 'In service area' : 'Outside service area'}
                       />
                       <DetailInfoField
                         label="Account status"

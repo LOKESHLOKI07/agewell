@@ -1,4 +1,5 @@
 import type { Href } from 'expo-router';
+import type { ServiceTier } from '@/features/auth/serviceArea';
 import { familyHome } from '@/features/home/components/familyHomeTheme';
 import type { HomeServiceTile } from '@/features/services/serviceCatalog';
 
@@ -55,6 +56,20 @@ export const ADD_ON_SERVICES: HomeServiceTile[] = [
   },
 ];
 
-export function homeAddOnServices(): HomeServiceTile[] {
-  return ADD_ON_SERVICES;
+/** Tier 2 (Warora, Bhadravati, Wani) does not offer Tiffin Box or House Maid. */
+export const TIER2_EXCLUDED_ADDON_IDS = ['food', 'maid-assistance'] as const;
+
+export function isAddonOfferedInTier(id: string, tier: ServiceTier | null): boolean {
+  if (tier === 'tier2') {
+    return !(TIER2_EXCLUDED_ADDON_IDS as readonly string[]).includes(id);
+  }
+  return true;
+}
+
+export function homeAddOnServices(tier: ServiceTier | null = null): HomeServiceTile[] {
+  return ADD_ON_SERVICES.filter((item) => isAddonOfferedInTier(item.id, tier));
+}
+
+export function isServiceOfferedInLocality(id: string, tier: ServiceTier | null): boolean {
+  return isAddonOfferedInTier(id, tier);
 }

@@ -172,6 +172,32 @@ export function getOnboardingProfile(): PersonalDetailsValues {
   return { ...profile };
 }
 
+export type PersonalDetailsFormDefaults = {
+  firstName: string;
+  lastName: string;
+  phone: string;
+  email: string;
+  dateOfBirth: string;
+  language: PersonalDetailsValues['language'] | undefined;
+  address: string;
+};
+
+/** Prefill the personal-details form when the user comes back to change a number. */
+export function personalDetailsFormDefaults(): PersonalDetailsFormDefaults {
+  const saved = getOnboardingProfile();
+  const savedReady = hasOnboardingProfile();
+  const googleName = splitFullName(getGoogleFullName());
+  return {
+    firstName: savedReady ? saved.firstName : googleName.firstName,
+    lastName: savedReady ? saved.lastName : googleName.lastName,
+    phone: savedReady ? saved.phone : '',
+    email: getVerifiedEmail() || (savedReady ? saved.email : ''),
+    dateOfBirth: savedReady ? saved.dateOfBirth : '',
+    language: savedReady ? saved.language : undefined,
+    address: savedReady ? saved.address : '',
+  };
+}
+
 export function hasOnboardingProfile(): boolean {
   const current = getOnboardingProfile();
   return Boolean(

@@ -457,6 +457,33 @@ export function reviewAdminMembershipRequest(
   return sendMapped('patch', `/memberships/requests/${id}`, toMembershipRequest, { status });
 }
 
+export function updateAdminMembershipRequestStage(
+  id: string,
+  input: {
+    stage?: string;
+    visitScheduledStart?: string;
+    visitScheduledEnd?: string;
+    careManagerId?: string | null;
+    companionId?: string | null;
+    clearCareManager?: boolean;
+    clearCompanion?: boolean;
+  },
+): Promise<MembershipRequest> {
+  return sendMapped('patch', `/memberships/requests/${id}/stage`, toMembershipRequest, {
+    ...(input.stage ? { stage: input.stage } : {}),
+    ...(input.visitScheduledStart ? { visit_scheduled_start: input.visitScheduledStart } : {}),
+    ...(input.visitScheduledEnd ? { visit_scheduled_end: input.visitScheduledEnd } : {}),
+    ...(input.careManagerId ? { care_manager_id: input.careManagerId } : {}),
+    ...(input.companionId ? { companion_id: input.companionId } : {}),
+    ...(input.clearCareManager ? { clear_care_manager: true } : {}),
+    ...(input.clearCompanion ? { clear_companion: true } : {}),
+  });
+}
+
+export function cancelAdminMembershipRecord(id: string): Promise<AdminMembershipRecord> {
+  return sendMapped('post', `/memberships/records/${id}/cancel`, toAdminMembershipRecord);
+}
+
 export function fetchAdminEmergencies(params: {
   limit: number;
   offset: number;

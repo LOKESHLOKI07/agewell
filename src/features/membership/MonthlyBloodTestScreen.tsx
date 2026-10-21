@@ -28,7 +28,8 @@ import {
   toMonthlyBloodActivityViews,
 } from './monthlyBloodModel';
 import { filterOfferingsByKind, type ServiceOffering } from './catalogTypes';
-import { SERVICE_HERO_IMAGES } from './serviceHeroes';
+import { SERVICE_HERO_IMAGES } from './serviceHeroes'
+import { servicePageType } from './servicePageType';
 import { useMembershipSubmit } from './useMembershipSubmit';
 import { useHasActiveMembership } from './useHasActiveMembership';
 import { useServiceOfferings } from './useCatalog';
@@ -37,54 +38,12 @@ import { toDisplayDate } from '@/utils/date';
 
 const VIDEO_URL = 'https://www.youtube.com/results?search_query=Understanding+Your+Monthly+Blood+Test+AgeWell';
 
-const FALLBACK_EXTRAS: {
-  id: string;
-  title: string;
-  description: string;
-  soft: string;
-  color: string;
-  icon: IconName;
-}[] = [
-  {
-    id: 'fallback-lft',
-    title: 'LFT',
-    description: 'Liver function test',
-    soft: familyHome.greenSoft,
-    color: familyHome.red,
-    icon: 'water',
-  },
-  {
-    id: 'fallback-kft',
-    title: 'KFT',
-    description: 'Kidney function test',
-    soft: familyHome.blueSoft,
-    color: familyHome.blue,
-    icon: 'water',
-  },
-  {
-    id: 'fallback-lipid',
-    title: 'Lipid Profile',
-    description: 'Cholesterol & triglycerides',
-    soft: familyHome.yellowSoft,
-    color: familyHome.orange,
-    icon: 'water',
-  },
-  {
-    id: 'fallback-thyroid',
-    title: 'Thyroid',
-    description: 'Thyroid stimulating hormone',
-    soft: familyHome.redSoft,
-    color: familyHome.red,
-    icon: 'medkit-outline',
-  },
-  {
-    id: 'fallback-urine',
-    title: 'Urine Routine',
-    description: 'Urine routine examination',
-    soft: familyHome.blueSoft,
-    color: familyHome.blue,
-    icon: 'flask-outline',
-  },
+const EXTRA_TONES: { soft: string; color: string; icon: IconName }[] = [
+  { soft: familyHome.greenSoft, color: familyHome.red, icon: 'water' },
+  { soft: familyHome.blueSoft, color: familyHome.blue, icon: 'water' },
+  { soft: familyHome.yellowSoft, color: familyHome.orange, icon: 'water' },
+  { soft: familyHome.redSoft, color: familyHome.red, icon: 'medkit-outline' },
+  { soft: familyHome.blueSoft, color: familyHome.blue, icon: 'flask-outline' },
 ];
 
 function membershipValidLabel(endDate: string | null | undefined): string | null {
@@ -107,8 +66,7 @@ function extraTone(title: string, index: number): { soft: string; color: string;
   if (/lipid|cholest/.test(hay)) return { soft: familyHome.yellowSoft, color: familyHome.orange, icon: 'water' };
   if (/thyroid|tsh/.test(hay)) return { soft: familyHome.redSoft, color: familyHome.red, icon: 'medkit-outline' };
   if (/urine/.test(hay)) return { soft: familyHome.blueSoft, color: familyHome.blue, icon: 'flask-outline' };
-  const fallback = FALLBACK_EXTRAS[index % FALLBACK_EXTRAS.length];
-  return { soft: fallback.soft, color: fallback.color, icon: fallback.icon };
+  return EXTRA_TONES[index % EXTRA_TONES.length]!;
 }
 
 export const MonthlyBloodTestScreen = gatedMembershipScreen(
@@ -134,9 +92,9 @@ function MonthlyBloodTestLive() {
   const [showAll, setShowAll] = useState(false);
   const { submitting, submit } = useMembershipSubmit('monthly-blood-test');
 
-  const displayExtras = useMemo(() => {
-    if (extraTests.length > 0) {
-      return extraTests.map((item, index) => {
+  const displayExtras = useMemo(
+    () =>
+      extraTests.map((item, index) => {
         const tone = extraTone(item.title, index);
         return {
           id: item.id,
@@ -147,10 +105,9 @@ function MonthlyBloodTestLive() {
           icon: tone.icon,
           offering: item as ServiceOffering,
         };
-      });
-    }
-    return FALLBACK_EXTRAS.map((item) => ({ ...item, offering: null as ServiceOffering | null }));
-  }, [extraTests]);
+      }),
+    [extraTests],
+  );
 
   const selectedExtras = displayExtras.filter((item) => extraIds.includes(item.id));
 
@@ -190,22 +147,17 @@ function MonthlyBloodTestLive() {
   };
 
   const onRequestExtra = () => {
-    const catalogSelected = selectedExtras.filter((item) => item.offering);
-    if (catalogSelected.length === 0) {
-      if (selectedExtras.length === 0) {
-        Alert.alert('Select tests', 'Choose one or more additional tests to request.');
-        return;
-      }
-      Alert.alert('No extra tests', 'Extra blood tests will appear here once configured in the catalog.');
+    if (selectedExtras.length === 0) {
+      Alert.alert('Select tests', 'Choose one or more additional tests to request.');
       return;
     }
-    const note = catalogSelected
-      .map((item) => `${item.offering!.title} (${item.offering!.priceLabel || 'charges apply'})`)
+    const note = selectedExtras
+      .map((item) => `${item.offering.title} (${item.offering.priceLabel || 'charges apply'})`)
       .join(', ');
     void (async () => {
       const ok = await submit(
         `Extra tests: ${note}`,
-        catalogSelected.length === 1 ? 'Extra blood test requested' : 'Extra blood tests requested',
+        selectedExtras.length === 1 ? 'Extra blood test requested' : 'Extra blood tests requested',
       );
       if (ok) {
         setExtraIds([]);
@@ -357,6 +309,9 @@ function MonthlyBloodTestLive() {
           <Pressable onPress={() => void catalog.refetch()} accessibilityRole="button">
             <Text style={styles.empty}>Unable to load extra tests · Tap to retry</Text>
           </Pressable>
+        ) : null}
+        {!catalog.isPending && !catalog.isError && displayExtras.length === 0 ? (
+          <Text style={styles.empty}>No additional tests available yet.</Text>
         ) : null}
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.extraRow}>

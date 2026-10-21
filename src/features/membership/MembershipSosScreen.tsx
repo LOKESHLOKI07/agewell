@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { Image, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Image, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { router, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView, LoadingState, PrimaryButton, SecondaryButton } from '@/components';
 import { Icon, type IconName } from '@/components/ui';
+import { ApiError, getApiErrorMessage } from '@/api/errors';
 import { minTouchSize, spacing, typography } from '@/constants/theme';
 import { useAuthStore } from '@/features/auth/authStore';
 import { useServicesLive } from '@/features/auth/useServicesLive';
@@ -12,7 +13,7 @@ import { familyHome } from '@/features/home/components/familyHomeTheme';
 import { MarketplaceServiceIcon } from '@/features/services/components/MarketplaceServiceIcon';
 import { useSeniorProfile } from '@/features/home/hooks/queries';
 import { findActiveEmergency } from '@/features/emergency/mappers';
-import { useCreateEmergency, useEmergencyCases } from '@/features/emergency/hooks';
+import { useCancelEmergency, useCreateEmergency, useEmergencyCases } from '@/features/emergency/hooks';
 import {
   emergencyDetailHref,
   formatEmergencyWhen,
@@ -23,14 +24,17 @@ import {
 import type { EmergencyCase, EmergencyRecipient } from '@/features/emergency/types/emergency';
 import { resolveEmergencySupportVariant } from '@/features/membership/emergencySupportVariant';
 import { useHasActiveMembership } from '@/features/membership/useHasActiveMembership';
+import { MembershipNoMembershipPreview } from '@/features/membership/MembershipNoMembershipPreview';
+import { MEMBERSHIP_SERVICE_AREA_LINE } from '@/features/membership/membershipServicePageVariant';
 import { membershipPurchaseHref } from '@/features/membership/planCatalog';
 import { SERVICE_HERO_IMAGES } from '@/features/membership/serviceHeroes';
+import { servicePageType } from '@/features/membership/servicePageType';
 import { useTabScreenBottomPad } from '@/utils/safeBottom';
 import { toDisplayDate } from '@/utils/date';
 
 const HOLD_MS = 3000;
 const VIDEO_URL = 'https://www.youtube.com/results?search_query=What+is+AgeWell+Emergency+Support';
-const SERVICE_AREA_LINE = 'AgeWell is currently serving Kandivali & Borivali, Mumbai.';
+const SERVICE_AREA_LINE = MEMBERSHIP_SERVICE_AREA_LINE;
 
 const BENEFITS: { icon: IconName; title: string; line: string }[] = [
   { icon: 'people-outline', title: 'Alerts Family', line: 'Your loved ones are informed' },
@@ -79,10 +83,11 @@ export function MembershipSosScreen() {
   });
   const listQuery = useEmergencyCases(true);
   const createMutation = useCreateEmergency();
+  const cancelMutation = useCancelEmergency();
   const cases = listQuery.data?.items ?? [];
   const active = findActiveEmergency(cases);
   const recent = cases.slice(0, 8);
-  const submitting = createMutation.isPending;
+  const submitting = createMutation.isPending || cancelMutation.isPending;
   const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const holdTick = useRef<ReturnType<typeof setInterval> | null>(null);
   const [showAll, setShowAll] = useState(false);
@@ -108,13 +113,70 @@ export function MembershipSosScreen() {
     clearHold();
     try {
       await createMutation.mutateAsync({ type: 'MEDICAL', triggerSource: 'APP_SOS' });
-    } catch {
-      return;
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 409) {
+        void listQuery.refetch();
+        Alert.alert(
+          'Help alert already sent',
+          'Your emergency help alert was already sent. Family and your AgeWell care team have been notified — help is being arranged.',
+          [{ text: 'OK' }],
+        );
+      }
     }
   };
 
+  const tellAlreadySent = () => {
+    const caseId = active?.id;
+    Alert.alert(
+      'Help alert already sent',
+      'Your emergency help alert was already sent. Family and your AgeWell care team have been notified — help is being arranged.',
+      caseId
+        ? [
+            { text: 'OK' },
+            {
+              text: 'View status',
+              onPress: () => router.push(emergencyDetailHref(caseId) as unknown as Href),
+            },
+            {
+              text: 'Cancel alert',
+              style: 'destructive',
+              onPress: () => confirmCancelAlert(caseId),
+            },
+          ]
+        : [{ text: 'OK' }],
+    );
+  };
+
+  const confirmCancelAlert = (caseId: string) => {
+    Alert.alert(
+      'Cancel help alert?',
+      'Only cancel if this was accidental. Your care team will be told the alert was cancelled.',
+      [
+        { text: 'Keep alert', style: 'cancel' },
+        {
+          text: 'Yes, cancel alert',
+          style: 'destructive',
+          onPress: () => {
+            void (async () => {
+              try {
+                await cancelMutation.mutateAsync(caseId);
+                Alert.alert('Alert cancelled', 'Your help alert was cancelled. You can press and hold SOS again if you need help.');
+              } catch (error) {
+                Alert.alert('Unable to cancel', getApiErrorMessage(error));
+              }
+            })();
+          },
+        },
+      ],
+    );
+  };
+
   const onHoldStart = () => {
-    if (submitting || active) {
+    if (submitting) {
+      return;
+    }
+    if (active) {
+      tellAlreadySent();
       return;
     }
     setHolding(true);
@@ -161,7 +223,7 @@ export function MembershipSosScreen() {
 
         {variant === 'loading' ? <LoadingState message="Loading Emergency Support..." /> : null}
         {showComingSoon ? <ComingSoonBody /> : null}
-        {showMembershipGate ? <MembershipGateBody /> : null}
+        {showMembershipGate ? <MembershipNoMembershipPreview slug="emergency-sos" /> : null}
         {showMemberSos ? (
           <MemberSosBody
             active={active}
@@ -171,11 +233,13 @@ export function MembershipSosScreen() {
             holding={holding}
             holdProgress={holdProgress}
             submitting={submitting}
+            cancelling={cancelMutation.isPending}
             showHoldButton={!isFamily}
             error={createMutation.isError ? getEmergencyCreateErrorMessage(createMutation.error) : null}
             preferredHospital={senior.data?.preferredHospital ?? null}
             onHoldStart={onHoldStart}
             onHoldEnd={clearHold}
+            onCancelAlert={active?.id ? () => confirmCancelAlert(active.id) : undefined}
           />
         ) : null}
       </KeyboardAwareScrollView>
@@ -245,11 +309,13 @@ function MemberSosBody({
   holding,
   holdProgress,
   submitting,
+  cancelling,
   showHoldButton,
   error,
   preferredHospital,
   onHoldStart,
   onHoldEnd,
+  onCancelAlert,
 }: {
   active: EmergencyCase | null;
   recent: EmergencyCase[];
@@ -258,11 +324,13 @@ function MemberSosBody({
   holding: boolean;
   holdProgress: number;
   submitting: boolean;
+  cancelling: boolean;
   showHoldButton: boolean;
   error: string | null;
   preferredHospital: string | null;
   onHoldStart: () => void;
   onHoldEnd: () => void;
+  onCancelAlert?: () => void;
 }) {
   const alertCards = [
     {
@@ -296,25 +364,74 @@ function MemberSosBody({
       {showHoldButton ? (
         <View style={styles.sosBlock}>
           <View style={styles.sosRingOuter} pointerEvents="box-none">
-            <View style={styles.sosRingMid} pointerEvents="box-none">
+            <View
+              style={[styles.sosRingMid, active ? styles.sosRingMidSent : null]}
+              pointerEvents="box-none"
+            >
               <Pressable
                 onPressIn={onHoldStart}
                 onPressOut={onHoldEnd}
-                disabled={submitting || Boolean(active)}
+                disabled={submitting}
                 accessibilityRole="button"
-                accessibilityLabel="SOS. Press and hold for 3 seconds to send an emergency alert"
-                style={({ pressed }) => [styles.sos, (pressed || holding) && !submitting ? styles.sosPressed : null]}
+                accessibilityLabel={
+                  active
+                    ? 'SOS. Help alert already sent. Tap for status.'
+                    : 'SOS. Press and hold for 3 seconds to send an emergency alert'
+                }
+                style={({ pressed }) => [
+                  styles.sos,
+                  active ? styles.sosSent : null,
+                  (pressed || holding) && !submitting ? styles.sosPressed : null,
+                ]}
               >
-                <View style={[styles.sosFill, { height: `${Math.round(holdProgress * 100)}%` }]} />
+                <View
+                  style={[
+                    styles.sosFill,
+                    { height: `${Math.round(active ? 100 : holdProgress * 100)}%` },
+                    active ? styles.sosFillSent : null,
+                  ]}
+                />
                 <Text style={styles.sosText}>SOS</Text>
                 <Text style={styles.sosHold}>
-                  {submitting ? 'SENDING…' : holding ? 'KEEP HOLDING' : 'PRESS & HOLD FOR 3 SECONDS'}
+                  {submitting
+                    ? 'SENDING…'
+                    : active
+                      ? 'HELP ALERT ALREADY SENT'
+                      : holding
+                        ? 'KEEP HOLDING'
+                        : 'PRESS & HOLD FOR 3 SECONDS'}
                 </Text>
               </Pressable>
             </View>
           </View>
-          <Text style={styles.sosHintStrong}>Press only when emergency assistance is needed.</Text>
-          <Text style={styles.sosHint}>Accidental presses may delay help to others.</Text>
+          {active ? (
+            <>
+              <Text style={styles.sosHintStrongSent}>Help alert already sent — help is on the way.</Text>
+              <Text style={styles.sosHint}>Tap SOS again anytime if you want to confirm it was sent.</Text>
+              {onCancelAlert && showHoldButton ? (
+                <Pressable
+                  onPress={onCancelAlert}
+                  disabled={cancelling}
+                  accessibilityRole="button"
+                  accessibilityLabel="Cancel help alert"
+                  style={({ pressed }) => [
+                    styles.cancelAlertBtn,
+                    cancelling || pressed ? styles.pressed : null,
+                  ]}
+                >
+                  <Icon name="alert-circle-outline" size={18} color={familyHome.muted} />
+                  <Text style={styles.cancelAlertText}>
+                    {cancelling ? 'Cancelling…' : 'Cancel alert (accidental)'}
+                  </Text>
+                </Pressable>
+              ) : null}
+            </>
+          ) : (
+            <>
+              <Text style={styles.sosHintStrong}>Press only when emergency assistance is needed.</Text>
+              <Text style={styles.sosHint}>Accidental presses may delay help to others.</Text>
+            </>
+          )}
         </View>
       ) : (
         <View style={styles.infoBanner}>
@@ -528,9 +645,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  title: {
-    ...typography.title,
-    color: '#123B7A',
+  title: { ...servicePageType.pageTitle, color: '#123B7A',
   },
   memberBadge: {
     alignSelf: 'flex-start',
@@ -591,14 +706,13 @@ const styles = StyleSheet.create({
     borderColor: '#F5C2C4',
   },
   soonTitle: {
-    ...typography.bodyStrong,
+    ...servicePageType.bannerTitle,
     color: familyHome.red,
   },
   soonBody: {
-    ...typography.caption,
+    ...servicePageType.bannerBody,
     color: familyHome.text,
     marginTop: 4,
-    lineHeight: 18,
   },
   infoBanner: {
     flexDirection: 'row',
@@ -609,14 +723,13 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   infoTitle: {
-    ...typography.bodyStrong,
+    ...servicePageType.bannerTitle,
     color: familyHome.blueDark,
   },
   infoBody: {
-    ...typography.caption,
+    ...servicePageType.bannerBody,
     color: familyHome.text,
     marginTop: 2,
-    lineHeight: 18,
     flex: 1,
   },
   availableBanner: {
@@ -644,14 +757,13 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
   },
   membershipTitle: {
-    ...typography.bodyStrong,
+    ...servicePageType.bannerTitle,
     color: '#B45309',
   },
   membershipBody: {
-    ...typography.caption,
+    ...servicePageType.bannerBody,
     color: familyHome.text,
     marginTop: 4,
-    lineHeight: 18,
   },
   bannerCopy: {
     flex: 1,
@@ -695,6 +807,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  sosRingMidSent: {
+    borderColor: '#C8E6C9',
+  },
   sos: {
     width: 144,
     height: 144,
@@ -704,12 +819,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     overflow: 'hidden',
   },
+  sosSent: {
+    backgroundColor: familyHome.green,
+  },
   sosFill: {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
     backgroundColor: '#C62B32',
+  },
+  sosFillSent: {
+    backgroundColor: familyHome.greenDark,
   },
   sosPressed: {
     transform: [{ scale: 0.98 }],
@@ -739,12 +860,38 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
     fontSize: 12,
   },
+  sosHintStrongSent: {
+    ...typography.captionStrong,
+    color: familyHome.greenDark,
+    textAlign: 'center',
+    marginTop: spacing.xs,
+    fontSize: 12,
+  },
   sosHint: {
     ...typography.caption,
     color: familyHome.muted,
     textAlign: 'center',
     lineHeight: 15,
     fontSize: 11,
+  },
+  cancelAlertBtn: {
+    marginTop: spacing.sm,
+    minHeight: minTouchSize,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: familyHome.border,
+    backgroundColor: familyHome.white,
+  },
+  cancelAlertText: {
+    ...typography.captionStrong,
+    color: familyHome.muted,
+    fontSize: 13,
   },
   error: {
     ...typography.body,

@@ -110,6 +110,7 @@ class MembershipRepository:
             senior_id=senior_id,
             plan_id=plan_id,
             status="REQUESTED",
+            stage="SUBMITTED",
             notes=notes,
             family_contact_1_name=family_contact_1_name,
             family_contact_1_phone=family_contact_1_phone,
@@ -130,6 +131,16 @@ class MembershipRepository:
             .where(MembershipRequest.id == request_id)
         )
         return result.first()
+
+    async def get_care_manager(self, care_manager_id: UUID):
+        from app.modules.care.models import CareManager
+
+        return await self.session.get(CareManager, care_manager_id)
+
+    async def save_request(self, row: MembershipRequest) -> MembershipRequest:
+        await self.session.commit()
+        await self.session.refresh(row)
+        return row
 
     async def list_requests(
         self,
@@ -164,9 +175,12 @@ class MembershipRepository:
         status: str,
         membership: Optional[Membership] = None,
         expire_membership: Optional[Membership] = None,
+        stage: Optional[str] = None,
     ) -> MembershipRequest:
         row.status = status
         row.reviewed_at = datetime.now(timezone.utc)
+        if stage is not None:
+            row.stage = stage
         if membership is not None:
             self.session.add(membership)
         if expire_membership is not None:

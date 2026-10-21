@@ -24,12 +24,14 @@ import { useTabScreenBottomPad } from '@/utils/safeBottom';
 import type { ServiceOffering } from './catalogTypes';
 import { MEMBERSHIP_SERVICE_AREA_LINE } from './membershipServicePageVariant';
 import { membershipPurchaseHref } from './planCatalog';
-import { SERVICE_HERO_IMAGES } from './serviceHeroes';
+import { SERVICE_HERO_IMAGES } from './serviceHeroes'
+import { servicePageType } from './servicePageType';
 import {
   filterRequestsBySlug,
   liveRequestToneMeta,
   toLiveRequestViews,
 } from './liveServiceRequests';
+import { MembershipNoMembershipPreview } from './MembershipNoMembershipPreview';
 import { useMembershipServicePageVariant } from './useMembershipServicePageVariant';
 import { useMembershipSubmit } from './useMembershipSubmit';
 import { useServiceOfferings } from './useCatalog';
@@ -63,81 +65,6 @@ const GATE_FEATURES: { icon: IconName; title: string; body: string }[] = [
     icon: 'gavel',
     title: 'Power of Attorney',
     body: 'Help with POA drafting and guidance',
-  },
-];
-
-const FALLBACK_OFFERINGS: ServiceOffering[] = [
-  {
-    id: 'fallback-consultation',
-    serviceSlug: SLUG,
-    title: 'Legal Consultation',
-    description: 'Call back: Legal consultation guidance.',
-    badge: 'Legal',
-    priceLabel: 'Support call',
-    image: null,
-    metaJson: null,
-    sortOrder: 0,
-    isActive: true,
-  },
-  {
-    id: 'fallback-property',
-    serviceSlug: SLUG,
-    title: 'Property Matters',
-    description: 'Guidance on buying, selling, inheritance and more.',
-    badge: 'Legal',
-    priceLabel: 'Support call',
-    image: null,
-    metaJson: null,
-    sortOrder: 1,
-    isActive: true,
-  },
-  {
-    id: 'fallback-family',
-    serviceSlug: SLUG,
-    title: 'Family & Personal Matters',
-    description: 'Support for family and personal legal needs.',
-    badge: 'Legal',
-    priceLabel: 'Support call',
-    image: null,
-    metaJson: null,
-    sortOrder: 2,
-    isActive: true,
-  },
-  {
-    id: 'fallback-wills',
-    serviceSlug: SLUG,
-    title: 'Wills & Inheritance',
-    description: 'Help with wills, succession and inheritance.',
-    badge: 'Legal',
-    priceLabel: 'Support call',
-    image: null,
-    metaJson: null,
-    sortOrder: 3,
-    isActive: true,
-  },
-  {
-    id: 'fallback-poa',
-    serviceSlug: SLUG,
-    title: 'Power of Attorney',
-    description: 'Guidance on power of attorney drafting.',
-    badge: 'Legal',
-    priceLabel: 'Support call',
-    image: null,
-    metaJson: null,
-    sortOrder: 4,
-    isActive: true,
-  },
-  {
-    id: 'fallback-other',
-    serviceSlug: SLUG,
-    title: 'Other Legal Services',
-    description: 'Consultations for various legal matters.',
-    badge: 'Legal',
-    priceLabel: 'Support call',
-    image: null,
-    metaJson: null,
-    sortOrder: 5,
-    isActive: true,
   },
 ];
 
@@ -314,50 +241,7 @@ function OutsideAreaBody() {
 }
 
 function NoMembershipBody() {
-  return (
-    <View style={styles.stack}>
-      <TitleBlock />
-      <HeroBanner
-        tone="membership"
-        headline="Guidance for a Safer Tomorrow"
-        accent="Safer Tomorrow"
-        body="Get expert legal advice and support for your important matters, with confidence and ease."
-      />
-      <FeaturesGrid />
-      <View style={styles.membershipCard}>
-        <View style={styles.membershipHead}>
-          <View style={styles.lockWell}>
-            <Icon name="lock-closed-outline" size={16} color="#B45309" />
-          </View>
-          <View style={styles.flex}>
-            <Text style={styles.membershipTitle}>Membership Required</Text>
-            <Text style={styles.membershipBody}>
-              Legal Assistance is available only for AgeWell members.
-            </Text>
-          </View>
-        </View>
-        <Pressable
-          onPress={() => router.push(membershipPurchaseHref())}
-          style={({ pressed }) => [styles.joinPromo, pressed ? styles.pressed : null]}
-          accessibilityRole="button"
-        >
-          <View style={styles.flex}>
-            <Text style={styles.joinPromoTitle}>Join AgeWell Membership</Text>
-            <Text style={styles.joinPromoBody}>
-              Get access to Legal Assistance and many other services for a safer, healthier and happier life.
-            </Text>
-          </View>
-          <Icon name="chevron-forward" size={16} color="#B45309" />
-        </Pressable>
-        <PrimaryButton label="Join Membership  →" onPress={() => router.push(membershipPurchaseHref())} />
-        <SecondaryButton
-          label="View Membership Plans"
-          onPress={() => router.push(membershipPurchaseHref())}
-        />
-      </View>
-      <ServiceHelpBanner />
-    </View>
-  );
+  return <MembershipNoMembershipPreview slug={SLUG} />;
 }
 
 function MemberLiveBody() {
@@ -366,15 +250,7 @@ function MemberLiveBody() {
   const { submitting, submit } = useMembershipSubmit(SLUG);
   const [selectedId, setSelectedId] = useState('');
 
-  const offerings = useMemo(() => {
-    const fromApi = catalog.data ?? [];
-    const byTitle = new Map<string, ServiceOffering>();
-    for (const item of fromApi) {
-      const key = item.title.trim().toLowerCase();
-      if (!byTitle.has(key)) byTitle.set(key, item);
-    }
-    return FALLBACK_OFFERINGS.map((fallback) => byTitle.get(fallback.title.toLowerCase()) ?? fallback);
-  }, [catalog.data]);
+  const offerings = useMemo(() => catalog.data ?? [], [catalog.data]);
 
   const selected =
     offerings.find((item) => item.id === selectedId) ?? offerings[0] ?? null;
@@ -438,6 +314,9 @@ function MemberLiveBody() {
         <Pressable onPress={() => void catalog.refetch()} accessibilityRole="button">
           <Text style={styles.viewAll}>Unable to load · Tap to retry</Text>
         </Pressable>
+      ) : null}
+      {!catalog.isPending && !catalog.isError && offerings.length === 0 ? (
+        <Text style={styles.empty}>No options configured yet.</Text>
       ) : null}
 
       <View style={styles.offerGrid}>
@@ -606,8 +485,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  title: { ...typography.title, color: familyHome.text },
-  liveTitle: { ...typography.title, color: familyHome.text, fontSize: 22 },
+  title: { ...servicePageType.pageTitle, color: familyHome.text },
+  liveTitle: { ...servicePageType.pageTitle, color: familyHome.text},
   lead: { ...typography.body, color: familyHome.muted, lineHeight: 22, marginTop: 4 },
   subtitle: { ...typography.body, color: familyHome.muted },
   heroCard: {
@@ -679,8 +558,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  soonTitle: { ...typography.bodyStrong, color: familyHome.red },
-  soonBody: { ...typography.caption, color: familyHome.text, marginTop: 4, lineHeight: 18 },
+  soonTitle: { ...servicePageType.bannerTitle, color: familyHome.red },
+  soonBody: { ...servicePageType.bannerBody, color: familyHome.text, marginTop: 4 },
   notifyCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -758,8 +637,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  membershipTitle: { ...typography.bodyStrong, color: familyHome.text },
-  membershipBody: { ...typography.caption, color: familyHome.muted, marginTop: 2, lineHeight: 18 },
+  membershipTitle: { ...servicePageType.bannerTitle, color: familyHome.text },
+  membershipBody: { ...servicePageType.bannerBody, color: familyHome.muted, marginTop: 2 },
   joinPromo: {
     flexDirection: 'row',
     alignItems: 'center',

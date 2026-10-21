@@ -1,15 +1,15 @@
 import type { ComponentType, ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { KeyboardAwareScrollView, LoadingState, PrimaryButton, SecondaryButton } from '@/components';
+import { KeyboardAwareScrollView, LoadingState } from '@/components';
 import { Icon } from '@/components/ui';
 import { spacing, typography } from '@/constants/theme';
 import { ServicePageHeader } from '@/features/home/components/ServicePageHeader';
 import { familyHome } from '@/features/home/components/familyHomeTheme';
 import { MEMBERSHIP_SERVICE_AREA_LINE } from './membershipServicePageVariant';
+import { servicePageType } from './servicePageType';
+import { MembershipNoMembershipPreview } from './MembershipNoMembershipPreview';
 import { MembershipServiceHero } from './MembershipServiceHero';
-import { membershipPurchaseHref } from './planCatalog';
 import { useMembershipServicePageVariant } from './useMembershipServicePageVariant';
 import { useSystemBottomInset } from '@/utils/safeBottom';
 
@@ -28,7 +28,7 @@ export function MembershipServiceGate({
 }: GateProps) {
   const insets = useSafeAreaInsets();
   const bottomPad = useSystemBottomInset(12) + spacing.xxl;
-  const variant = useMembershipServicePageVariant(requireMembership);
+  const variant = useMembershipServicePageVariant(requireMembership, slug);
 
   if (variant === 'serviceable_with_membership') {
     return <>{children}</>;
@@ -100,34 +100,7 @@ function ComingSoonBody({ slug, title }: { slug: string; title: string }) {
 }
 
 function MembershipRequiredBody({ slug, title }: { slug: string; title: string }) {
-  return (
-    <View style={styles.stack}>
-      <MembershipServiceHero slug={slug} />
-      <View style={styles.availableBanner}>
-        <Icon name="location" size={18} color={familyHome.greenDark} />
-        <View style={styles.bannerCopy}>
-          <Text style={styles.availableTitle}>{title} is available in your area</Text>
-          <Text style={styles.availableBody}>
-            AgeWell currently provides this service in Kandivali & Borivali, Mumbai.
-          </Text>
-        </View>
-      </View>
-      <View style={styles.membershipBanner}>
-        <Icon name="lock-closed-outline" size={18} color="#B45309" />
-        <View style={styles.bannerCopy}>
-          <Text style={styles.membershipTitle}>Membership Required</Text>
-          <Text style={styles.membershipBody}>
-            {title} is available to active AgeWell members.
-          </Text>
-        </View>
-      </View>
-      <PrimaryButton label="Get Membership  →" onPress={() => router.push(membershipPurchaseHref())} />
-      <SecondaryButton
-        label="View Membership Plans"
-        onPress={() => router.push(membershipPurchaseHref())}
-      />
-    </View>
-  );
+  return <MembershipNoMembershipPreview slug={slug} title={title} />;
 }
 
 const styles = StyleSheet.create({
@@ -160,14 +133,13 @@ const styles = StyleSheet.create({
     borderColor: '#F5C2C4',
   },
   soonTitle: {
-    ...typography.bodyStrong,
+    ...servicePageType.bannerTitle,
     color: familyHome.red,
   },
   soonBody: {
-    ...typography.caption,
+    ...servicePageType.bannerBody,
     color: familyHome.text,
     marginTop: 4,
-    lineHeight: 18,
   },
   infoBanner: {
     flexDirection: 'row',
@@ -178,14 +150,13 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   infoTitle: {
-    ...typography.bodyStrong,
+    ...servicePageType.bannerTitle,
     color: familyHome.blueDark,
   },
   infoBody: {
-    ...typography.caption,
+    ...servicePageType.bannerBody,
     color: familyHome.text,
     marginTop: 4,
-    lineHeight: 18,
   },
   availableBanner: {
     flexDirection: 'row',
@@ -195,14 +166,13 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
   },
   availableTitle: {
-    ...typography.bodyStrong,
+    ...servicePageType.bannerTitle,
     color: familyHome.greenDark,
   },
   availableBody: {
-    ...typography.caption,
+    ...servicePageType.bannerBody,
     color: familyHome.text,
     marginTop: 4,
-    lineHeight: 18,
   },
   membershipBanner: {
     flexDirection: 'row',
@@ -212,13 +182,12 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
   },
   membershipTitle: {
-    ...typography.bodyStrong,
+    ...servicePageType.bannerTitle,
     color: '#B45309',
   },
   membershipBody: {
-    ...typography.caption,
+    ...servicePageType.bannerBody,
     color: familyHome.text,
     marginTop: 4,
-    lineHeight: 18,
   },
 });

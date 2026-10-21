@@ -12,16 +12,31 @@ const logo = require('../../../../assets/logo_splash.png');
 
 type ServicePageHeaderProps = {
   unreadCount?: number;
+  /** Override default navigation back (e.g. multi-step apply flow). */
+  onBack?: () => void;
+  showBell?: boolean;
 };
 
 /**
  * Uniform chrome for every service page (21 membership + add-ons):
  * AgeWell logo (left) · Back + notifications (right).
  */
-export function ServicePageHeader({ unreadCount = 0 }: ServicePageHeaderProps) {
+export function ServicePageHeader({
+  unreadCount = 0,
+  onBack,
+  showBell = true,
+}: ServicePageHeaderProps) {
   const role = useAuthStore((state) => state.user?.role);
   const navigation = useNavigation();
   const { t } = useI18n();
+
+  const handleBack = () => {
+    if (onBack) {
+      onBack();
+      return;
+    }
+    safeGoBack(navigation.canGoBack(), role);
+  };
 
   return (
     <View style={styles.row}>
@@ -37,7 +52,7 @@ export function ServicePageHeader({ unreadCount = 0 }: ServicePageHeaderProps) {
 
       <View style={styles.right}>
         <Pressable
-          onPress={() => safeGoBack(navigation.canGoBack(), role)}
+          onPress={handleBack}
           style={styles.backBtn}
           accessibilityRole="button"
           accessibilityLabel={t('common.back')}
@@ -47,7 +62,7 @@ export function ServicePageHeader({ unreadCount = 0 }: ServicePageHeaderProps) {
             {t('common.back')}
           </Text>
         </Pressable>
-        <NotificationBell unreadCount={unreadCount} />
+        {showBell ? <NotificationBell unreadCount={unreadCount} /> : null}
       </View>
     </View>
   );

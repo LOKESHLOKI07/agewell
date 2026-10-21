@@ -336,6 +336,42 @@ class EmergencyService:
         case = await self.get_case(case.id)
         return await self.to_case_response(case)
 
+    async def cancel_by_member(self, case_id: UUID, actor: User) -> EmergencyCaseResponse:
+        """Senior/family cancel for accidental SOS. Stops further escalation."""
+        case = await self.get_case(case_id)
+        if case.status in (EmergencyStatus.RESOLVED, EmergencyStatus.CANCELLED):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="This emergency alert is already closed.",
+            )
+        previous = case.status
+        now = _now()
+        case.status = EmergencyStatus.CANCELLED
+        case.closed_at = case.closed_at or now
+        case.escalation_due_at = None
+        await self.repo.add_event(
+            case_id=case.id,
+            event_description="Cancelled by member — accidental or false alarm.",
+        )
+        await self.repo.save_case(case)
+        if self.audit_repo:
+            await self.audit_repo.record(
+                entity_name="emergency_cases",
+                entity_id=str(case.id),
+                action="UPDATE",
+                changes=json.dumps(
+                    {
+                        "from": previous.value if previous else None,
+                        "to": EmergencyStatus.CANCELLED.value,
+                        "reason": "member_cancel",
+                        "actor_user_id": str(actor.id) if actor else None,
+                    }
+                ),
+            )
+        await self.repo.session.commit()
+        case = await self.get_case(case.id)
+        return await self.to_case_response(case)
+
     async def recipient_role_for_user(self, user: User) -> Optional[str]:
         if user.role == RoleEnum.FAMILY:
             return RECIPIENT_FAMILY

@@ -16,7 +16,7 @@ jest.mock('@/features/home/components/familyHomeTheme', () => ({
   },
 }));
 
-import { ADD_ON_SERVICES } from '../addOnServiceCatalog';
+import { ADD_ON_SERVICES, homeAddOnServices, isAddonOfferedInTier } from '../addOnServiceCatalog';
 import { MARKETPLACE_SERVICES, allMarketplaceServices } from '../serviceCatalog';
 
 describe('basic membership catalogue', () => {
@@ -58,6 +58,18 @@ describe('basic membership catalogue', () => {
     ]);
     expect(ADD_ON_SERVICES.find((item) => item.id === 'food')?.title).toBe('Tiffin Box');
     expect(ADD_ON_SERVICES.find((item) => item.id === 'maid-assistance')?.title).toBe('House Maid');
+  });
+
+  it('hides Tiffin Box and House Maid in Tier 2 localities', () => {
+    expect(isAddonOfferedInTier('food', 'tier2')).toBe(false);
+    expect(isAddonOfferedInTier('maid-assistance', 'tier2')).toBe(false);
+    expect(isAddonOfferedInTier('emergency-companion', 'tier2')).toBe(true);
+    expect(homeAddOnServices('tier2').map((item) => item.id)).toEqual([
+      'emergency-companion',
+      'stool-cleaning',
+      'ayurvedic-massage',
+    ]);
+    expect(homeAddOnServices('tier1')).toHaveLength(5);
   });
 
   it('uses brochure companion quota and medicine lead time', () => {

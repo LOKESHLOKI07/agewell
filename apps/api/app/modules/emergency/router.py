@@ -113,6 +113,19 @@ async def acknowledge_emergency(
     return await service.acknowledge(emergency_id, current_user)
 
 
+@router.post("/{emergency_id}/cancel", response_model=EmergencyCaseResponse)
+async def cancel_emergency(
+    emergency_id: UUID,
+    current_user: User = Depends(get_current_user),
+    access: AccessService = Depends(get_access_service),
+    service: EmergencyService = Depends(get_emergency_service),
+):
+    """Member cancel for accidental SOS (senior/family with access)."""
+    case = await service.get_case(emergency_id)
+    await access.ensure_emergency_access(current_user, case.senior_id)
+    return await service.cancel_by_member(emergency_id, current_user)
+
+
 @router.patch("/{emergency_id}/report", response_model=EmergencyCaseResponse)
 async def update_emergency_report(
     emergency_id: UUID,

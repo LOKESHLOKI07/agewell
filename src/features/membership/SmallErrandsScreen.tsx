@@ -28,13 +28,15 @@ import { useAssignedCompanion } from './careManagerHooks';
 import { telHref } from './careManagerHours';
 import { MEMBERSHIP_SERVICE_AREA_LINE } from './membershipServicePageVariant';
 import { membershipPurchaseHref } from './planCatalog';
-import { SERVICE_HERO_IMAGES } from './serviceHeroes';
+import { SERVICE_HERO_IMAGES } from './serviceHeroes'
+import { servicePageType } from './servicePageType';
 import {
   filterRequestsBySlug,
   liveRequestToneMeta,
   toLiveRequestViews,
 } from './liveServiceRequests';
 import { useHasActiveMembership } from './useHasActiveMembership';
+import { MembershipNoMembershipPreview } from './MembershipNoMembershipPreview';
 import { useMembershipServicePageVariant } from './useMembershipServicePageVariant';
 import { useMembershipSubmit } from './useMembershipSubmit';
 import { useServiceOfferings } from './useCatalog';
@@ -60,105 +62,6 @@ const GATE_FEATURES: { icon: IconName; title: string; body: string }[] = [
   { icon: 'call-outline', title: 'Call Before Visit', body: 'Our companion will call before coming' },
   { icon: 'cart-outline', title: 'Everyday Support', body: 'Assistance with small errands' },
   { icon: 'people-outline', title: 'Reliable Companions', body: 'Trained and verified staff' },
-];
-
-const FALLBACK_OFFERINGS: ServiceOffering[] = [
-  {
-    id: 'fallback-medicines',
-    serviceSlug: SLUG,
-    title: 'Buy Medicines',
-    description: 'Pharmacy pickup during companion visit',
-    badge: 'Errand',
-    priceLabel: '',
-    image: null,
-    metaJson: null,
-    sortOrder: 0,
-    isActive: true,
-  },
-  {
-    id: 'fallback-groceries',
-    serviceSlug: SLUG,
-    title: 'Pick up Groceries',
-    description: 'Small grocery purchases nearby',
-    badge: 'Errand',
-    priceLabel: '',
-    image: null,
-    metaJson: null,
-    sortOrder: 1,
-    isActive: true,
-  },
-  {
-    id: 'fallback-documents',
-    serviceSlug: SLUG,
-    title: 'Submit Documents',
-    description: 'Submit or collect papers nearby',
-    badge: 'Errand',
-    priceLabel: '',
-    image: null,
-    metaJson: null,
-    sortOrder: 2,
-    isActive: true,
-  },
-  {
-    id: 'fallback-post',
-    serviceSlug: SLUG,
-    title: 'Post Office Visits',
-    description: 'Courier, stamps or parcel drop nearby',
-    badge: 'Errand',
-    priceLabel: '',
-    image: null,
-    metaJson: null,
-    sortOrder: 3,
-    isActive: true,
-  },
-  {
-    id: 'fallback-dry-clean',
-    serviceSlug: SLUG,
-    title: 'Dry Cleaning',
-    description: 'Drop and pick up dry cleaning nearby',
-    badge: 'Errand',
-    priceLabel: '',
-    image: null,
-    metaJson: null,
-    sortOrder: 4,
-    isActive: true,
-  },
-  {
-    id: 'fallback-household',
-    serviceSlug: SLUG,
-    title: 'Small Household Purchases',
-    description: 'Small household buys nearby',
-    badge: 'Errand',
-    priceLabel: '',
-    image: null,
-    metaJson: null,
-    sortOrder: 5,
-    isActive: true,
-  },
-  {
-    id: 'fallback-utility',
-    serviceSlug: SLUG,
-    title: 'Utility Payments',
-    description: 'Help with nearby bill payments',
-    badge: 'Errand',
-    priceLabel: '',
-    image: null,
-    metaJson: null,
-    sortOrder: 6,
-    isActive: true,
-  },
-  {
-    id: 'fallback-other',
-    serviceSlug: SLUG,
-    title: 'Other Errands',
-    description: 'Any other short nearby task',
-    badge: 'Errand',
-    priceLabel: '',
-    image: null,
-    metaJson: null,
-    sortOrder: 7,
-    isActive: true,
-  },
 ];
 
 const SERVICE_LOOKS: { match: RegExp; icon: IconName; color: string; soft: string }[] = [
@@ -355,51 +258,7 @@ function OutsideAreaBody() {
 }
 
 function NoMembershipBody() {
-  return (
-    <View style={styles.stack}>
-      <TitleBlock />
-      <HeroBanner
-        tone="membership"
-        headline="Support With Your Daily Needs"
-        accent="Daily Needs"
-        body="Our companion is here to help with your small errands."
-      />
-      <FeaturesGrid />
-      <View style={styles.membershipCard}>
-        <View style={styles.membershipHead}>
-          <View style={styles.lockWell}>
-            <Icon name="lock-closed-outline" size={16} color="#B45309" />
-          </View>
-          <View style={styles.flex}>
-            <Text style={styles.membershipTitle}>Membership Required</Text>
-            <Text style={styles.membershipBody}>
-              Small Errands Assistance is available to AgeWell members.
-            </Text>
-          </View>
-        </View>
-        <Pressable
-          onPress={() => router.push(membershipPurchaseHref())}
-          style={({ pressed }) => [styles.joinPromo, pressed ? styles.pressed : null]}
-          accessibilityRole="button"
-        >
-          <View style={styles.flex}>
-            <Text style={styles.joinPromoTitle}>Join AgeWell Membership</Text>
-            <Text style={styles.joinPromoBody}>
-              Get access to small errands assistance and many other services for a safer, healthier and happier
-              life.
-            </Text>
-          </View>
-          <Icon name="chevron-forward" size={16} color="#B45309" />
-        </Pressable>
-        <PrimaryButton label="Join Membership  →" onPress={() => router.push(membershipPurchaseHref())} />
-        <SecondaryButton
-          label="View Membership Plans"
-          onPress={() => router.push(membershipPurchaseHref())}
-        />
-      </View>
-      <ServiceHelpBanner />
-    </View>
-  );
+  return <MembershipNoMembershipPreview slug={SLUG} />;
 }
 
 function MemberLiveBody() {
@@ -412,12 +271,10 @@ function MemberLiveBody() {
   const validTill = membershipValidLabel(membership.query.data?.endDate);
   const [selectedId, setSelectedId] = useState('');
 
-  const offerings = useMemo(() => {
-    const fromApi = catalog.data ?? [];
-    const looksLikeDesign = fromApi.some((item) => /dry clean|utility|household/i.test(item.title));
-    const source = looksLikeDesign && fromApi.length > 0 ? fromApi : FALLBACK_OFFERINGS;
-    return source.slice().sort((a, b) => a.sortOrder - b.sortOrder);
-  }, [catalog.data]);
+  const offerings = useMemo(
+    () => (catalog.data ?? []).slice().sort((a, b) => a.sortOrder - b.sortOrder),
+    [catalog.data],
+  );
 
   const selected = offerings.find((item) => item.id === selectedId) ?? null;
 
@@ -561,6 +418,9 @@ function MemberLiveBody() {
           <Text style={styles.viewAll}>Unable to load · Tap to retry</Text>
         </Pressable>
       ) : null}
+      {!catalog.isPending && !catalog.isError && offerings.length === 0 ? (
+        <Text style={styles.empty}>No common services available yet.</Text>
+      ) : null}
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.servicesRow}>
         {offerings.map((item) => {
@@ -702,7 +562,7 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   titleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
-  title: { ...typography.title, color: familyHome.text },
+  title: { ...servicePageType.pageTitle, color: familyHome.text },
   lead: { ...typography.body, color: familyHome.muted, lineHeight: 22, marginTop: 4 },
   heroCard: {
     borderRadius: 16,
@@ -785,8 +645,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  soonTitle: { ...typography.bodyStrong, color: familyHome.red },
-  soonBody: { ...typography.caption, color: familyHome.text, marginTop: 4, lineHeight: 18 },
+  soonTitle: { ...servicePageType.bannerTitle, color: familyHome.red },
+  soonBody: { ...servicePageType.bannerBody, color: familyHome.text, marginTop: 4 },
   notifyCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -864,8 +724,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  membershipTitle: { ...typography.bodyStrong, color: familyHome.text },
-  membershipBody: { ...typography.caption, color: familyHome.muted, marginTop: 2, lineHeight: 18 },
+  membershipTitle: { ...servicePageType.bannerTitle, color: familyHome.text },
+  membershipBody: { ...servicePageType.bannerBody, color: familyHome.muted, marginTop: 2 },
   joinPromo: {
     flexDirection: 'row',
     alignItems: 'center',

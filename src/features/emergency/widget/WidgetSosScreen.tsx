@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Pressable,
   StyleSheet,
   Text,
@@ -11,7 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, G } from 'react-native-svg';
 import { AgeWellLogo } from '@/components/AgeWellLogo';
 import { Icon } from '@/components/ui';
-import { ApiError } from '@/api/errors';
+import { ApiError, getApiErrorMessage } from '@/api/errors';
 import { minTouchSize, spacing, typography } from '@/constants/theme';
 import { useAuthStore } from '@/features/auth/authStore';
 import { useServicesLive } from '@/features/auth/useServicesLive';
@@ -19,7 +20,7 @@ import { useSeniorProfile } from '@/features/home/hooks/queries';
 import { useHasActiveMembership } from '@/features/membership/useHasActiveMembership';
 import { resolveEmergencySupportVariant } from '@/features/membership/emergencySupportVariant';
 import { findActiveEmergency, isFirstResponseFullyNotified } from '@/features/emergency/mappers';
-import { useCreateEmergency, useEmergencyCases } from '@/features/emergency/hooks';
+import { useCancelEmergency, useCreateEmergency, useEmergencyCases } from '@/features/emergency/hooks';
 import {
   emergencyDetailHref,
   getEmergencyCreateErrorMessage,
@@ -33,7 +34,7 @@ import {
   EMERGENCY_WIDGET_TYPE,
 } from './widgetLink';
 
-type Phase = 'ready' | 'sending' | 'success' | 'partial' | 'error' | 'already_active';
+type Phase = 'ready' | 'sending' | 'success' | 'partial' | 'error' | 'already_active' | 'cancelled';
 
 const HOLD_SIZE = 200;
 const RING_STROKE = 10;
@@ -60,6 +61,7 @@ export function WidgetSosScreen() {
   });
   const listQuery = useEmergencyCases(true);
   const createMutation = useCreateEmergency();
+  const cancelMutation = useCancelEmergency();
   const active = findActiveEmergency(listQuery.data?.items ?? []);
   const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const holdTick = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -163,6 +165,35 @@ export function WidgetSosScreen() {
     setPhase(active ? 'already_active' : 'ready');
   };
 
+  const confirmCancel = () => {
+    const id = caseId ?? active?.id;
+    if (!id || cancelMutation.isPending) {
+      return;
+    }
+    Alert.alert(
+      'Cancel help alert?',
+      'Only cancel if this was accidental. Your care team will be told the alert was cancelled.',
+      [
+        { text: 'Keep alert', style: 'cancel' },
+        {
+          text: 'Yes, cancel alert',
+          style: 'destructive',
+          onPress: () => {
+            void (async () => {
+              try {
+                await cancelMutation.mutateAsync(id);
+                setCreated(null);
+                setPhase('cancelled');
+              } catch (error) {
+                Alert.alert('Unable to cancel', getApiErrorMessage(error));
+              }
+            })();
+          },
+        },
+      ],
+    );
+  };
+
   return (
     <View style={[styles.root, { paddingTop: insets.top + spacing.md, paddingBottom: insets.bottom + spacing.lg }]}>
       <View style={styles.header}>
@@ -210,6 +241,17 @@ export function WidgetSosScreen() {
           <Pressable style={styles.secondaryGreen} onPress={goHome} accessibilityRole="button">
             <Text style={styles.secondaryGreenText}>Return to Home</Text>
           </Pressable>
+          <Pressable
+            onPress={confirmCancel}
+            disabled={cancelMutation.isPending}
+            accessibilityRole="button"
+            accessibilityLabel="Cancel help alert"
+            style={styles.cancelLink}
+          >
+            <Text style={styles.cancelLinkText}>
+              {cancelMutation.isPending ? 'Cancelling…' : 'Cancel alert (accidental)'}
+            </Text>
+          </Pressable>
         </View>
       ) : null}
 
@@ -224,6 +266,17 @@ export function WidgetSosScreen() {
             </Text>
             <Pressable style={styles.primaryAmber} onPress={viewStatus} accessibilityRole="button">
               <Text style={styles.primaryGreenText}>View Status</Text>
+            </Pressable>
+            <Pressable
+              onPress={confirmCancel}
+              disabled={cancelMutation.isPending}
+              accessibilityRole="button"
+              accessibilityLabel="Cancel help alert"
+              style={styles.cancelLink}
+            >
+              <Text style={styles.cancelLinkText}>
+                {cancelMutation.isPending ? 'Cancelling…' : 'Cancel alert (accidental)'}
+              </Text>
             </Pressable>
           </View>
         </View>
@@ -254,6 +307,42 @@ export function WidgetSosScreen() {
             </Text>
             <Pressable style={styles.primaryGreen} onPress={viewStatus} accessibilityRole="button">
               <Text style={styles.primaryGreenText}>View Emergency Status</Text>
+            </Pressable>
+            <Pressable style={styles.secondaryGreen} onPress={goHome} accessibilityRole="button">
+              <Text style={styles.secondaryGreenText}>Return to Home</Text>
+            </Pressable>
+            <Pressable
+              onPress={confirmCancel}
+              disabled={cancelMutation.isPending}
+              accessibilityRole="button"
+              accessibilityLabel="Cancel help alert"
+              style={styles.cancelLink}
+            >
+              <Text style={styles.cancelLinkText}>
+                {cancelMutation.isPending ? 'Cancelling…' : 'Cancel alert (accidental)'}
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      ) : null}
+
+      {phase === 'cancelled' ? (
+        <View style={styles.centerBlock}>
+          <View style={[styles.resultCard, styles.successChip]}>
+            <Icon name="alert-circle-outline" size={28} color={C.muted} />
+            <Text style={styles.partialTitle}>Alert cancelled</Text>
+            <Text style={styles.partialBody}>
+              Your help alert was cancelled. You can press and hold again if you need help.
+            </Text>
+            <Pressable
+              style={styles.primaryGreen}
+              onPress={() => {
+                setPhase('ready');
+                setCreated(null);
+              }}
+              accessibilityRole="button"
+            >
+              <Text style={styles.primaryGreenText}>Back to SOS</Text>
             </Pressable>
             <Pressable style={styles.secondaryGreen} onPress={goHome} accessibilityRole="button">
               <Text style={styles.secondaryGreenText}>Return to Home</Text>
@@ -572,5 +661,17 @@ const styles = StyleSheet.create({
   secondaryGreenText: {
     ...typography.bodyStrong,
     color: C.green,
+  },
+  cancelLink: {
+    marginTop: spacing.xs,
+    minHeight: minTouchSize,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.md,
+  },
+  cancelLinkText: {
+    ...typography.captionStrong,
+    color: C.muted,
+    textDecorationLine: 'underline',
   },
 });

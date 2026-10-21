@@ -7,7 +7,8 @@ import { Icon } from '@/components/ui';
 import { spacing, typography } from '@/constants/theme';
 import { ServicePageHeader } from '@/features/home/components/ServicePageHeader';
 import { familyHome } from '@/features/home/components/familyHomeTheme';
-import { ADD_ON_SERVICES } from '@/features/services/addOnServiceCatalog';
+import { useServiceTier } from '@/features/auth/useServiceLocality';
+import { homeAddOnServices } from '@/features/services/addOnServiceCatalog';
 import { MarketplaceServiceIcon } from '@/features/services/components/MarketplaceServiceIcon';
 import type { HomeServiceTile } from '@/features/services/serviceCatalog';
 import { useTabScreenBottomPad } from '@/utils/safeBottom';
@@ -27,14 +28,16 @@ export function AddonsScreen() {
   const insets = useSafeAreaInsets();
   const bottomPad = useTabScreenBottomPad(spacing.xxl);
   const [query, setQuery] = useState('');
+  const tier = useServiceTier();
+  const catalog = homeAddOnServices(tier);
 
   const addons = useMemo(() => {
     const term = query.trim().toLowerCase();
     if (!term) {
-      return ADD_ON_SERVICES;
+      return catalog;
     }
-    return ADD_ON_SERVICES.filter((item) => item.title.toLowerCase().includes(term));
-  }, [query]);
+    return catalog.filter((item) => item.title.toLowerCase().includes(term));
+  }, [catalog, query]);
 
   const rows = chunkItems(addons, GRID_COLUMNS);
 

@@ -3,6 +3,7 @@ import {
   getMembershipPlanByKey,
   MEMBERSHIP_ONBOARDING_NOTE,
   MEMBERSHIP_PLAN_CATALOG,
+  membershipApplyHref,
   membershipPurchaseHref,
   preferredMembershipPlanKey,
 } from '../planCatalog';
@@ -30,6 +31,13 @@ describe('membership plan catalog', () => {
     expect(membershipPurchaseHref('couple')).toEqual({
       pathname: '/account/purchase',
       params: { plan: 'couple' },
+    });
+  });
+
+  it('opens the membership application flow for a plan', () => {
+    expect(membershipApplyHref('single')).toEqual({
+      pathname: '/account/apply',
+      params: { plan: 'single' },
     });
   });
 });
@@ -62,12 +70,24 @@ describe('membership request mapper', () => {
       planName: 'Single Membership',
       planPrice: 15499,
       status: 'REQUESTED',
+      stage: 'SUBMITTED',
       notes: null,
       familyContact1Name: 'Asha Sharma',
       familyContact1Phone: '9876543210',
       familyContact2Name: null,
       familyContact2Phone: null,
       preferredHospital: 'Apex Hospital, Borivali',
+      visitPlannedAt: null,
+      visitScheduledStart: null,
+      visitScheduledEnd: null,
+      visitCompletedAt: null,
+      reviewCompletedAt: null,
+      acceptedAt: null,
+      paidAt: null,
+      careManagerId: null,
+      careManagerName: null,
+      companionId: null,
+      companionName: null,
       createdAt: '2026-09-01T09:00:00.000Z',
       reviewedAt: null,
     });

@@ -22,7 +22,9 @@ import { MarketplaceServiceIcon } from '@/features/services/components/Marketpla
 import { useTabScreenBottomPad } from '@/utils/safeBottom';
 import { MEMBERSHIP_SERVICE_AREA_LINE } from './membershipServicePageVariant';
 import { membershipPurchaseHref } from './planCatalog';
-import { SERVICE_HERO_IMAGES } from './serviceHeroes';
+import { SERVICE_HERO_IMAGES } from './serviceHeroes'
+import { servicePageType } from './servicePageType';
+import { MembershipNoMembershipPreview } from './MembershipNoMembershipPreview';
 import { useMembershipServicePageVariant } from './useMembershipServicePageVariant';
 import { filterOfferingsByKind, parseOfferingMeta } from './catalogTypes';
 import { useMembershipSubmit } from './useMembershipSubmit';
@@ -232,45 +234,7 @@ function OutsideAreaBody() {
 }
 
 function NoMembershipBody() {
-  return (
-    <View style={styles.stack}>
-      <TitleBlock />
-      <GateHero tone="membership" />
-      <FeaturesGrid />
-      <View style={styles.membershipCard}>
-        <View style={styles.membershipHead}>
-          <View style={styles.lockWell}>
-            <Icon name="lock-closed-outline" size={16} color="#B45309" />
-          </View>
-          <View style={styles.flex}>
-            <Text style={styles.membershipTitle}>Membership Required</Text>
-            <Text style={styles.membershipBody}>
-              CCTV Dashboard is available only for AgeWell members.
-            </Text>
-          </View>
-        </View>
-        <Pressable
-          onPress={() => router.push(membershipPurchaseHref())}
-          style={({ pressed }) => [styles.joinPromo, pressed ? styles.pressed : null]}
-          accessibilityRole="button"
-        >
-          <View style={styles.flex}>
-            <Text style={styles.joinPromoTitle}>Join AgeWell Membership</Text>
-            <Text style={styles.joinPromoBody}>
-              Get access to CCTV Dashboard and many other services for a safer, healthier and happier life.
-            </Text>
-          </View>
-          <Icon name="chevron-forward" size={16} color="#B45309" />
-        </Pressable>
-        <PrimaryButton label="Join Membership  →" onPress={() => router.push(membershipPurchaseHref())} />
-        <SecondaryButton
-          label="View Membership Plans"
-          onPress={() => router.push(membershipPurchaseHref())}
-        />
-      </View>
-      <ServiceHelpBanner />
-    </View>
-  );
+  return <MembershipNoMembershipPreview slug={SLUG} />;
 }
 
 function MemberLiveBody() {
@@ -635,8 +599,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  title: { ...typography.title, color: familyHome.text },
-  liveTitle: { ...typography.title, color: familyHome.text, fontSize: 22 },
+  title: { ...servicePageType.pageTitle, color: familyHome.text },
+  liveTitle: { ...servicePageType.pageTitle, color: familyHome.text},
   lead: { ...typography.body, color: familyHome.muted, lineHeight: 22, marginTop: 4 },
   subtitle: { ...typography.body, color: familyHome.muted },
   heroFull: {
@@ -664,12 +628,7 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   heroFullCopy: { flex: 1, gap: 6, paddingBottom: 2 },
-  heroFullHeadline: {
-    ...typography.subtitle,
-    color: familyHome.text,
-    lineHeight: 28,
-    fontSize: 22,
-  },
+  heroFullHeadline: { ...servicePageType.heroHeadline },
   heroFullAccent: { color: familyHome.greenDark },
   heroFullBody: {
     ...typography.caption,
@@ -719,8 +678,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  soonTitle: { ...typography.bodyStrong, color: familyHome.red },
-  soonBody: { ...typography.caption, color: familyHome.text, marginTop: 4, lineHeight: 18 },
+  soonTitle: { ...servicePageType.bannerTitle, color: familyHome.red },
+  soonBody: { ...servicePageType.bannerBody, color: familyHome.text, marginTop: 4 },
   notifyCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -798,8 +757,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  membershipTitle: { ...typography.bodyStrong, color: familyHome.text },
-  membershipBody: { ...typography.caption, color: familyHome.muted, marginTop: 2, lineHeight: 18 },
+  membershipTitle: { ...servicePageType.bannerTitle, color: familyHome.text },
+  membershipBody: { ...servicePageType.bannerBody, color: familyHome.muted, marginTop: 2 },
   joinPromo: {
     flexDirection: 'row',
     alignItems: 'center',

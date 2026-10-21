@@ -48,7 +48,7 @@ describe('admin services catalogue order', () => {
     expect(filterAdminServices(items, 'addons', '').map((item) => item.slug)).toEqual(['food']);
     expect(adminServiceKind('food')).toBe('addon');
     expect(adminCatalogPath('grocery')).toBe('/(admin)/catalog/grocery');
-    expect(adminCatalogPath('food')).toBe('/(admin)/catalog/food');
+    expect(adminCatalogPath('food')).toBe('/(admin)/catalog/offerings/food');
     expect(adminCatalogPath('companion')).toBe('/(admin)/catalog/offerings/companion');
   });
 

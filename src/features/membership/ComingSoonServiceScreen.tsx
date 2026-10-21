@@ -4,6 +4,7 @@ import { Icon, type IconName } from '@/components/ui';
 import { spacing, typography } from '@/constants/theme';
 import { ServicePageHeader } from '@/features/home/components/ServicePageHeader';
 import { familyHome } from '@/features/home/components/familyHomeTheme';
+import { servicePageType } from './servicePageType';
 
 type Props = {
   title: string;
@@ -56,9 +57,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: spacing.xl,
   },
-  title: {
-    ...typography.title,
-    color: familyHome.text,
+  title: { ...servicePageType.pageTitle, color: familyHome.text,
     textAlign: 'center',
   },
   description: {

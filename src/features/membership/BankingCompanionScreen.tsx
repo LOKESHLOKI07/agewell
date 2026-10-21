@@ -25,13 +25,15 @@ import { toDisplayDate } from '@/utils/date';
 import type { ServiceOffering } from './catalogTypes';
 import { MEMBERSHIP_SERVICE_AREA_LINE } from './membershipServicePageVariant';
 import { membershipPurchaseHref } from './planCatalog';
-import { SERVICE_HERO_IMAGES } from './serviceHeroes';
+import { SERVICE_HERO_IMAGES } from './serviceHeroes'
+import { servicePageType } from './servicePageType';
 import {
   filterRequestsBySlug,
   liveRequestToneMeta,
   toLiveRequestViews,
 } from './liveServiceRequests';
 import { useHasActiveMembership } from './useHasActiveMembership';
+import { MembershipNoMembershipPreview } from './MembershipNoMembershipPreview';
 import { useMembershipServicePageVariant } from './useMembershipServicePageVariant';
 import { useMembershipSubmit } from './useMembershipSubmit';
 import { useServiceOfferings } from './useCatalog';
@@ -52,105 +54,6 @@ const GATE_FEATURES: { icon: IconName; title: string; body: string }[] = [
   { icon: 'document-text-outline', title: 'Cheque Deposit', body: 'Help with deposit and clearance' },
   { icon: 'clipboard-outline', title: 'Passbook Update', body: 'Assistance for passbook printing and update' },
   { icon: 'landmark', title: 'Other Banking Work', body: 'Support for various banking errands' },
-];
-
-const FALLBACK_OFFERINGS: ServiceOffering[] = [
-  {
-    id: 'fallback-pension',
-    serviceSlug: SLUG,
-    title: 'Pension Withdrawal',
-    description: 'Assistance with pension withdrawal process.',
-    badge: 'Banking',
-    priceLabel: 'Per visit',
-    image: null,
-    metaJson: null,
-    sortOrder: 0,
-    isActive: true,
-  },
-  {
-    id: 'fallback-account',
-    serviceSlug: SLUG,
-    title: 'Account Related Help',
-    description: 'Support for account services and issues.',
-    badge: 'Banking',
-    priceLabel: 'Per visit',
-    image: null,
-    metaJson: null,
-    sortOrder: 1,
-    isActive: true,
-  },
-  {
-    id: 'fallback-kyc',
-    serviceSlug: SLUG,
-    title: 'KYC Update',
-    description: 'Help with KYC document update and verification.',
-    badge: 'Banking',
-    priceLabel: 'Per visit',
-    image: null,
-    metaJson: null,
-    sortOrder: 2,
-    isActive: true,
-  },
-  {
-    id: 'fallback-passbook',
-    serviceSlug: SLUG,
-    title: 'Passbook Update',
-    description: 'Assistance with passbook printing and updates.',
-    badge: 'Banking',
-    priceLabel: 'Per visit',
-    image: null,
-    metaJson: null,
-    sortOrder: 3,
-    isActive: true,
-  },
-  {
-    id: 'fallback-cheque',
-    serviceSlug: SLUG,
-    title: 'Cheque Book Request',
-    description: 'Request a new cheque book or related support.',
-    badge: 'Banking',
-    priceLabel: 'Per visit',
-    image: null,
-    metaJson: null,
-    sortOrder: 4,
-    isActive: true,
-  },
-  {
-    id: 'fallback-neft',
-    serviceSlug: SLUG,
-    title: 'NEFT / RTGS Assistance',
-    description: 'Help with fund transfer and transaction issues.',
-    badge: 'Banking',
-    priceLabel: 'Per visit',
-    image: null,
-    metaJson: null,
-    sortOrder: 5,
-    isActive: true,
-  },
-  {
-    id: 'fallback-fd',
-    serviceSlug: SLUG,
-    title: 'Fixed Deposit (FD) Support',
-    description: 'Assistance with FD opening, renewal, etc.',
-    badge: 'Banking',
-    priceLabel: 'Per visit',
-    image: null,
-    metaJson: null,
-    sortOrder: 6,
-    isActive: true,
-  },
-  {
-    id: 'fallback-other',
-    serviceSlug: SLUG,
-    title: 'Other Banking Service',
-    description: 'Any other banking related assistance.',
-    badge: 'Banking',
-    priceLabel: 'Per visit',
-    image: null,
-    metaJson: null,
-    sortOrder: 7,
-    isActive: true,
-  },
 ];
 
 const SERVICE_LOOKS: { match: RegExp; icon: IconName; color: string; soft: string }[] = [
@@ -319,45 +222,7 @@ function OutsideAreaBody() {
 }
 
 function NoMembershipBody() {
-  return (
-    <View style={styles.stack}>
-      <TitleBlock />
-      <GateHero />
-      <FeaturesGrid />
-      <View style={styles.membershipCard}>
-        <View style={styles.membershipHead}>
-          <View style={styles.lockWell}>
-            <Icon name="lock-closed-outline" size={16} color="#B45309" />
-          </View>
-          <View style={styles.flex}>
-            <Text style={styles.membershipTitle}>Membership Required</Text>
-            <Text style={styles.membershipBody}>
-              Banking Companion is available only for AgeWell members.
-            </Text>
-          </View>
-        </View>
-        <Pressable
-          onPress={() => router.push(membershipPurchaseHref())}
-          style={({ pressed }) => [styles.joinPromo, pressed ? styles.pressed : null]}
-          accessibilityRole="button"
-        >
-          <View style={styles.flex}>
-            <Text style={styles.joinPromoTitle}>Join AgeWell Membership</Text>
-            <Text style={styles.joinPromoBody}>
-              Get access to Banking Companion and many other services for a safer, healthier and happier life.
-            </Text>
-          </View>
-          <Icon name="chevron-forward" size={16} color="#B45309" />
-        </Pressable>
-        <PrimaryButton label="Join Membership  →" onPress={() => router.push(membershipPurchaseHref())} />
-        <SecondaryButton
-          label="View Membership Plans"
-          onPress={() => router.push(membershipPurchaseHref())}
-        />
-      </View>
-      <ServiceHelpBanner />
-    </View>
-  );
+  return <MembershipNoMembershipPreview slug={SLUG} />;
 }
 
 function MemberLiveBody() {
@@ -369,21 +234,7 @@ function MemberLiveBody() {
   const validTill = membershipValidLabel(membership.query.data?.endDate);
   const [selectedId, setSelectedId] = useState('');
 
-  const offerings = useMemo(() => {
-    const fromApi = catalog.data ?? [];
-    const byTitle = new Map<string, ServiceOffering>();
-    for (const item of fromApi) {
-      const key = item.title.trim().toLowerCase();
-      if (!byTitle.has(key)) {
-        byTitle.set(key, item);
-      }
-    }
-    const resolved = FALLBACK_OFFERINGS.map((fallback) => {
-      const apiItem = byTitle.get(fallback.title.toLowerCase());
-      return apiItem ?? fallback;
-    });
-    return resolved;
-  }, [catalog.data]);
+  const offerings = useMemo(() => catalog.data ?? [], [catalog.data]);
 
   const selected = offerings.find((item) => item.id === selectedId) ?? null;
 
@@ -456,6 +307,9 @@ function MemberLiveBody() {
         <Pressable onPress={() => void catalog.refetch()} accessibilityRole="button">
           <Text style={styles.viewAll}>Unable to load · Tap to retry</Text>
         </Pressable>
+      ) : null}
+      {!catalog.isPending && !catalog.isError && offerings.length === 0 ? (
+        <Text style={styles.empty}>No options configured yet.</Text>
       ) : null}
 
       <View style={styles.offerGrid}>
@@ -621,8 +475,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  title: { ...typography.title, color: familyHome.text },
-  liveTitle: { ...typography.title, color: familyHome.text, fontSize: 22 },
+  title: { ...servicePageType.pageTitle, color: familyHome.text },
+  liveTitle: { ...servicePageType.pageTitle, color: familyHome.text},
   lead: { ...typography.body, color: familyHome.muted, lineHeight: 22, marginTop: 4 },
   subtitle: { ...typography.body, color: familyHome.muted },
   heroFull: {
@@ -650,12 +504,7 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   heroFullCopy: { flex: 1, gap: 6, paddingBottom: 2 },
-  heroFullHeadline: {
-    ...typography.subtitle,
-    color: familyHome.text,
-    lineHeight: 28,
-    fontSize: 22,
-  },
+  heroFullHeadline: { ...servicePageType.heroHeadline },
   heroFullAccent: { color: familyHome.greenDark },
   heroFullBody: {
     ...typography.caption,
@@ -705,8 +554,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  soonTitle: { ...typography.bodyStrong, color: familyHome.red },
-  soonBody: { ...typography.caption, color: familyHome.text, marginTop: 4, lineHeight: 18 },
+  soonTitle: { ...servicePageType.bannerTitle, color: familyHome.red },
+  soonBody: { ...servicePageType.bannerBody, color: familyHome.text, marginTop: 4 },
   notifyCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -784,8 +633,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  membershipTitle: { ...typography.bodyStrong, color: familyHome.text },
-  membershipBody: { ...typography.caption, color: familyHome.muted, marginTop: 2, lineHeight: 18 },
+  membershipTitle: { ...servicePageType.bannerTitle, color: familyHome.text },
+  membershipBody: { ...servicePageType.bannerBody, color: familyHome.muted, marginTop: 2 },
   joinPromo: {
     flexDirection: 'row',
     alignItems: 'center',

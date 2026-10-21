@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams, useNavigation, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Ellipse, Path, Rect } from 'react-native-svg';
@@ -13,8 +13,9 @@ import { onboardingLocationApiFields } from './onboardingLocation';
 import { getOnboardingProfile, hasOnboardingProfile, onboardingAccountFields } from './onboardingProfile';
 import { registerSenior } from './registrationApi';
 import { authenticatedHomeHref } from './roleRouting';
-import { SERVICE_AREA_CITIES } from './serviceArea';
-import { setServiceAreaAvailable } from './serviceAreaPreference';
+import { ServiceAreaLockScreen } from './ServiceAreaLockScreen';
+import { SERVICE_AREA_CITIES, resolveServiceAreaFromSenior } from './serviceArea';
+import { setServiceAreaResolution } from './serviceAreaPreference';
 
 const ORANGE = '#F57C23';
 
@@ -37,6 +38,14 @@ export function ServiceAreaScreen() {
     router.replace('/(auth)/location' as Href);
   };
 
+  const goToPersonalDetails = () => {
+    if (typeof router.dismissTo === 'function') {
+      router.dismissTo('/(auth)/personal-details' as Href);
+      return;
+    }
+    router.replace('/(auth)/personal-details' as Href);
+  };
+
   const finishOnboarding = async () => {
     if (busy) {
       return;
@@ -52,10 +61,17 @@ export function ServiceAreaScreen() {
     setPhoneTaken(false);
 
     try {
-      await setServiceAreaAvailable(available);
+      const location = onboardingLocationApiFields();
+      await setServiceAreaResolution(
+        resolveServiceAreaFromSenior({
+          inServiceArea: available,
+          locationQuery: location.locationQuery,
+          locationLat: location.locationLat,
+          locationLng: location.locationLng,
+        }),
+      );
       const profile = getOnboardingProfile();
       const account = onboardingAccountFields(profile);
-      const location = onboardingLocationApiFields();
       const result = await registerSenior({
         ...account,
         emergencyContact: account.phone,
@@ -76,6 +92,15 @@ export function ServiceAreaScreen() {
     }
   };
 
+  if (!available) {
+    return (
+      <ServiceAreaLockScreen
+        onBack={goBack}
+        onEnterLocation={() => router.replace('/(auth)/location' as Href)}
+      />
+    );
+  }
+
   return (
     <View style={[styles.root, { paddingTop: insets.top + spacing.sm, paddingBottom: insets.bottom + spacing.xl }]}>
       <Pressable onPress={goBack} accessibilityRole="button" accessibilityLabel="Back" style={styles.back}>
@@ -83,23 +108,9 @@ export function ServiceAreaScreen() {
       </Pressable>
 
       <View style={styles.body}>
-        {available ? <AvailableHero /> : <ComingSoonHero />}
-        {available ? (
-          <>
-            <Text style={styles.title}>AgeWell is available in your area! 🥳</Text>
-            <Text style={styles.subtitle}>We currently provide services in {SERVICE_AREA_CITIES}.</Text>
-          </>
-        ) : (
-          <>
-            <Text style={styles.title}>
-              AgeWell is coming to your area <Text style={styles.heart}>♡</Text>
-            </Text>
-            <Text style={styles.subtitle}>We are currently serving in Kandivali & Borivali region of Mumbai.</Text>
-            <Text style={[styles.subtitle, styles.subtitleFollow]}>
-              You can explore AgeWell now. Booking opens when we launch in your area.
-            </Text>
-          </>
-        )}
+        <AvailableHero />
+        <Text style={styles.title}>AgeWell is available in your area! 🥳</Text>
+        <Text style={styles.subtitle}>We currently provide services in {SERVICE_AREA_CITIES}.</Text>
       </View>
 
       {formError ? (
@@ -119,7 +130,7 @@ export function ServiceAreaScreen() {
           ) : null}
           {phoneTaken ? (
             <Pressable
-              onPress={() => router.replace('/(auth)/personal-details' as Href)}
+              onPress={goToPersonalDetails}
               accessibilityRole="button"
               accessibilityLabel="Change mobile number"
               style={styles.errorAction}
@@ -134,35 +145,15 @@ export function ServiceAreaScreen() {
         onPress={() => void finishOnboarding()}
         disabled={busy}
         accessibilityRole="button"
-        accessibilityLabel={available ? 'Continue to AgeWell' : 'Explore AgeWell'}
+        accessibilityLabel="Continue to AgeWell"
         style={({ pressed }) => [
           styles.button,
-          available ? styles.availableButton : styles.notifyButton,
+          styles.availableButton,
           pressed || busy ? styles.pressed : null,
         ]}
       >
-        {busy ? (
-          <ActivityIndicator color="#FFFFFF" />
-        ) : (
-          <Text style={styles.buttonLabel}>{available ? 'Continue to AgeWell' : 'Explore AgeWell'}</Text>
-        )}
+        {busy ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.buttonLabel}>Continue to AgeWell</Text>}
       </Pressable>
-
-      {!available ? (
-        <Pressable
-          onPress={() =>
-            Alert.alert(
-              "We'll notify you",
-              'We will let you know when AgeWell launches in your area.',
-            )
-          }
-          accessibilityRole="button"
-          accessibilityLabel="Notify Me When We Launch Here"
-          style={styles.secondaryAction}
-        >
-          <Text style={styles.secondaryLabel}>Notify Me When We Launch Here</Text>
-        </Pressable>
-      ) : null}
     </View>
   );
 }

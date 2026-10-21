@@ -24,7 +24,12 @@ import {
   type LocationFailureReason,
   type OnboardingAuthMethod,
 } from './onboardingLocation';
-import { resolveServiceAreaFromGps, resolveServiceAreaFromQuery, serviceAreaHref } from './serviceArea';
+import {
+  resolveServiceAreaMatchFromGps,
+  resolveServiceAreaMatchFromQuery,
+  serviceAreaHref,
+} from './serviceArea';
+import { setServiceAreaResolution } from './serviceAreaPreference';
 
 const METHODS = new Set<OnboardingAuthMethod>(['google', 'mobile', 'email']);
 
@@ -82,9 +87,10 @@ export function LocationPermissionScreen({
     try {
       const result = await requestOnboardingLocation();
       if (result.ok) {
-        setOnboardingGps(result.latitude, result.longitude);
-        const available = await resolveServiceAreaFromGps(result.latitude, result.longitude);
-        goToServiceArea(available);
+        const match = await resolveServiceAreaMatchFromGps(result.latitude, result.longitude);
+        setOnboardingGps(result.latitude, result.longitude, match.localityLabel);
+        await setServiceAreaResolution(match);
+        goToServiceArea(match.inServiceArea);
         return;
       }
       showLocationIssue(result.reason, () => setMode('manual'));
@@ -106,8 +112,9 @@ export function LocationPermissionScreen({
     setPlaceError(undefined);
     try {
       setOnboardingManualLocation(query);
-      const available = await resolveServiceAreaFromQuery(query);
-      goToServiceArea(available);
+      const match = await resolveServiceAreaMatchFromQuery(query);
+      await setServiceAreaResolution(match);
+      goToServiceArea(match.inServiceArea);
     } finally {
       setBusy(false);
     }
@@ -155,7 +162,7 @@ export function LocationPermissionScreen({
             <>
               <TextField
                 label="Area or city"
-                placeholder="Kandivali, Mumbai"
+                placeholder="Kandivali, Warora, Wani…"
                 value={place}
                 onChangeText={(value) => {
                   setPlace(value);

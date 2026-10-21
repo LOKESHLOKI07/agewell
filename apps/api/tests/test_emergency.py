@@ -500,6 +500,40 @@ async def test_service_area_rule_blocks_emergency_create(client):
 
 
 @pytest.mark.asyncio
+async def test_member_can_cancel_accidental_sos(client):
+    senior, _admin, _senior_id, _me = await prepare_john_sos(client)
+    created = await client.post(
+        "/api/v1/emergency/",
+        headers=auth_header(senior),
+        json={"type": "MEDICAL", "trigger_source": "APP_SOS"},
+    )
+    assert created.status_code == 200, created.text
+    case_id = created.json()["id"]
+
+    cancelled = await client.post(
+        f"/api/v1/emergency/{case_id}/cancel",
+        headers=auth_header(senior),
+    )
+    assert cancelled.status_code == 200, cancelled.text
+    assert cancelled.json()["status"] == "CANCELLED"
+    assert cancelled.json()["closed_at"] is not None
+
+    again = await client.post(
+        f"/api/v1/emergency/{case_id}/cancel",
+        headers=auth_header(senior),
+    )
+    assert again.status_code == 400
+
+    # After cancel, a new SOS can be created.
+    fresh = await client.post(
+        "/api/v1/emergency/",
+        headers=auth_header(senior),
+        json={"type": "MEDICAL", "trigger_source": "APP_SOS"},
+    )
+    assert fresh.status_code == 200, fresh.text
+
+
+@pytest.mark.asyncio
 async def test_duplicate_active_emergency_rejected(client):
     senior, _admin, _senior_id, _me = await prepare_john_sos(client)
     first = await client.post(

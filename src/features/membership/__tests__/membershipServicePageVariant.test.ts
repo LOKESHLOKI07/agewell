@@ -76,4 +76,16 @@ describe('resolveMembershipServicePageVariant', () => {
       }),
     ).toBe('non_serviceable');
   });
+
+  it('hides a service that is not offered in the current locality', () => {
+    expect(
+      resolveMembershipServicePageVariant({
+        inServiceArea: true,
+        hasMembership: true,
+        areaReady: true,
+        membershipReady: true,
+        offeredInLocality: false,
+      }),
+    ).toBe('non_serviceable');
+  });
 });

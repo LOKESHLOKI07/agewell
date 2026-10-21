@@ -21,6 +21,7 @@ import {
   healthAppointmentHref,
 } from '@/features/appointments/selectors';
 import { useAppointments, useHealthcareProviders, useMedicalRecords } from '@/features/health/hooks';
+import { MembershipNoMembershipPreview } from './MembershipNoMembershipPreview';
 import { MEMBERSHIP_SERVICE_AREA_LINE } from './membershipServicePageVariant';
 import {
   doctorAssignedLabel,
@@ -33,7 +34,8 @@ import {
   type DoctorVisitTone,
 } from './doctorVisitModel';
 import { membershipPurchaseHref } from './planCatalog';
-import { SERVICE_HERO_IMAGES } from './serviceHeroes';
+import { SERVICE_HERO_IMAGES } from './serviceHeroes'
+import { servicePageType } from './servicePageType';
 import { useMembershipServicePageVariant } from './useMembershipServicePageVariant';
 import { useHasActiveMembership } from './useHasActiveMembership';
 import { useTabScreenBottomPad } from '@/utils/safeBottom';
@@ -157,17 +159,7 @@ export function DoctorConsultationScreen() {
         ) : null}
 
         {variant === 'serviceable_no_membership' ? (
-          <>
-            <TitleBlock />
-            <HeroBanner
-              tone="photo"
-              headline={['Trusted Care for a ', 'Healthier Tomorrow']}
-              sub="Consult with experienced doctors at your home for personalised guidance and better health."
-            />
-            <FeaturesRow title="What You Get" />
-            <MembershipRequiredFooter />
-            <ServiceHelpBanner />
-          </>
+          <MembershipNoMembershipPreview slug="doctor" />
         ) : null}
 
         {variant === 'serviceable_with_membership' ? (
@@ -505,7 +497,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  title: { ...typography.title, color: '#123B7A' },
+  title: { ...servicePageType.pageTitle, color: '#123B7A' },
   lead: { ...typography.caption, color: familyHome.muted, marginTop: 4, lineHeight: 18 },
 
   heroCard: {
@@ -568,8 +560,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#F5C2C4',
   },
-  soonTitle: { ...typography.bodyStrong, color: familyHome.red },
-  soonBody: { ...typography.caption, color: familyHome.text, marginTop: 4, lineHeight: 18 },
+  soonTitle: { ...servicePageType.bannerTitle, color: familyHome.red },
+  soonBody: { ...servicePageType.bannerBody, color: familyHome.text, marginTop: 4 },
 
   membershipCard: {
     backgroundColor: familyHome.yellowSoft,
@@ -588,8 +580,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  membershipTitle: { ...typography.bodyStrong, color: '#B45309' },
-  membershipBody: { ...typography.caption, color: familyHome.text, marginTop: 2, lineHeight: 18 },
+  membershipTitle: { ...servicePageType.bannerTitle, color: '#B45309' },
+  membershipBody: { ...servicePageType.bannerBody, color: familyHome.text, marginTop: 2 },
   joinPromo: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -712,7 +704,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   infoHead: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 },
-  infoTitle: { ...typography.bodyStrong, color: familyHome.blueDark, fontSize: 13 },
+  infoTitle: { ...servicePageType.bannerTitle, color: familyHome.blueDark},
   infoBulletRow: { flexDirection: 'row', gap: 6, alignItems: 'flex-start' },
   infoBullet: { ...typography.caption, color: familyHome.blueDark, lineHeight: 16 },
   infoBody: { ...typography.caption, color: familyHome.text, flex: 1, fontSize: 11, lineHeight: 16 },

@@ -24,6 +24,7 @@ import { ServiceHelpBanner } from '@/features/membership/ServiceHelpBanner';
 import { MarketplaceServiceIcon } from '@/features/services/components/MarketplaceServiceIcon';
 import { homeQueryKeys } from '@/features/home/api/homeQueryKeys';
 import { useServiceRequests } from '@/features/home/hooks/queries';
+import { MembershipNoMembershipPreview } from './MembershipNoMembershipPreview';
 import { MEMBERSHIP_SERVICE_AREA_LINE } from './membershipServicePageVariant';
 import {
   groceryOrderToneMeta,
@@ -31,7 +32,8 @@ import {
   type GroceryOrderView,
 } from './groceryOrders';
 import { membershipPurchaseHref } from './planCatalog';
-import { SERVICE_HERO_IMAGES } from './serviceHeroes';
+import { SERVICE_HERO_IMAGES } from './serviceHeroes'
+import { servicePageType } from './servicePageType';
 import { useHasActiveMembership } from './useHasActiveMembership';
 import { useMembershipServicePageVariant } from './useMembershipServicePageVariant';
 import { useMembershipSubmit } from './useMembershipSubmit';
@@ -220,18 +222,7 @@ export function GroceryDeliveryScreen() {
         ) : null}
 
         {variant === 'serviceable_no_membership' ? (
-          <>
-            <TitleBlock />
-            <HeroBanner
-              headline={['Fresh Groceries for a ', 'Healthier Tomorrow']}
-              sub="Upload your list, and we'll take care of the rest."
-              badge="Good Food Brighter Days"
-              tone="photo"
-            />
-            <StepsRow />
-            <MembershipRequiredFooter />
-            <ServiceHelpBanner />
-          </>
+          <MembershipNoMembershipPreview slug="grocery" />
         ) : null}
 
         {variant === 'serviceable_with_membership' ? (
@@ -609,7 +600,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  title: { ...typography.title, color: '#123B7A' },
+  title: { ...servicePageType.pageTitle, color: '#123B7A' },
   lead: { ...typography.caption, color: familyHome.muted, marginTop: 4, lineHeight: 18 },
 
   heroCard: {
@@ -677,8 +668,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#F5C2C4',
   },
-  soonTitle: { ...typography.bodyStrong, color: familyHome.red },
-  soonBody: { ...typography.caption, color: familyHome.text, marginTop: 4, lineHeight: 18 },
+  soonTitle: { ...servicePageType.bannerTitle, color: familyHome.red },
+  soonBody: { ...servicePageType.bannerBody, color: familyHome.text, marginTop: 4 },
 
   membershipCard: {
     backgroundColor: familyHome.yellowSoft,
@@ -697,8 +688,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  membershipTitle: { ...typography.bodyStrong, color: '#B45309' },
-  membershipBody: { ...typography.caption, color: familyHome.text, marginTop: 2, lineHeight: 18 },
+  membershipTitle: { ...servicePageType.bannerTitle, color: '#B45309' },
+  membershipBody: { ...servicePageType.bannerBody, color: familyHome.text, marginTop: 2 },
   joinPromo: {
     flexDirection: 'row',
     alignItems: 'center',

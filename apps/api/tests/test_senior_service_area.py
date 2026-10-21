@@ -10,7 +10,11 @@ class _Senior:
 def test_address_in_service_area_keywords():
     assert address_in_service_area("Flat 12, Kandivali West, Mumbai") is True
     assert address_in_service_area("Borivali East") is True
+    assert address_in_service_area("Warora, Chandrapur") is True
+    assert address_in_service_area("Bhadravati") is True
+    assert address_in_service_area("Wani, Chandrapur district") is True
     assert address_in_service_area("Andheri West") is False
+    assert address_in_service_area("Nagpur") is False
     assert address_in_service_area("") is False
     assert address_in_service_area(None) is False
 

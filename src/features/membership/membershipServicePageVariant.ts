@@ -1,10 +1,12 @@
+import { SERVICE_AREA_CITIES } from '@/features/auth/serviceArea';
+
 export type MembershipServicePageVariant =
   | 'loading'
   | 'non_serviceable'
   | 'serviceable_no_membership'
   | 'serviceable_with_membership';
 
-export const MEMBERSHIP_SERVICE_AREA_LINE = 'AgeWell is currently serving Kandivali & Borivali, Mumbai.';
+export const MEMBERSHIP_SERVICE_AREA_LINE = `AgeWell is currently serving ${SERVICE_AREA_CITIES}.`;
 
 /**
  * Page-level gate for membership (and add-on) service screens.
@@ -17,11 +19,12 @@ export function resolveMembershipServicePageVariant(input: {
   areaReady: boolean;
   membershipReady: boolean;
   requireMembership?: boolean;
+  offeredInLocality?: boolean;
 }): MembershipServicePageVariant {
   if (!input.areaReady) {
     return 'loading';
   }
-  if (!input.inServiceArea) {
+  if (!input.inServiceArea || input.offeredInLocality === false) {
     return 'non_serviceable';
   }
   if (input.requireMembership === false) {

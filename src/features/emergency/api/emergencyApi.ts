@@ -59,6 +59,15 @@ export async function acknowledgeEmergency(id: string): Promise<EmergencyCase> {
   }
 }
 
+export async function cancelEmergency(id: string): Promise<EmergencyCase> {
+  try {
+    const response = await apiClient.post(`/emergency/${id}/cancel`);
+    return toEmergencyCase(response.data);
+  } catch (error) {
+    throw toApiError(error);
+  }
+}
+
 export async function updateEmergencyReport(id: string, payload: EmergencyReportUpdate): Promise<EmergencyCase> {
   try {
     const response = await apiClient.patch(`/emergency/${id}/report`, payload);

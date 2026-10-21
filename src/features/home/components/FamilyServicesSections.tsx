@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { router, type Href } from 'expo-router';
 import { spacing, typography } from '@/constants/theme';
+import { useServiceTier } from '@/features/auth/useServiceLocality';
 import { homeAddOnServices } from '@/features/services/addOnServiceCatalog';
 import { MarketplaceServiceIcon } from '@/features/services/components/MarketplaceServiceIcon';
 import { homeBasicMembershipServices, type HomeServiceTile } from '@/features/services/serviceCatalog';
@@ -89,7 +90,8 @@ export function FamilyOurServicesGrid({
 }
 
 export function FamilyAddOnServices({ showViewAll = false }: { showViewAll?: boolean }) {
-  const items = homeAddOnServices();
+  const tier = useServiceTier();
+  const items = homeAddOnServices(tier);
 
   const onPressItem = (item: HomeServiceTile) => {
     router.push(item.href);

@@ -88,6 +88,7 @@ async def test_family_can_request_membership_and_admin_can_approve(client):
     assert created.status_code == 200, created.text
     body = created.json()
     assert body["status"] == "REQUESTED"
+    assert body.get("stage", "SUBMITTED") == "SUBMITTED"
     assert body["plan_name"] == "Single Membership"
     assert body["family_contact_1_name"] == "Asha Sharma"
     assert body["family_contact_1_phone"] == "9876543210"
@@ -126,7 +127,20 @@ async def test_family_can_request_membership_and_admin_can_approve(client):
         json={"status": "APPROVED"},
     )
     assert approved.status_code == 200, approved.text
-    assert approved.json()["status"] == "APPROVED"
+    assert approved.json()["status"] == "REQUESTED"
+    assert approved.json()["stage"] == "ACCEPTED"
+
+    # Membership stays inactive until payment.
+    still_missing = await client.get("/api/v1/memberships/current", headers=senior)
+    assert still_missing.status_code == 404
+
+    paid = await client.post(
+        f"/api/v1/memberships/requests/{request_id}/pay",
+        headers=senior,
+    )
+    assert paid.status_code == 200, paid.text
+    assert paid.json()["status"] == "APPROVED"
+    assert paid.json()["stage"] == "APPROVED"
 
     current = await client.get("/api/v1/memberships/current", headers=senior)
     assert current.status_code == 200, current.text
@@ -155,12 +169,20 @@ async def test_admin_can_reject_after_membership_is_approved(client):
     request_id = created.json()["id"]
 
     admin = auth_header(await login(client, ADMIN_EMAIL))
-    approved = await client.patch(
+    accepted = await client.patch(
         f"/api/v1/memberships/requests/{request_id}",
         headers=admin,
         json={"status": "APPROVED"},
     )
-    assert approved.status_code == 200, approved.text
+    assert accepted.status_code == 200, accepted.text
+    assert accepted.json()["stage"] == "ACCEPTED"
+    assert (await client.get("/api/v1/memberships/current", headers=senior)).status_code == 404
+
+    paid = await client.post(
+        f"/api/v1/memberships/requests/{request_id}/pay",
+        headers=senior,
+    )
+    assert paid.status_code == 200, paid.text
     assert (await client.get("/api/v1/memberships/current", headers=senior)).status_code == 200
 
     rejected = await client.patch(

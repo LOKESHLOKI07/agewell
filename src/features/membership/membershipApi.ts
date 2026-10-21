@@ -96,3 +96,12 @@ export async function createMembershipPurchaseRequest(input: {
     throw toApiError(error);
   }
 }
+
+export async function confirmMembershipPayment(requestId: string): Promise<MembershipRequest> {
+  try {
+    const response = await apiClient.post(`/memberships/requests/${encodeURIComponent(requestId)}/pay`);
+    return toMembershipRequest(response.data);
+  } catch (error) {
+    throw toApiError(error);
+  }
+}

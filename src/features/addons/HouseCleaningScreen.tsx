@@ -18,21 +18,27 @@ import { minTouchSize, spacing, typography } from '@/constants/theme';
 import { useServiceRequests, useServices } from '@/features/home/hooks/queries';
 import { ServicePageHeader } from '@/features/home/components/ServicePageHeader';
 import { familyHome } from '@/features/home/components/familyHomeTheme';
-import { ServiceHelpBanner } from '@/features/membership/ServiceHelpBanner';
+import { servicePageType } from '@/features/membership/servicePageType';
+import { MarketplaceServiceIcon } from '@/features/services/components/MarketplaceServiceIcon';
 import {
   filterOfferingsByKind,
   type ServiceOffering,
 } from '@/features/membership/catalogTypes';
 import {
   filterRequestsBySlug,
+  liveRequestToneMeta,
   toLiveRequestViews,
+  type LiveRequestTone,
+  type LiveRequestView,
 } from '@/features/membership/liveServiceRequests';
 import { MEMBERSHIP_SERVICE_AREA_LINE } from '@/features/membership/membershipServicePageVariant';
 import { membershipPurchaseHref } from '@/features/membership/planCatalog';
 import { SERVICE_HERO_IMAGES } from '@/features/membership/serviceHeroes';
+import { useHasActiveMembership } from '@/features/membership/useHasActiveMembership';
 import { useMembershipServicePageVariant } from '@/features/membership/useMembershipServicePageVariant';
 import { useMembershipSubmit } from '@/features/membership/useMembershipSubmit';
 import { useServiceOfferings } from '@/features/membership/useCatalog';
+import { toDisplayDate } from '@/utils/date';
 import { useTabScreenBottomPad } from '@/utils/safeBottom';
 
 /** Backend slug remains `maid-assistance`; product copy is House Maid. */
@@ -42,36 +48,67 @@ const VIDEO_URL =
   'https://www.youtube.com/results?search_query=House+Maid+Service+AgeWell';
 
 const DEFAULT_LEAD = 'Trained maid for house & utensil cleaning, stock drying.';
-const DEFAULT_PRICE = '₹3,500 / month';
 const SERVICE_DETAILS =
   'Monthly maid service for household cleaning including utensils cleaning, cloth drying, brooming and floor cleaning. Trained and verified maids for a clean and hygienic home.';
 
-const TASK_CARDS: { title: string; icon: IconName; color: string }[] = [
-  { title: 'Utensils Cleaning', icon: 'restaurant-outline', color: familyHome.blue },
-  { title: 'Cloth Drying', icon: 'water', color: familyHome.green },
-  { title: 'Brooming', icon: 'broom', color: familyHome.orange },
-  { title: 'Floor Cleaning', icon: 'broom', color: familyHome.purple },
+const PLEASE_NOTE = [
+  'This is a chargeable add-on service.',
+  'Cost may vary based on your specific requirements and location.',
+  'Once you raise a request, our Customer Care team will contact you for more details.',
+  'All maids are trained and verified by AgeWell.',
+] as const;
+
+const TASK_CARDS: { title: string; icon: IconName; color: string; soft: string }[] = [
+  { title: 'Utensils Cleaning', icon: 'restaurant-outline', color: familyHome.blue, soft: familyHome.blueSoft },
+  { title: 'Cloth Drying', icon: 'water', color: familyHome.green, soft: familyHome.greenSoft },
+  { title: 'Brooming', icon: 'broom', color: familyHome.orange, soft: familyHome.orangeSoft },
+  { title: 'Floor Cleaning', icon: 'broom-sparkles', color: familyHome.purple, soft: familyHome.purpleSoft },
 ];
 
-const FEATURE_ICONS: { match: RegExp; icon: IconName }[] = [
-  { match: /trained|maid|staff|verified/i, icon: 'broom' },
-  { match: /complete|utensil|stock|sparkle|broom|floor|clean/i, icon: 'broom' },
-  { match: /hygien|safe|healthy/i, icon: 'shield-checkmark-outline' },
-  { match: /free\s*time|focus|heart|peace/i, icon: 'heart-outline' },
-];
 
-function iconForFeature(title: string, description: string): IconName {
-  const hay = `${title} ${description}`;
-  for (const row of FEATURE_ICONS) {
-    if (row.match.test(hay)) return row.icon;
+function membershipValidDate(endDate: string | null | undefined): string | null {
+  if (!endDate) {
+    return null;
   }
-  return 'broom';
+  const parsed = new Date(endDate);
+  if (Number.isNaN(parsed.getTime())) {
+    return toDisplayDate(endDate) || null;
+  }
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return `${parsed.getDate()} ${months[parsed.getMonth()]} ${parsed.getFullYear()}`;
+}
+
+function formatRequestDateTime(iso: string | null | undefined): string {
+  if (!iso) return 'Recently';
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return 'Recently';
+  const datePart = date.toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+  const timePart = date.toLocaleTimeString('en-IN', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+  return `${datePart} • ${timePart}`;
+}
+
+function statusToneForLog(tone: LiveRequestTone): { color: string; soft: string } {
+  if (tone === 'completed') {
+    return { color: familyHome.blueDark, soft: familyHome.blueSoft };
+  }
+  if (tone === 'scheduled' || tone === 'progress' || tone === 'placed') {
+    return { color: familyHome.greenDark, soft: familyHome.greenSoft };
+  }
+  return liveRequestToneMeta(tone);
 }
 
 export function HouseCleaningScreen() {
   const insets = useSafeAreaInsets();
   const bottomPad = useTabScreenBottomPad(spacing.xxl);
-  const variant = useMembershipServicePageVariant(true);
+  const variant = useMembershipServicePageVariant(true, 'maid-assistance');
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
@@ -104,24 +141,31 @@ function useAddonServiceCopy() {
     () => filterOfferingsByKind(catalog.data ?? [], 'feature'),
     [catalog.data],
   );
+  const included = useMemo(
+    () => filterOfferingsByKind(catalog.data ?? [], 'included'),
+    [catalog.data],
+  );
   const plans = useMemo(
     () => filterOfferingsByKind(catalog.data ?? [], 'plan'),
     [catalog.data],
   );
   const lead = service?.description?.trim() || DEFAULT_LEAD;
-  const priceLabel = plans[0]?.priceLabel?.trim() || DEFAULT_PRICE;
+  const priceLabel = plans[0]?.priceLabel?.trim() || '';
   const priceLine = plans[0]?.priceLabel
     ? `Cost: ${plans[0].priceLabel}.`
-    : plans[0]?.description || `Cost: ${DEFAULT_PRICE}.`;
-  return { service, features, plans, lead, priceLine, priceLabel, catalog };
+    : plans[0]?.description || undefined;
+  return { service, features, included, plans, lead, priceLine, priceLabel, catalog };
 }
 
 function TitleBlock({ lead, priceLine }: { lead?: string; priceLine?: string }) {
   return (
     <View style={styles.titleRow}>
-      <View style={styles.titleIcon}>
-        <Icon name="broom" size={22} color={familyHome.greenDark} />
-      </View>
+      <MarketplaceServiceIcon
+        serviceId={SLUG}
+        fallbackIcon="broom"
+        fallbackColor={familyHome.greenDark}
+        size={48}
+      />
       <View style={styles.flex}>
         <Text style={styles.title}>HOUSE MAID</Text>
         {lead ? <Text style={styles.lead}>{lead}</Text> : null}
@@ -136,23 +180,23 @@ function WatchVideoCard() {
     <Pressable
       onPress={() => void Linking.openURL(VIDEO_URL)}
       accessibilityRole="button"
-      accessibilityLabel="Watch: House Maid Service"
+      accessibilityLabel="Watch on YouTube: House Maid Service and Daily Tasks"
       style={({ pressed }) => [styles.videoCard, pressed ? styles.pressed : null]}
     >
       <View style={styles.videoThumb}>
         <Image source={heroImage} style={styles.videoThumbImage} resizeMode="cover" />
         <View style={styles.videoPlay}>
-          <Icon name="play" size={18} color={familyHome.white} />
+          <Icon name="play" size={14} color={familyHome.white} />
         </View>
         <Text style={styles.videoDuration}>2:08</Text>
       </View>
       <View style={styles.videoCopy}>
         <View style={styles.watchRow}>
           <Icon name="play" size={12} color={familyHome.red} />
-          <Text style={styles.watchLabel}>Watch</Text>
+          <Text style={styles.watchLabel}>Watch on YouTube</Text>
         </View>
-        <Text style={styles.videoTitle}>House Maid Service</Text>
-        <Text style={styles.videoSub}>A short video about our maid service and daily tasks.</Text>
+        <Text style={styles.videoTitle}>House Maid Service and Daily Tasks</Text>
+        <Text style={styles.videoSub}>Watch this short video to know more.</Text>
       </View>
       <Icon name="chevron-forward" size={16} color={familyHome.muted} />
     </Pressable>
@@ -170,7 +214,9 @@ function ServiceDetailsCard() {
       <View style={styles.taskGrid}>
         {TASK_CARDS.map((item) => (
           <View key={item.title} style={styles.taskCard}>
-            <Icon name={item.icon} size={20} color={item.color} />
+            <View style={[styles.taskIconWrap, { backgroundColor: item.soft }]}>
+              <Icon name={item.icon} size={18} color={item.color} />
+            </View>
             <Text style={styles.taskTitle}>{item.title}</Text>
           </View>
         ))}
@@ -180,14 +226,33 @@ function ServiceDetailsCard() {
 }
 
 function CostBanner({ priceLabel }: { priceLabel: string }) {
+  const label = priceLabel.trim() || 'Price will appear once configured';
   return (
     <View style={styles.costBanner} accessibilityRole="summary">
       <Icon name="ribbon-outline" size={18} color={familyHome.greenDark} />
       <Text style={styles.costText}>
-        General Cost <Text style={styles.costAmount}>{priceLabel}</Text>
+        General Cost <Text style={styles.costAmount}>{label}</Text>
       </Text>
     </View>
   );
+}
+
+function includedLook(title: string, index: number): {
+  icon: IconName;
+  color: string;
+  soft: string;
+} {
+  const lower = title.toLowerCase();
+  for (const card of TASK_CARDS) {
+    if (lower.includes(card.title.toLowerCase().split(' ')[0] ?? '')) {
+      return { icon: card.icon, color: card.color, soft: card.soft };
+    }
+  }
+  if (/utensil|dish|kitchen/i.test(lower)) return TASK_CARDS[0];
+  if (/cloth|laundry|drying|stock/i.test(lower)) return TASK_CARDS[1];
+  if (/broom/i.test(lower) && !/floor/i.test(lower)) return TASK_CARDS[2];
+  if (/floor|mop|sparkle/i.test(lower)) return TASK_CARDS[3];
+  return TASK_CARDS[index % TASK_CARDS.length];
 }
 
 function AddonNoteBanner() {
@@ -228,58 +293,16 @@ function MembershipRequiredBanner() {
   );
 }
 
-function GateHero() {
-  return (
-    <View style={styles.heroCard}>
-      <View style={styles.heroCopy}>
-        <Text style={styles.heroHeadline}>
-          A Cleaner Home{'\n'}
-          <Text style={styles.heroAccent}>A Happier You</Text>
-        </Text>
-        <Text style={styles.heroBody}>
-          Our trained maids help keep your home clean, hygienic and well-organized, so you can enjoy a healthier
-          and more comfortable life.
-        </Text>
-      </View>
-      <View style={styles.heroMedia}>
-        <Image source={heroImage} style={styles.heroImage} resizeMode="cover" />
-        <View style={styles.heroTag}>
-          <Text style={styles.heroTagText}>Clean Spaces Brighter Days</Text>
-        </View>
-      </View>
-    </View>
-  );
-}
-
-function FeaturesGrid({ items, loading }: { items: ServiceOffering[]; loading?: boolean }) {
-  return (
-    <View style={styles.featuresCard}>
-      {loading ? <Text style={styles.empty}>Loading features…</Text> : null}
-      {items.map((item) => (
-        <View key={item.id} style={styles.featureCol}>
-          <View style={styles.featureIcon}>
-            <Icon name={iconForFeature(item.title, item.description)} size={18} color={familyHome.green} />
-          </View>
-          <Text style={styles.featureTitle}>{item.title}</Text>
-          <Text style={styles.featureBody}>{item.description}</Text>
-        </View>
-      ))}
-      {!loading && items.length === 0 ? (
-        <Text style={styles.empty}>Features will appear here once configured in the catalog.</Text>
-      ) : null}
-    </View>
-  );
-}
-
 function OutsideAreaBody() {
-  const { lead, priceLine, features, catalog } = useAddonServiceCopy();
-  const { submitting, submit } = useMembershipSubmit(SLUG);
+  const { priceLabel } = useAddonServiceCopy();
 
   return (
     <View style={styles.stack}>
-      <TitleBlock lead={lead} priceLine={priceLine} />
-      <GateHero />
-      <FeaturesGrid items={features} loading={catalog.isPending} />
+      <TitleBlock />
+      <WatchVideoCard />
+      <ServiceDetailsCard />
+      <CostBanner priceLabel={priceLabel} />
+      <AddonNoteBanner />
       <View style={styles.soonBanner}>
         <View style={styles.soonIcon}>
           <Icon name="location" size={18} color={familyHome.red} />
@@ -292,31 +315,9 @@ function OutsideAreaBody() {
           </Text>
         </View>
       </View>
-      <View style={styles.notifyCard}>
-        <View style={styles.notifyLeft}>
-          <View style={styles.notifyIcon}>
-            <Icon name="notifications-outline" size={16} color={familyHome.white} />
-          </View>
-          <View style={styles.flex}>
-            <Text style={styles.helpTitle}>Get Notified</Text>
-            <Text style={styles.helpBody}>
-              We’ll notify you as soon as this service is available in your area.
-            </Text>
-          </View>
-        </View>
-        <Pressable
-          onPress={() =>
-            void submit('Notify me when House Maid is available in my area.', 'We will notify you')
-          }
-          disabled={submitting}
-          style={[styles.notifyBtn, submitting ? styles.disabled : null]}
-          accessibilityRole="button"
-          accessibilityLabel="Notify Me"
-        >
-          <Text style={styles.notifyBtnText}>{submitting ? 'Saving…' : 'Notify Me'}</Text>
-        </Pressable>
-      </View>
-      <ServiceHelpBanner tone="green" />
+      <MembershipRequiredBanner />
+      <PrimaryButton label="Get Membership  →" onPress={() => router.push(membershipPurchaseHref())} />
+      <SecondaryButton label="View Membership Plans" onPress={() => router.push(membershipPurchaseHref())} />
     </View>
   );
 }
@@ -342,25 +343,55 @@ function NoMembershipBody() {
 
 function MemberLiveBody() {
   const bottomPad = useTabScreenBottomPad(spacing.xxl);
-  const { lead, priceLine, plans, catalog } = useAddonServiceCopy();
+  const { lead, features, included, plans, catalog } = useAddonServiceCopy();
   const requestsQuery = useServiceRequests();
+  const membership = useHasActiveMembership();
   const { submitting, submit } = useMembershipSubmit(SLUG);
   const plan = plans[0];
+  const validTill = membershipValidDate(membership.query.data?.endDate);
+  const displayPrice = plan?.priceLabel?.trim() || '';
+  const includedItems = included.length > 0 ? included : features;
+
+  const recentRaw = useMemo(() => {
+    return filterRequestsBySlug(requestsQuery.data?.items ?? [], SLUG);
+  }, [requestsQuery.data?.items]);
 
   const recent = useMemo(() => {
-    const mine = filterRequestsBySlug(requestsQuery.data?.items ?? [], SLUG);
-    return toLiveRequestViews(mine, { fallbackTitle: 'House Maid', limit: 5 });
-  }, [requestsQuery.data?.items]);
+    return toLiveRequestViews(recentRaw, { fallbackTitle: 'House Maid Service', limit: 3 }).map(
+      (view, index) => {
+        const source = recentRaw[index];
+        return {
+          ...view,
+          title: 'House Maid Service',
+          detail: 'Monthly',
+          dateLabel: formatRequestDateTime(source?.createdAt ?? null),
+        } satisfies LiveRequestView;
+      },
+    );
+  }, [recentRaw]);
+
+  const allCount = recentRaw.length;
 
   const onBook = () => {
     if (!plan) {
-      Alert.alert('Not available', 'This plan will appear once configured in the catalog.');
+      Alert.alert('No plan', 'Booking will be available once a plan is configured in the catalog.');
       return;
     }
-    void submit(
-      `${plan.title} · ${plan.priceLabel || priceLine}. ${plan.description || lead}`.trim(),
-      'Booking request submitted',
-    );
+    const title = plan.title || 'Monthly Plan';
+    const desc = plan.description || lead;
+    const price = displayPrice || 'Based on availability';
+    void submit(`${title} · ${price}. ${desc}`.trim(), 'Booking request submitted');
+  };
+
+  const onViewAllRequests = () => {
+    const lines = toLiveRequestViews(recentRaw, { fallbackTitle: 'House Maid Service', limit: 20 })
+      .map((item, index) => {
+        const source = recentRaw[index];
+        const when = formatRequestDateTime(source?.createdAt ?? null);
+        return `• House Maid Service — ${item.statusLabel} (${when})`;
+      })
+      .join('\n');
+    Alert.alert('Request Logs', lines || 'No requests yet.');
   };
 
   return (
@@ -369,58 +400,160 @@ function MemberLiveBody() {
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.liveTitleRow}>
-        <View style={styles.liveTitleIcon}>
-          <Icon name="broom" size={22} color={familyHome.white} />
-        </View>
-        <View style={styles.flex}>
-          <Text style={styles.liveTitle}>House Maid</Text>
-          <Text style={styles.subtitle}>A cleaner home, a happier you.</Text>
-        </View>
+        <MarketplaceServiceIcon
+          serviceId={SLUG}
+          fallbackIcon="broom"
+          fallbackColor={familyHome.greenDark}
+          size={48}
+        />
+        <Text style={styles.liveTitle}>HOUSE MAID</Text>
       </View>
 
-      <Text style={styles.lead}>{lead}</Text>
-      <Text style={styles.priceLine}>{priceLine}</Text>
+      {validTill ? (
+        <View style={styles.memberBadge} accessibilityRole="summary">
+          <Icon name="crown" size={16} color={familyHome.green} />
+          <Text style={styles.memberBadgeText}>
+            Your membership is valid upto <Text style={styles.memberBadgeDate}>{validTill}</Text>.
+          </Text>
+        </View>
+      ) : null}
 
-      {catalog.isPending ? <Text style={styles.empty}>Loading plan…</Text> : null}
-      {catalog.isError ? (
+      <Text style={styles.sectionTitle}>Service Cost</Text>
+      {catalog.isPending && !plan ? <Text style={styles.empty}>Loading plan…</Text> : null}
+      {catalog.isError && !plan ? (
         <Pressable onPress={() => void catalog.refetch()} accessibilityRole="button">
           <Text style={styles.link}>Unable to load · Tap to retry</Text>
         </Pressable>
       ) : null}
-
-      {plan ? (
-        <View style={styles.planCard}>
-          <Text style={styles.planTitle}>{plan.title}</Text>
-          <Text style={styles.planPrice}>{plan.priceLabel || 'Charges apply'}</Text>
-          {plan.description ? <Text style={styles.planBody}>{plan.description}</Text> : null}
-        </View>
-      ) : !catalog.isPending ? (
-        <Text style={styles.empty}>No plan configured yet.</Text>
+      {!catalog.isPending && !catalog.isError && !displayPrice ? (
+        <Text style={styles.empty}>Price will appear once configured</Text>
       ) : null}
+      {displayPrice ? (
+        <View style={styles.costCard} accessibilityRole="summary">
+          <View style={styles.costIcon}>
+            <Icon name="banknote" size={20} color={familyHome.greenDark} />
+          </View>
+          <View style={styles.flex}>
+            <Text style={styles.costPrice}>{displayPrice}</Text>
+            <Text style={styles.costSub}>Monthly house maid service.</Text>
+          </View>
+        </View>
+      ) : null}
+
+      <Text style={styles.sectionTitle}>Services Included</Text>
+      <Text style={styles.sectionHint}>Our trained and verified maids will help with:</Text>
+      {catalog.isPending && includedItems.length === 0 ? (
+        <Text style={styles.empty}>Loading services…</Text>
+      ) : null}
+      {!catalog.isPending && includedItems.length === 0 ? (
+        <Text style={styles.empty}>No options configured yet.</Text>
+      ) : null}
+      {includedItems.length > 0 ? (
+        <View style={styles.includedGrid}>
+          {includedItems.map((item, index) => {
+            const look = includedLook(item.title, index);
+            return (
+              <View key={item.id} style={styles.includedCard}>
+                <View style={[styles.includedIcon, { backgroundColor: look.soft }]}>
+                  <Icon name={look.icon} size={18} color={look.color} />
+                </View>
+                <Text style={styles.includedTitle}>{item.title}</Text>
+              </View>
+            );
+          })}
+        </View>
+      ) : null}
+
+      <View style={styles.pleaseNote} accessibilityRole="summary">
+        <View style={styles.pleaseNoteHead}>
+          <Icon name="help-circle-outline" size={18} color={familyHome.blueDark} />
+          <Text style={styles.pleaseNoteTitle}>Please Note</Text>
+        </View>
+        {PLEASE_NOTE.map((line) => (
+          <View key={line} style={styles.pleaseNoteLine}>
+            <Text style={styles.pleaseNoteBullet}>•</Text>
+            <Text style={styles.pleaseNoteText}>{line}</Text>
+          </View>
+        ))}
+      </View>
 
       <Pressable
         onPress={onBook}
         disabled={submitting || !plan}
-        style={[styles.bookBtn, submitting || !plan ? styles.disabled : null]}
+        style={({ pressed }) => [
+          styles.raiseCta,
+          submitting || !plan ? styles.disabled : null,
+          pressed ? styles.pressed : null,
+        ]}
         accessibilityRole="button"
-        accessibilityLabel="Book House Maid"
+        accessibilityLabel="Raise a Request"
       >
-        <Text style={styles.bookBtnText}>{submitting ? 'Sending…' : 'Book Now'}</Text>
+        <Icon name="calendar-outline" size={18} color={familyHome.white} />
+        <Text style={styles.raiseCtaText}>{submitting ? 'Sending…' : 'Raise a Request'}</Text>
       </Pressable>
 
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitleFlush}>Request Logs</Text>
+        {allCount > 0 ? (
+          <Pressable onPress={onViewAllRequests} accessibilityRole="button">
+            <Text style={styles.viewAll}>View All &gt;</Text>
+          </Pressable>
+        ) : null}
+      </View>
+
+      {requestsQuery.isPending ? <Text style={styles.empty}>Loading requests…</Text> : null}
+      {!requestsQuery.isPending && recent.length === 0 ? (
+        <Text style={styles.empty}>No requests yet. Raise a request to get started.</Text>
+      ) : null}
+
       {recent.length > 0 ? (
-        <View style={styles.requestBlock}>
-          <Text style={styles.sectionTitle}>Recent requests</Text>
-          {recent.map((item) => (
-            <View key={item.id} style={styles.requestRow}>
-              <Text style={styles.requestTitle}>{item.title}</Text>
-              <Text style={styles.requestMeta}>
-                {item.statusLabel} · {item.dateLabel}
-              </Text>
-            </View>
-          ))}
+        <View style={styles.requestList}>
+          {recent.map((item) => {
+            const tone = statusToneForLog(item.tone);
+            const isDone = item.tone === 'completed';
+            return (
+              <Pressable
+                key={item.id}
+                onPress={onViewAllRequests}
+                style={({ pressed }) => [styles.requestRow, pressed ? styles.pressed : null]}
+                accessibilityRole="button"
+                accessibilityLabel={`${item.title}, ${item.statusLabel}`}
+              >
+                <View
+                  style={[
+                    styles.requestIcon,
+                    { backgroundColor: isDone ? familyHome.blueSoft : familyHome.greenSoft },
+                  ]}
+                >
+                  <Icon
+                    name="broom"
+                    size={16}
+                    color={isDone ? familyHome.blueDark : familyHome.greenDark}
+                  />
+                </View>
+                <View style={styles.flex}>
+                  <Text style={styles.requestTitle}>{item.title}</Text>
+                  <Text style={styles.requestDetail}>{item.detail}</Text>
+                  <Text style={styles.requestDate}>{item.dateLabel}</Text>
+                </View>
+                <View style={[styles.statusPill, { backgroundColor: tone.soft }]}>
+                  <Text style={[styles.statusPillText, { color: tone.color }]}>
+                    {item.tone === 'completed'
+                      ? 'Completed'
+                      : item.tone === 'cancelled'
+                        ? item.statusLabel
+                        : 'Active'}
+                  </Text>
+                </View>
+                <Icon name="chevron-forward" size={14} color={familyHome.muted} />
+              </Pressable>
+            );
+          })}
         </View>
       ) : null}
+
+      <Text style={styles.sectionTitle}>Know More About This Service</Text>
+      <WatchVideoCard />
     </ScrollView>
   );
 }
@@ -432,20 +565,8 @@ const styles = StyleSheet.create({
   gateContent: { paddingHorizontal: spacing.xl, paddingTop: spacing.md, gap: spacing.md },
   liveContent: { paddingHorizontal: spacing.xl, paddingTop: spacing.md, gap: spacing.md },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  titleIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: familyHome.greenSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   title: {
-    fontFamily: 'Poppins_700Bold',
-    fontSize: 18,
-    lineHeight: 24,
-    color: familyHome.blueDark,
-    fontWeight: '700',
+    ...servicePageType.pageTitle,
   },
   lead: { ...typography.caption, color: familyHome.blue, lineHeight: 18, marginTop: 4 },
   priceLine: { ...typography.caption, color: familyHome.blue, lineHeight: 18, marginTop: 2 },
@@ -462,38 +583,38 @@ const styles = StyleSheet.create({
     minHeight: minTouchSize,
   },
   videoThumb: {
-    width: 112,
-    height: 72,
+    width: 78,
+    height: 64,
     borderRadius: 10,
     overflow: 'hidden',
     backgroundColor: familyHome.border,
   },
   videoThumbImage: { width: '100%', height: '100%' },
   videoPlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.18)',
+    backgroundColor: 'rgba(0,0,0,0.22)',
   },
   videoDuration: {
     position: 'absolute',
-    right: 6,
-    bottom: 6,
+    right: 4,
+    bottom: 4,
     ...typography.caption,
-    fontSize: 10,
+    fontSize: 9,
     lineHeight: 12,
     color: familyHome.white,
-    backgroundColor: 'rgba(0,0,0,0.55)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    paddingHorizontal: 5,
+    paddingVertical: 1,
     borderRadius: 4,
     overflow: 'hidden',
   },
-  videoCopy: { flex: 1, gap: 2, minWidth: 0 },
+  videoCopy: { flex: 1, gap: 1, minWidth: 0 },
   watchRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  watchLabel: { ...typography.caption, color: familyHome.muted },
-  videoTitle: { ...typography.bodyStrong, color: familyHome.text },
-  videoSub: { ...typography.caption, color: familyHome.muted, lineHeight: 16 },
+  watchLabel: { ...typography.captionStrong, color: familyHome.muted, fontSize: 10 },
+  videoTitle: { ...typography.captionStrong, color: familyHome.text, fontSize: 13 },
+  videoSub: { ...typography.caption, color: familyHome.muted, lineHeight: 14, fontSize: 10 },
 
   detailsCard: {
     backgroundColor: familyHome.blueSoft,
@@ -502,8 +623,8 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   detailsHead: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  detailsTitle: { ...typography.bodyStrong, color: familyHome.blueDark },
-  detailsBody: { ...typography.body, color: familyHome.muted, lineHeight: 22 },
+  detailsTitle: { ...servicePageType.sectionTitle, color: familyHome.blueDark },
+  detailsBody: { ...servicePageType.bodyMuted },
   taskGrid: { flexDirection: 'row', gap: spacing.sm },
   taskCard: {
     flex: 1,
@@ -513,8 +634,15 @@ const styles = StyleSheet.create({
     borderColor: familyHome.border,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.xs,
-    gap: 4,
+    gap: 6,
     minHeight: 78,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  taskIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -535,7 +663,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
   },
-  costText: { ...typography.bodyStrong, color: familyHome.greenDark },
+  costText: { ...typography.captionStrong, color: familyHome.greenDark, fontSize: 12, lineHeight: 15 },
   costAmount: { color: familyHome.greenDark },
 
   addonBanner: {
@@ -546,8 +674,8 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: spacing.lg,
   },
-  addonTitle: { ...typography.bodyStrong, color: familyHome.orange },
-  addonBody: { ...typography.caption, color: familyHome.muted, lineHeight: 18, marginTop: 2 },
+  addonTitle: { ...servicePageType.bannerTitle, color: familyHome.orange },
+  addonBody: { ...servicePageType.bannerBody, color: familyHome.muted, marginTop: 2 },
 
   inAreaBanner: {
     flexDirection: 'row',
@@ -558,7 +686,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
   },
-  inAreaText: { ...typography.bodyStrong, color: familyHome.greenDark },
+  inAreaText: { ...servicePageType.inArea },
 
   membershipRequired: {
     flexDirection: 'row',
@@ -568,11 +696,10 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: spacing.lg,
   },
-  membershipRequiredTitle: { ...typography.bodyStrong, color: '#B45309' },
+  membershipRequiredTitle: { ...servicePageType.bannerTitle, color: '#B45309' },
   membershipRequiredBody: {
-    ...typography.caption,
+    ...servicePageType.bannerBody,
     color: familyHome.muted,
-    lineHeight: 18,
     marginTop: 2,
   },
 
@@ -585,11 +712,7 @@ const styles = StyleSheet.create({
   },
   heroCopy: { flex: 1, padding: spacing.lg, justifyContent: 'center', gap: spacing.sm },
   heroHeadline: {
-    fontFamily: 'Poppins_700Bold',
-    fontSize: 20,
-    lineHeight: 26,
-    color: familyHome.blueDark,
-    fontWeight: '700',
+    ...servicePageType.heroHeadline,
   },
   heroAccent: { color: familyHome.green },
   heroBody: { ...typography.caption, color: familyHome.blue, lineHeight: 18 },
@@ -614,7 +737,7 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     gap: spacing.sm,
   },
-  featureCol: { width: '47%', gap: 4, padding: spacing.sm },
+  featureCol: { width: '47%', gap: 4, padding: spacing.sm, alignItems: 'center' },
   featureIcon: {
     width: 34,
     height: 34,
@@ -623,8 +746,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  featureTitle: { ...typography.captionStrong, color: familyHome.blueDark },
-  featureBody: { ...typography.caption, color: familyHome.blue, lineHeight: 16 },
+  featureTitle: { ...servicePageType.featureTitle, color: familyHome.blueDark },
+  featureBody: { ...servicePageType.featureBody, color: familyHome.blue },
   soonBanner: {
     flexDirection: 'row',
     gap: spacing.md,
@@ -640,8 +763,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  soonTitle: { ...typography.bodyStrong, color: familyHome.red },
-  soonBody: { ...typography.caption, color: familyHome.text, lineHeight: 18, marginTop: 2 },
+  soonTitle: { ...servicePageType.bannerTitle, color: familyHome.red },
+  soonBody: { ...servicePageType.bannerBody, color: familyHome.text, marginTop: 2 },
   notifyCard: {
     backgroundColor: familyHome.blueSoft,
     borderRadius: 14,
@@ -667,47 +790,143 @@ const styles = StyleSheet.create({
     backgroundColor: familyHome.white,
   },
   notifyBtnText: { ...typography.captionStrong, color: familyHome.blue },
-  helpTitle: { ...typography.bodyStrong, color: familyHome.blueDark },
-  helpBody: { ...typography.caption, color: familyHome.blue, lineHeight: 18, marginTop: 2 },
+  helpTitle: { ...servicePageType.bannerTitle, color: familyHome.blueDark },
+  helpBody: { ...servicePageType.bannerBody, color: familyHome.blue, marginTop: 2 },
   liveTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  liveTitleIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: familyHome.green,
+  liveTitle: {
+    fontFamily: 'Poppins_700Bold',
+    fontSize: 18,
+    lineHeight: 24,
+    color: familyHome.greenDark,
+    fontWeight: '700',
+    flex: 1,
+  },
+  memberBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: familyHome.greenSoft,
+    borderRadius: 12,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm + 2,
+  },
+  memberBadgeText: { ...typography.caption, color: familyHome.text, flex: 1, lineHeight: 18 },
+  memberBadgeDate: { ...typography.captionStrong, color: familyHome.greenDark },
+  sectionTitle: {
+    ...typography.subtitle,
+    color: familyHome.blueDark,
+    marginTop: spacing.sm,
+  },
+  sectionTitleFlush: { ...typography.subtitle, color: familyHome.blueDark },
+  sectionHint: { ...typography.caption, color: familyHome.muted, marginTop: -4 },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+    marginTop: spacing.sm,
+  },
+  viewAll: { ...typography.captionStrong, color: familyHome.blue },
+  costCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    backgroundColor: familyHome.greenSoft,
+    borderRadius: 14,
+    padding: spacing.lg,
+  },
+  costIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: familyHome.white,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  liveTitle: { ...typography.subtitle, color: familyHome.text },
-  subtitle: { ...typography.caption, color: familyHome.muted },
-  sectionTitle: { ...typography.subtitle, color: familyHome.text, marginTop: spacing.sm },
-  planCard: {
+  costPrice: {
+    fontFamily: 'Poppins_700Bold',
+    fontSize: 18,
+    lineHeight: 24,
+    color: familyHome.greenDark,
+    fontWeight: '700',
+  },
+  costSub: { ...typography.caption, color: familyHome.muted, marginTop: 2 },
+  includedGrid: { flexDirection: 'row', gap: spacing.sm },
+  includedCard: {
+    flex: 1,
+    backgroundColor: familyHome.white,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: familyHome.blueSoft,
+    paddingVertical: spacing.md,
+    paddingHorizontal: 4,
+    gap: 6,
+    alignItems: 'center',
+    minHeight: 88,
+  },
+  includedIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  includedTitle: {
+    ...typography.captionStrong,
+    color: familyHome.text,
+    textAlign: 'center',
+    fontSize: 10,
+    lineHeight: 13,
+  },
+  pleaseNote: {
+    backgroundColor: familyHome.blueSoft,
+    borderRadius: 14,
+    padding: spacing.lg,
+    gap: spacing.sm,
+  },
+  pleaseNoteHead: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  pleaseNoteTitle: { ...typography.bodyStrong, color: familyHome.blueDark, fontSize: 14, lineHeight: 18 },
+  pleaseNoteLine: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  pleaseNoteBullet: { ...typography.caption, color: familyHome.muted, lineHeight: 18 },
+  pleaseNoteText: { ...typography.caption, color: familyHome.muted, lineHeight: 18, flex: 1 },
+  raiseCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    backgroundColor: familyHome.green,
+    borderRadius: 14,
+    paddingVertical: spacing.md + 2,
+    minHeight: minTouchSize,
+  },
+  raiseCtaText: { ...typography.bodyStrong, color: familyHome.white, fontSize: 16 },
+  requestList: { gap: spacing.sm },
+  requestRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
     borderWidth: 1,
     borderColor: familyHome.border,
     borderRadius: 14,
-    padding: spacing.lg,
-    gap: spacing.xs,
-  },
-  planTitle: { ...typography.bodyStrong, color: familyHome.text },
-  planPrice: { ...typography.subtitle, color: familyHome.greenDark },
-  planBody: { ...typography.caption, color: familyHome.muted, lineHeight: 18 },
-  bookBtn: {
-    backgroundColor: familyHome.green,
-    borderRadius: 12,
-    paddingVertical: spacing.md,
-    alignItems: 'center',
-  },
-  bookBtnText: { ...typography.bodyStrong, color: familyHome.white },
-  requestBlock: { gap: spacing.sm, marginTop: spacing.sm },
-  requestRow: {
-    borderWidth: 1,
-    borderColor: familyHome.border,
-    borderRadius: 12,
     padding: spacing.md,
-    gap: 2,
+    backgroundColor: familyHome.white,
   },
-  requestTitle: { ...typography.bodyStrong, color: familyHome.text },
-  requestMeta: { ...typography.caption, color: familyHome.muted },
+  requestIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  requestTitle: { ...typography.bodyStrong, color: familyHome.text, fontSize: 14 },
+  requestDetail: { ...typography.caption, color: familyHome.muted, marginTop: 1 },
+  requestDate: { ...typography.caption, color: familyHome.muted, marginTop: 2, fontSize: 11 },
+  statusPill: {
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  statusPillText: { ...typography.captionStrong, fontSize: 10 },
   empty: { ...typography.caption, color: familyHome.muted },
   link: { ...typography.captionStrong, color: familyHome.blue },
   pressed: { opacity: 0.92 },

@@ -38,12 +38,14 @@ import type { LocalTransportSuggestion } from './localTransportPlaces';
 import { MEMBERSHIP_SERVICE_AREA_LINE } from './membershipServicePageVariant';
 import { filterOutstationPlaces } from './outstationTransportPlaces';
 import { membershipPurchaseHref } from './planCatalog';
-import { SERVICE_HERO_IMAGES } from './serviceHeroes';
+import { SERVICE_HERO_IMAGES } from './serviceHeroes'
+import { servicePageType } from './servicePageType';
 import {
   filterRequestsBySlug,
   liveRequestToneMeta,
   toLiveRequestViews,
 } from './liveServiceRequests';
+import { MembershipNoMembershipPreview } from './MembershipNoMembershipPreview';
 import { useMembershipServicePageVariant } from './useMembershipServicePageVariant';
 import { useMembershipSubmit } from './useMembershipSubmit';
 import { useServiceOfferings } from './useCatalog';
@@ -81,69 +83,6 @@ const GATE_FEATURES: { icon: IconName; title: string; body: string }[] = [
     icon: 'people-outline',
     title: 'Companion Coordination',
     body: 'Support with planning and arrangements',
-  },
-];
-
-const FALLBACK_OFFERINGS: ServiceOffering[] = [
-  {
-    id: 'fallback-hatchback',
-    serviceSlug: SLUG,
-    title: 'Hatchback',
-    description: '1-3 people',
-    badge: '1-3 people',
-    priceLabel: '',
-    image: null,
-    metaJson: null,
-    sortOrder: 0,
-    isActive: true,
-  },
-  {
-    id: 'fallback-sedan',
-    serviceSlug: SLUG,
-    title: 'Sedan',
-    description: '3-4 people',
-    badge: '3-4 people',
-    priceLabel: '',
-    image: null,
-    metaJson: null,
-    sortOrder: 1,
-    isActive: true,
-  },
-  {
-    id: 'fallback-suv',
-    serviceSlug: SLUG,
-    title: 'SUV',
-    description: '4-6 people',
-    badge: '4-6 people',
-    priceLabel: '',
-    image: null,
-    metaJson: null,
-    sortOrder: 2,
-    isActive: true,
-  },
-  {
-    id: 'fallback-innova',
-    serviceSlug: SLUG,
-    title: 'Innova / Crysta',
-    description: '4-6 people',
-    badge: '4-6 people',
-    priceLabel: '',
-    image: null,
-    metaJson: null,
-    sortOrder: 3,
-    isActive: true,
-  },
-  {
-    id: 'fallback-tempo',
-    serviceSlug: SLUG,
-    title: 'Tempo Traveller',
-    description: '7-12 people',
-    badge: '7-12 people',
-    priceLabel: '',
-    image: null,
-    metaJson: null,
-    sortOrder: 4,
-    isActive: true,
   },
 ];
 
@@ -397,46 +336,7 @@ function OutsideAreaBody() {
 }
 
 function NoMembershipBody() {
-  return (
-    <View style={styles.stack}>
-      <TitleBlock />
-      <GateHero tone="membership" />
-      <FeaturesGrid />
-      <View style={styles.membershipCard}>
-        <View style={styles.membershipHead}>
-          <View style={styles.lockWell}>
-            <Icon name="lock-closed-outline" size={16} color="#B45309" />
-          </View>
-          <View style={styles.flex}>
-            <Text style={styles.membershipTitle}>Membership Required</Text>
-            <Text style={styles.membershipBody}>
-              Outstation Transport is available only for AgeWell members.
-            </Text>
-          </View>
-        </View>
-        <Pressable
-          onPress={() => router.push(membershipPurchaseHref())}
-          style={({ pressed }) => [styles.joinPromo, pressed ? styles.pressed : null]}
-          accessibilityRole="button"
-        >
-          <View style={styles.flex}>
-            <Text style={styles.joinPromoTitle}>Join AgeWell Membership</Text>
-            <Text style={styles.joinPromoBody}>
-              Get access to Outstation Transport and many other services for a safer, healthier and happier
-              life.
-            </Text>
-          </View>
-          <Icon name="chevron-forward" size={16} color="#B45309" />
-        </Pressable>
-        <PrimaryButton label="Join Membership  →" onPress={() => router.push(membershipPurchaseHref())} />
-        <SecondaryButton
-          label="View Membership Plans"
-          onPress={() => router.push(membershipPurchaseHref())}
-        />
-      </View>
-      <ServiceHelpBanner />
-    </View>
-  );
+  return <MembershipNoMembershipPreview slug={SLUG} />;
 }
 
 function LocationSuggestField({
@@ -795,15 +695,7 @@ function MemberLiveBody() {
   const [roundTrip, setRoundTrip] = useState(false);
   const [driverStay, setDriverStay] = useState(false);
 
-  const offerings = useMemo(() => {
-    const fromApi = catalog.data ?? [];
-    const byTitle = new Map<string, ServiceOffering>();
-    for (const item of fromApi) {
-      const key = item.title.trim().toLowerCase();
-      if (!byTitle.has(key)) byTitle.set(key, item);
-    }
-    return FALLBACK_OFFERINGS.map((fallback) => byTitle.get(fallback.title.toLowerCase()) ?? fallback);
-  }, [catalog.data]);
+  const offerings = useMemo(() => catalog.data ?? [], [catalog.data]);
 
   const selected = offerings.find((item) => item.id === selectedId) ?? offerings[0] ?? null;
 
@@ -905,6 +797,9 @@ function MemberLiveBody() {
         <Pressable onPress={() => void catalog.refetch()} accessibilityRole="button">
           <Text style={styles.viewAll}>Unable to load · Tap to retry</Text>
         </Pressable>
+      ) : null}
+      {!catalog.isPending && !catalog.isError && offerings.length === 0 ? (
+        <Text style={styles.empty}>No options configured yet.</Text>
       ) : null}
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.servicesRow}>
@@ -1187,7 +1082,7 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   titleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
-  title: { ...typography.title, color: familyHome.text },
+  title: { ...servicePageType.pageTitle, color: familyHome.text },
   lead: { ...typography.body, color: familyHome.muted, lineHeight: 22, marginTop: 4 },
   heroFull: {
     height: 188,
@@ -1214,12 +1109,7 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   heroFullCopy: { flex: 1, gap: 6, paddingBottom: 2 },
-  heroFullHeadline: {
-    ...typography.subtitle,
-    color: familyHome.text,
-    lineHeight: 28,
-    fontSize: 22,
-  },
+  heroFullHeadline: { ...servicePageType.heroHeadline },
   heroFullAccent: { color: familyHome.greenDark },
   heroFullBody: {
     ...typography.caption,
@@ -1274,8 +1164,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  soonTitle: { ...typography.bodyStrong, color: familyHome.red },
-  soonBody: { ...typography.caption, color: familyHome.text, marginTop: 4, lineHeight: 18 },
+  soonTitle: { ...servicePageType.bannerTitle, color: familyHome.red },
+  soonBody: { ...servicePageType.bannerBody, color: familyHome.text, marginTop: 4 },
   notifyCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1319,8 +1209,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  membershipTitle: { ...typography.bodyStrong, color: familyHome.text },
-  membershipBody: { ...typography.caption, color: familyHome.muted, marginTop: 2, lineHeight: 18 },
+  membershipTitle: { ...servicePageType.bannerTitle, color: familyHome.text },
+  membershipBody: { ...servicePageType.bannerBody, color: familyHome.muted, marginTop: 2 },
   joinPromo: {
     flexDirection: 'row',
     alignItems: 'center',

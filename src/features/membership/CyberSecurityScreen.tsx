@@ -27,13 +27,15 @@ import { parseOfferingMeta } from './catalogTypes';
 import { telHref } from './careManagerHours';
 import { MEMBERSHIP_SERVICE_AREA_LINE } from './membershipServicePageVariant';
 import { membershipPurchaseHref } from './planCatalog';
-import { SERVICE_HERO_IMAGES } from './serviceHeroes';
+import { SERVICE_HERO_IMAGES } from './serviceHeroes'
+import { servicePageType } from './servicePageType';
 import {
   filterRequestsBySlug,
   liveRequestToneMeta,
   toLiveRequestViews,
 } from './liveServiceRequests';
 import { useHasActiveMembership } from './useHasActiveMembership';
+import { MembershipNoMembershipPreview } from './MembershipNoMembershipPreview';
 import { useMembershipServicePageVariant } from './useMembershipServicePageVariant';
 import { useMembershipSubmit } from './useMembershipSubmit';
 import { useServiceOfferings } from './useCatalog';
@@ -53,120 +55,6 @@ const GATE_FEATURES: { icon: IconName; title: string; body: string }[] = [
   { icon: 'card-outline', title: 'Guidance Before Investing', body: 'Get advice to avoid risky investments.' },
   { icon: 'phone-portrait-outline', title: 'Caution on OTP Sharing', body: 'Understand when and how to stay safe.' },
   { icon: 'document-text-outline', title: 'Support After Fraud', body: 'Help with complaint registration and follow-up.' },
-];
-
-const FALLBACK_CATEGORIES: ServiceOffering[] = [
-  {
-    id: 'fallback-bank',
-    serviceSlug: SLUG,
-    title: 'Bank Account Related',
-    description: 'Suspicious transactions, UPI, card fraud, etc.',
-    badge: 'Security',
-    priceLabel: '',
-    image: null,
-    metaJson: null,
-    sortOrder: 0,
-    isActive: true,
-  },
-  {
-    id: 'fallback-mobile-app',
-    serviceSlug: SLUG,
-    title: 'Mobile Application Related',
-    description: 'Issues with banking apps, UPI apps, other apps.',
-    badge: 'Security',
-    priceLabel: '',
-    image: null,
-    metaJson: null,
-    sortOrder: 1,
-    isActive: true,
-  },
-  {
-    id: 'fallback-investment',
-    serviceSlug: SLUG,
-    title: 'Investment Related',
-    description: 'Fraudulent schemes, fake investment offers.',
-    badge: 'Security',
-    priceLabel: '',
-    image: null,
-    metaJson: null,
-    sortOrder: 2,
-    isActive: true,
-  },
-  {
-    id: 'fallback-digital-arrest',
-    serviceSlug: SLUG,
-    title: 'Digital Arrest Related',
-    description: 'Guidance on digital arrest scams.',
-    badge: 'Security',
-    priceLabel: '',
-    image: null,
-    metaJson: null,
-    sortOrder: 3,
-    isActive: true,
-  },
-  {
-    id: 'fallback-phone-hacked',
-    serviceSlug: SLUG,
-    title: 'Mobile Phone Hacked',
-    description: 'Lost access, data theft, unauthorised use.',
-    badge: 'Security',
-    priceLabel: '',
-    image: null,
-    metaJson: null,
-    sortOrder: 4,
-    isActive: true,
-  },
-  {
-    id: 'fallback-other',
-    serviceSlug: SLUG,
-    title: 'Any Other Assistance',
-    description: 'Other cyber security concerns.',
-    badge: 'Security',
-    priceLabel: '',
-    image: null,
-    metaJson: null,
-    sortOrder: 5,
-    isActive: true,
-  },
-];
-
-const FALLBACK_AWARENESS: ServiceOffering[] = [
-  {
-    id: 'fallback-video-arrest',
-    serviceSlug: SLUG,
-    title: 'Digital Arrest Scam',
-    description: 'How scammers impersonate police & cyber cells',
-    badge: 'YouTube Video',
-    priceLabel: '',
-    image: null,
-    metaJson: '{"kind":"video","duration":"5:28","url":"https://www.youtube.com/results?search_query=digital+arrest+scam"}',
-    sortOrder: 10,
-    isActive: true,
-  },
-  {
-    id: 'fallback-video-invest',
-    serviceSlug: SLUG,
-    title: 'Fake Investment Apps',
-    description: 'Spot fraudulent trading and investment apps',
-    badge: 'YouTube Video',
-    priceLabel: '',
-    image: null,
-    metaJson: '{"kind":"video","duration":"4:45","url":"https://www.youtube.com/results?search_query=fake+investment+app+scam"}',
-    sortOrder: 11,
-    isActive: true,
-  },
-  {
-    id: 'fallback-video-otp',
-    serviceSlug: SLUG,
-    title: 'OTP Sharing Fraud',
-    description: 'Never share OTP — stay safe from phishing',
-    badge: 'YouTube Video',
-    priceLabel: '',
-    image: null,
-    metaJson: '{"kind":"video","duration":"3:52","url":"https://www.youtube.com/results?search_query=otp+sharing+fraud+scam"}',
-    sortOrder: 12,
-    isActive: true,
-  },
 ];
 
 const CATEGORY_LOOKS: { match: RegExp; icon: IconName; color: string; soft: string }[] = [
@@ -356,46 +244,7 @@ function OutsideAreaBody() {
 }
 
 function NoMembershipBody() {
-  return (
-    <View style={styles.stack}>
-      <TitleBlock />
-      <GateHero />
-      <FeaturesGrid />
-      <View style={styles.membershipCard}>
-        <View style={styles.membershipHead}>
-          <View style={styles.lockWell}>
-            <Icon name="lock-closed-outline" size={16} color="#B45309" />
-          </View>
-          <View style={styles.flex}>
-            <Text style={styles.membershipTitle}>Membership Required</Text>
-            <Text style={styles.membershipBody}>
-              Cyber Security Guidance is available only for AgeWell members.
-            </Text>
-          </View>
-        </View>
-        <Pressable
-          onPress={() => router.push(membershipPurchaseHref())}
-          style={({ pressed }) => [styles.joinPromo, pressed ? styles.pressed : null]}
-          accessibilityRole="button"
-        >
-          <View style={styles.flex}>
-            <Text style={styles.joinPromoTitle}>Join AgeWell Membership</Text>
-            <Text style={styles.joinPromoBody}>
-              Get access to cyber security guidance and many more supportive services for a safer, healthier
-              and happier life.
-            </Text>
-          </View>
-          <Icon name="chevron-forward" size={16} color="#B45309" />
-        </Pressable>
-        <PrimaryButton label="Join Membership  →" onPress={() => router.push(membershipPurchaseHref())} />
-        <SecondaryButton
-          label="View Membership Plans"
-          onPress={() => router.push(membershipPurchaseHref())}
-        />
-      </View>
-      <QuestionsRow />
-    </View>
-  );
+  return <MembershipNoMembershipPreview slug={SLUG} />;
 }
 
 function MemberLiveBody() {
@@ -407,29 +256,23 @@ function MemberLiveBody() {
   const validTill = membershipValidLabel(membership.query.data?.endDate);
   const [selectedId, setSelectedId] = useState('');
 
-  const categories = useMemo(() => {
-    const fromApi = (catalog.data ?? []).filter(isRequestCategory);
-    const byTitle = new Map<string, ServiceOffering>();
-    for (const item of fromApi) {
-      const key = item.title.trim().toLowerCase();
-      if (!byTitle.has(key)) byTitle.set(key, item);
-    }
-    const looksLikeDesign = fromApi.some((item) =>
-      /bank account|mobile application|digital arrest related|investment related/i.test(item.title),
-    );
-    if (looksLikeDesign) {
-      return FALLBACK_CATEGORIES.map((fallback) => byTitle.get(fallback.title.toLowerCase()) ?? fallback);
-    }
-    return FALLBACK_CATEGORIES;
-  }, [catalog.data]);
+  const categories = useMemo(
+    () =>
+      (catalog.data ?? [])
+        .filter(isRequestCategory)
+        .slice()
+        .sort((a, b) => a.sortOrder - b.sortOrder),
+    [catalog.data],
+  );
 
-  const awareness = useMemo(() => {
-    const fromApi = (catalog.data ?? []).filter(isAwarenessOffering);
-    if (fromApi.length > 0) {
-      return fromApi.slice().sort((a, b) => a.sortOrder - b.sortOrder);
-    }
-    return FALLBACK_AWARENESS;
-  }, [catalog.data]);
+  const awareness = useMemo(
+    () =>
+      (catalog.data ?? [])
+        .filter(isAwarenessOffering)
+        .slice()
+        .sort((a, b) => a.sortOrder - b.sortOrder),
+    [catalog.data],
+  );
 
   const selected = categories.find((item) => item.id === selectedId) ?? null;
 
@@ -578,6 +421,9 @@ function MemberLiveBody() {
           <Text style={styles.viewAll}>Unable to load · Tap to retry</Text>
         </Pressable>
       ) : null}
+      {!catalog.isPending && !catalog.isError && categories.length === 0 ? (
+        <Text style={styles.empty}>No categories available yet.</Text>
+      ) : null}
 
       <View style={styles.categoryGrid}>
         {categories.map((item) => {
@@ -690,6 +536,10 @@ function MemberLiveBody() {
           ) : null}
         </View>
 
+        {awareness.length === 0 && !catalog.isPending ? (
+          <Text style={styles.empty}>No awareness items available yet.</Text>
+        ) : null}
+
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -781,7 +631,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  title: { ...typography.title, color: familyHome.text },
+  title: { ...servicePageType.pageTitle, color: familyHome.text },
   lead: { ...typography.body, color: familyHome.muted, lineHeight: 22, marginTop: 4 },
   subtitle: { ...typography.body, color: familyHome.muted },
   heroFull: {
@@ -809,12 +659,7 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   heroFullCopy: { flex: 1.2, gap: 6, paddingBottom: 2 },
-  heroFullHeadline: {
-    ...typography.subtitle,
-    color: familyHome.text,
-    lineHeight: 28,
-    fontSize: 22,
-  },
+  heroFullHeadline: { ...servicePageType.heroHeadline },
   heroFullAccent: { color: familyHome.greenDark },
   heroFullBody: {
     ...typography.caption,
@@ -885,8 +730,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  soonTitle: { ...typography.bodyStrong, color: familyHome.red },
-  soonBody: { ...typography.caption, color: familyHome.text, marginTop: 4, lineHeight: 18 },
+  soonTitle: { ...servicePageType.bannerTitle, color: familyHome.red },
+  soonBody: { ...servicePageType.bannerBody, color: familyHome.text, marginTop: 4 },
   notifyCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -964,8 +809,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  membershipTitle: { ...typography.bodyStrong, color: familyHome.text },
-  membershipBody: { ...typography.caption, color: familyHome.muted, marginTop: 2, lineHeight: 18 },
+  membershipTitle: { ...servicePageType.bannerTitle, color: familyHome.text },
+  membershipBody: { ...servicePageType.bannerBody, color: familyHome.muted, marginTop: 2 },
   joinPromo: {
     flexDirection: 'row',
     alignItems: 'center',

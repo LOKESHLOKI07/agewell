@@ -179,8 +179,9 @@ OFFERING_SERVICE_SLUGS = (
     "transport",
     "pooja",
     "cctv",
-    # Home add-ons (not in Single 21; food uses the dedicated food catalog)
+    # Home add-ons (food meal plans live here; cuisine menu stays on dedicated food catalog)
     "emergency-companion",
+    "food",
     "stool-cleaning",
     "maid-assistance",
     "ayurvedic-massage",

@@ -79,8 +79,13 @@ export function getApiErrorMessage(error: unknown, context: ApiErrorContext = 'd
     }
     case 403:
       return context === 'admin' ? MESSAGES.forbiddenArea : MESSAGES.forbidden;
-    case 404:
+    case 404: {
+      const detail = error.response?.data?.detail;
+      if (typeof detail === 'string' && detail.trim() && detail.toLowerCase() !== 'not found') {
+        return detail;
+      }
       return MESSAGES.notFound;
+    }
     case 409:
       return conflictMessage(error);
     case 429: {

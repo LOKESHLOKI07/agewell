@@ -105,6 +105,29 @@ class MembershipRequestReview(BaseModel):
     status: Literal["APPROVED", "REJECTED"]
 
 
+class MembershipRequestStage(str, Enum):
+    SUBMITTED = "SUBMITTED"
+    VISIT_PLANNED = "VISIT_PLANNED"
+    VISIT_SCHEDULED = "VISIT_SCHEDULED"
+    VISIT_COMPLETED = "VISIT_COMPLETED"
+    IN_REVIEW = "IN_REVIEW"
+    ACCEPTED = "ACCEPTED"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+
+
+class MembershipRequestStageUpdate(BaseModel):
+    """Admin advances application workflow and/or assigns visit staff."""
+
+    stage: Optional[MembershipRequestStage] = None
+    visit_scheduled_start: Optional[datetime] = None
+    visit_scheduled_end: Optional[datetime] = None
+    care_manager_id: Optional[UUID4] = None
+    companion_id: Optional[UUID4] = None
+    clear_care_manager: bool = False
+    clear_companion: bool = False
+
+
 class MembershipRequestResponse(BaseModel):
     id: UUID4
     senior_id: UUID4
@@ -113,12 +136,24 @@ class MembershipRequestResponse(BaseModel):
     plan_name: str
     plan_price: Optional[float] = None
     status: str
+    stage: str = "SUBMITTED"
     notes: Optional[str] = None
     family_contact_1_name: Optional[str] = None
     family_contact_1_phone: Optional[str] = None
     family_contact_2_name: Optional[str] = None
     family_contact_2_phone: Optional[str] = None
     preferred_hospital: Optional[str] = None
+    visit_planned_at: Optional[datetime] = None
+    visit_scheduled_start: Optional[datetime] = None
+    visit_scheduled_end: Optional[datetime] = None
+    visit_completed_at: Optional[datetime] = None
+    review_completed_at: Optional[datetime] = None
+    accepted_at: Optional[datetime] = None
+    paid_at: Optional[datetime] = None
+    care_manager_id: Optional[UUID4] = None
+    care_manager_name: Optional[str] = None
+    companion_id: Optional[UUID4] = None
+    companion_name: Optional[str] = None
     created_at: Optional[datetime] = None
     reviewed_at: Optional[datetime] = None
 
