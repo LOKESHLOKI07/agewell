@@ -72,14 +72,18 @@ class MembershipRequestCreate(BaseModel):
     family_contact_1_phone: str = Field(min_length=8, max_length=20)
     family_contact_2_name: Optional[str] = Field(default=None, max_length=80)
     family_contact_2_phone: Optional[str] = Field(default=None, max_length=20)
-    preferred_hospital: str = Field(min_length=1, max_length=200)
+    emergency_contact_name: Optional[str] = Field(default=None, max_length=80)
+    emergency_contact_phone: Optional[str] = Field(default=None, max_length=20)
+    preferred_hospital: Optional[str] = Field(default=None, max_length=200)
 
     @field_validator(
         "family_contact_1_name",
         "family_contact_1_phone",
-        "preferred_hospital",
         "family_contact_2_name",
         "family_contact_2_phone",
+        "emergency_contact_name",
+        "emergency_contact_phone",
+        "preferred_hospital",
         "notes",
         mode="before",
     )
@@ -91,13 +95,10 @@ class MembershipRequestCreate(BaseModel):
         return value
 
     @model_validator(mode="after")
-    def family_two_needs_name_and_phone(self):
-        name = self.family_contact_2_name
-        phone = self.family_contact_2_phone
-        if bool(name) != bool(phone):
-            raise ValueError("Family member 2 needs both a name and a phone number.")
-        if phone and len(phone) < 8:
-            raise ValueError("Family member 2 needs a valid phone number.")
+    def optional_phones_must_be_valid(self):
+        for phone in (self.family_contact_2_phone, self.emergency_contact_phone):
+            if phone and len(phone) < 8:
+                raise ValueError("Enter a valid phone number.")
         return self
 
 
@@ -142,6 +143,8 @@ class MembershipRequestResponse(BaseModel):
     family_contact_1_phone: Optional[str] = None
     family_contact_2_name: Optional[str] = None
     family_contact_2_phone: Optional[str] = None
+    emergency_contact_name: Optional[str] = None
+    emergency_contact_phone: Optional[str] = None
     preferred_hospital: Optional[str] = None
     visit_planned_at: Optional[datetime] = None
     visit_scheduled_start: Optional[datetime] = None

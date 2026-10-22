@@ -82,6 +82,7 @@ export function toAdminSenior(payload: unknown): AdminSenior {
     dateOfBirth: asString(data.date_of_birth, 'senior.date_of_birth'),
     address: asString(data.address, 'senior.address'),
     emergencyContact: asString(data.emergency_contact, 'senior.emergency_contact'),
+    emergencyContactName: asOptionalString(data.emergency_contact_name),
     preferredLanguage: asOptionalString(data.preferred_language),
     familyContact1Name: asOptionalString(data.family_contact_1_name),
     familyContact1Phone: asOptionalString(data.family_contact_1_phone),

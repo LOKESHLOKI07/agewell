@@ -15,6 +15,22 @@ export function MembershipApplyHeader({ onBack }: { onBack?: () => void }) {
   return <ServicePageHeader onBack={onBack} showBell={false} />;
 }
 
+function StepCircle({
+  index,
+  filled,
+}: {
+  index: number;
+  filled: boolean;
+}) {
+  return (
+    <View style={[styles.stepCircle, filled ? styles.stepCircleActive : styles.stepCircleIdle]}>
+      <Text style={[styles.stepNumber, filled ? styles.stepNumberActive : styles.stepNumberIdle]}>
+        {index + 1}
+      </Text>
+    </View>
+  );
+}
+
 export function MembershipApplyStepper({
   currentStep,
 }: {
@@ -22,60 +38,20 @@ export function MembershipApplyStepper({
 }) {
   return (
     <View style={styles.stepper}>
-      <View style={styles.stepCirclesRow}>
-        {MEMBERSHIP_APPLY_STEPS.map((step, index) => {
-          const done = index < currentStep;
-          const active = index === currentStep;
-          return (
-            <View key={step.key} style={styles.stepCircleCluster}>
-              <View
-                style={[
-                  styles.stepCircle,
-                  done || active ? styles.stepCircleActive : styles.stepCircleIdle,
-                ]}
-              >
-                {done ? (
-                  <Icon name="checkmark" size={12} color={familyHome.white} />
-                ) : (
-                  <Text
-                    style={[
-                      styles.stepNumber,
-                      active ? styles.stepNumberActive : styles.stepNumberIdle,
-                    ]}
-                  >
-                    {index + 1}
-                  </Text>
-                )}
-              </View>
-              {index < MEMBERSHIP_APPLY_STEPS.length - 1 ? (
-                <View
-                  style={[
-                    styles.connector,
-                    index < currentStep ? styles.connectorDone : styles.connectorIdle,
-                  ]}
-                />
-              ) : null}
-            </View>
-          );
-        })}
-      </View>
-      <View style={styles.stepLabelsRow}>
-        {MEMBERSHIP_APPLY_STEPS.map((step, index) => {
-          const done = index < currentStep;
-          const active = index === currentStep;
-          return (
-            <Text
-              key={step.key}
-              style={[
-                styles.stepLabel,
-                done || active ? styles.stepLabelActive : styles.stepLabelIdle,
-              ]}
-              numberOfLines={2}
-            >
-              {step.label}
-            </Text>
-          );
-        })}
+      <View style={styles.stepTrack}>
+        <View style={styles.stepCol}>
+          <StepCircle index={0} filled={currentStep >= 0} />
+          <Text style={[styles.stepLabel, currentStep >= 0 ? styles.stepLabelActive : styles.stepLabelIdle]}>
+            {MEMBERSHIP_APPLY_STEPS[0].label}
+          </Text>
+        </View>
+        <View style={[styles.connector, currentStep >= 1 ? styles.connectorDone : styles.connectorIdle]} />
+        <View style={styles.stepCol}>
+          <StepCircle index={1} filled={currentStep >= 1} />
+          <Text style={[styles.stepLabel, currentStep >= 1 ? styles.stepLabelActive : styles.stepLabelIdle]}>
+            {MEMBERSHIP_APPLY_STEPS[1].label}
+          </Text>
+        </View>
       </View>
     </View>
   );
@@ -132,7 +108,9 @@ export function ApplyFooterButtons({
         ]}
       >
         <Text style={styles.nextLabel}>{nextLoading ? 'Submitting…' : nextLabel}</Text>
-        {!nextLoading ? <Icon name="arrow-forward" size={16} color={familyHome.white} /> : null}
+        {!nextLoading && !nextLabel.includes('→') ? (
+          <Icon name="arrow-forward" size={16} color={familyHome.white} />
+        ) : null}
       </Pressable>
     </View>
   );
@@ -140,37 +118,36 @@ export function ApplyFooterButtons({
 
 const styles = StyleSheet.create({
   stepper: {
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.xs,
-    paddingBottom: spacing.sm,
-    gap: 6,
-  },
-  stepCirclesRow: {
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.md,
   },
-  stepCircleCluster: {
+  stepTrack: {
+    width: 220,
     flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  stepCol: {
+    width: 78,
     alignItems: 'center',
   },
   stepCircle: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1,
   },
   stepCircleActive: {
-    backgroundColor: familyHome.greenDark,
+    backgroundColor: familyHome.green,
   },
   stepCircleIdle: {
     backgroundColor: '#E8E8E8',
   },
   stepNumber: {
     fontFamily: 'Poppins_600SemiBold',
-    fontSize: 11,
+    fontSize: 13,
     fontWeight: '600',
   },
   stepNumberActive: {
@@ -180,8 +157,9 @@ const styles = StyleSheet.create({
     color: familyHome.muted,
   },
   connector: {
-    width: 24,
+    flex: 1,
     height: 2,
+    marginTop: 14,
     marginHorizontal: 2,
   },
   connectorDone: {
@@ -190,18 +168,13 @@ const styles = StyleSheet.create({
   connectorIdle: {
     backgroundColor: '#E0E0E0',
   },
-  stepLabelsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
   stepLabel: {
-    width: '20%',
+    marginTop: 8,
     fontFamily: 'Poppins_500Medium',
-    fontSize: 8,
-    lineHeight: 11,
+    fontSize: 12,
+    lineHeight: 16,
     textAlign: 'center',
     fontWeight: '500',
-    paddingHorizontal: 1,
   },
   stepLabelActive: {
     color: APPLY_NAVY,
@@ -210,10 +183,13 @@ const styles = StyleSheet.create({
     color: familyHome.muted,
   },
   fieldLabel: {
-    ...typography.captionStrong,
+    fontFamily: 'Poppins_500Medium',
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '500',
     color: APPLY_NAVY,
-    marginBottom: 4,
-    marginTop: 2,
+    marginBottom: 8,
+    paddingLeft: 4,
   },
   required: {
     color: familyHome.red,
@@ -245,9 +221,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    minHeight: 46,
-    borderRadius: 12,
-    backgroundColor: familyHome.greenDark,
+    minHeight: 52,
+    borderRadius: 28,
+    backgroundColor: familyHome.green,
     paddingHorizontal: spacing.lg,
   },
   nextBtnFull: {

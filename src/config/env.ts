@@ -3,8 +3,9 @@ import Constants from 'expo-constants';
 /**
  * Central environment configuration.
  *
- * If EXPO_PUBLIC_API_URL is set, that host is always used (dev and production).
- * Otherwise in development the API host is inferred:
+ * EXPO_PUBLIC_API_URL is used when set, except localhost/127.0.0.1 on a
+ * native device — that is rewritten to the Metro host so Expo Go can reach
+ * the API on your machine:
  * - Web / iOS simulator: http://localhost:8001
  * - Android emulator:    Metro host (usually 10.0.2.2)
  * - Physical device:     http://<your-lan-ip>:8001
@@ -45,10 +46,29 @@ function inferDevApiUrl(): string {
   return 'http://localhost:8001';
 }
 
+function isLoopbackUrl(url: string): boolean {
+  return /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?(\/|$)/i.test(url);
+}
+
+function rewriteLoopbackForDevice(url: string): string {
+  const onWeb = typeof document !== 'undefined';
+  if (onWeb || !isLoopbackUrl(url)) {
+    return url;
+  }
+
+  const host = metroHost();
+  if (!host || host === 'localhost' || host === '127.0.0.1') {
+    return url;
+  }
+
+  const port = url.match(/:(\d+)/)?.[1] ?? '8001';
+  return `http://${host}:${port}`;
+}
+
 function readApiUrl(): string {
   const configured = readPublicApiUrl();
   if (configured) {
-    return configured;
+    return rewriteLoopbackForDevice(configured);
   }
   if (typeof __DEV__ !== 'undefined' && __DEV__) {
     return inferDevApiUrl();

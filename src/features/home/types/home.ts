@@ -15,6 +15,7 @@ export interface SeniorResponse {
   date_of_birth: string;
   address: string;
   emergency_contact: string;
+  emergency_contact_name?: string | null;
   family_contact_1_name?: string | null;
   family_contact_1_phone?: string | null;
   family_contact_2_name?: string | null;
@@ -224,6 +225,7 @@ export interface SeniorProfile {
   dateOfBirth: string;
   address: string;
   emergencyContact: string;
+  emergencyContactName?: string | null;
   familyContact1Name?: string | null;
   familyContact1Phone?: string | null;
   familyContact2Name?: string | null;

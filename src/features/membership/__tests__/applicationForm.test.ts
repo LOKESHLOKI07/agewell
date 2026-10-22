@@ -2,50 +2,66 @@ import {
   AREA_OPTIONS,
   applicationIdFromRequestId,
   emptyMembershipApplicationDraft,
-  formatDobInput,
   toMembershipApplicationPurchaseBody,
-  validateApplicationStep,
+  validateApplicationForm,
 } from '../applicationForm';
 
 describe('membership application form', () => {
-  it('formats date of birth as DD / MM / YYYY', () => {
-    expect(formatDobInput('15031950')).toBe('15 / 03 / 1950');
+  it('requires family member 1 name and mobile', () => {
+    const errors = validateApplicationForm(emptyMembershipApplicationDraft());
+    expect(errors.family1Name).toMatch(/enter name/i);
+    expect(errors.family1Phone).toMatch(/mobile number/i);
+    expect(errors.family2Name).toBeUndefined();
+    expect(errors.family2Phone).toBeUndefined();
+    expect(errors.emergencyName).toBeUndefined();
+    expect(errors.emergencyPhone).toBeUndefined();
   });
 
-  it('requires membership-for on step 0', () => {
-    const errors = validateApplicationStep(0, emptyMembershipApplicationDraft());
-    expect(errors.membershipFor).toMatch(/select who/i);
+  it('keeps family member 2 and emergency contact optional', () => {
+    const errors = validateApplicationForm({
+      ...emptyMembershipApplicationDraft(),
+      family1Name: 'Asha Sharma',
+      family1Phone: '9123456780',
+    });
+    expect(errors).toEqual({});
+  });
+
+  it('validates optional phones only when filled', () => {
+    const errors = validateApplicationForm({
+      ...emptyMembershipApplicationDraft(),
+      family1Name: 'Asha Sharma',
+      family1Phone: '9123456780',
+      family2Name: 'Rohit',
+      family2Phone: '12',
+      emergencyPhone: '555',
+    });
+    expect(errors.family2Phone).toMatch(/mobile number/i);
+    expect(errors.emergencyPhone).toMatch(/mobile number/i);
+    expect(errors.family2Name).toBeUndefined();
+    expect(errors.emergencyName).toBeUndefined();
   });
 
   it('maps draft to a purchase request body', () => {
     const draft = {
       ...emptyMembershipApplicationDraft(),
-      membershipFor: 'myself' as const,
-      fullName: 'Lakshmi Sharma',
-      dateOfBirth: '15 / 03 / 1950',
-      gender: 'female' as const,
-      mobile: '9876543210',
-      email: 'lakshmi@example.com',
-      language: 'english' as const,
-      address: '12 Palm Grove, SV Road',
-      area: 'Borivali West' as const,
-      pinCode: '400092',
-      livingWith: 'alone' as const,
-      primaryName: 'Asha Sharma',
-      primaryRelationship: 'Daughter',
-      primaryMobile: '9123456780',
-      primaryCity: 'Mumbai',
-      supportNeeds: ['companionship' as const, 'food' as const],
-      confirmed: true,
+      family1Name: 'Asha Sharma',
+      family1Phone: '9123456780',
+      family2Name: 'Rohit Sharma',
+      family2Phone: '9876501234',
+      emergencyName: 'Neha Sharma',
+      emergencyPhone: '9988776655',
     };
 
     const body = toMembershipApplicationPurchaseBody('single', draft);
     expect(body.planKey).toBe('single');
     expect(body.familyContact1Name).toBe('Asha Sharma');
     expect(body.familyContact1Phone).toBe('9123456780');
-    expect(body.preferredHospital).toMatch(/Borivali West/);
-    expect(body.notes).toMatch(/Lakshmi Sharma/);
-    expect(body.notes).toMatch(/Companionship/);
+    expect(body.familyContact2Name).toBe('Rohit Sharma');
+    expect(body.familyContact2Phone).toBe('9876501234');
+    expect(body.emergencyContactName).toBe('Neha Sharma');
+    expect(body.emergencyContactPhone).toBe('9988776655');
+    expect(body).not.toHaveProperty('preferredHospital');
+    expect(body).not.toHaveProperty('notes');
   });
 
   it('includes Chandrapur Tier 2 towns on the apply form', () => {

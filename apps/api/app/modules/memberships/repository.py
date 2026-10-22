@@ -95,17 +95,24 @@ class MembershipRepository:
         family_contact_1_phone: str,
         family_contact_2_name: Optional[str],
         family_contact_2_phone: Optional[str],
-        preferred_hospital: str,
+        emergency_contact_name: Optional[str],
+        emergency_contact_phone: Optional[str],
+        preferred_hospital: Optional[str],
     ) -> MembershipRequest:
         senior = await self.session.get(Senior, senior_id)
         if senior is not None:
             senior.family_contact_1_name = family_contact_1_name
             senior.family_contact_1_phone = family_contact_1_phone
-            senior.family_contact_2_name = family_contact_2_name
-            senior.family_contact_2_phone = family_contact_2_phone
-            senior.preferred_hospital = preferred_hospital
-            if not (senior.emergency_contact or "").strip():
-                senior.emergency_contact = family_contact_1_phone
+            if family_contact_2_name is not None:
+                senior.family_contact_2_name = family_contact_2_name
+            if family_contact_2_phone is not None:
+                senior.family_contact_2_phone = family_contact_2_phone
+            if emergency_contact_name:
+                senior.emergency_contact_name = emergency_contact_name
+            if emergency_contact_phone:
+                senior.emergency_contact = emergency_contact_phone
+            if preferred_hospital:
+                senior.preferred_hospital = preferred_hospital
         row = MembershipRequest(
             senior_id=senior_id,
             plan_id=plan_id,
@@ -116,6 +123,8 @@ class MembershipRepository:
             family_contact_1_phone=family_contact_1_phone,
             family_contact_2_name=family_contact_2_name,
             family_contact_2_phone=family_contact_2_phone,
+            emergency_contact_name=emergency_contact_name,
+            emergency_contact_phone=emergency_contact_phone,
             preferred_hospital=preferred_hospital,
         )
         self.session.add(row)

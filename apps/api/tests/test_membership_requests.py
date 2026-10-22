@@ -65,7 +65,8 @@ def onboarding_payload(**overrides):
         "family_contact_1_phone": "9876543210",
         "family_contact_2_name": "Rohit Sharma",
         "family_contact_2_phone": "9876501234",
-        "preferred_hospital": "Apex Hospital, Borivali",
+        "emergency_contact_name": "Neha Sharma",
+        "emergency_contact_phone": "9988776655",
     }
     body.update(overrides)
     return body
@@ -92,13 +93,16 @@ async def test_family_can_request_membership_and_admin_can_approve(client):
     assert body["plan_name"] == "Single Membership"
     assert body["family_contact_1_name"] == "Asha Sharma"
     assert body["family_contact_1_phone"] == "9876543210"
-    assert body["preferred_hospital"] == "Apex Hospital, Borivali"
+    assert body["emergency_contact_name"] == "Neha Sharma"
+    assert body["emergency_contact_phone"] == "9988776655"
+    assert body.get("preferred_hospital") in (None, "")
     request_id = body["id"]
 
     profile = await client.get("/api/v1/seniors/me", headers=senior)
     assert profile.status_code == 200, profile.text
     assert profile.json()["family_contact_1_name"] == "Asha Sharma"
-    assert profile.json()["preferred_hospital"] == "Apex Hospital, Borivali"
+    assert profile.json()["emergency_contact"] == "9988776655"
+    assert profile.json()["emergency_contact_name"] == "Neha Sharma"
 
     duplicate = await client.post(
         "/api/v1/memberships/requests",
@@ -239,7 +243,7 @@ async def test_admin_can_reject_membership_request(client):
 
 
 @pytest.mark.asyncio
-async def test_membership_request_requires_family_and_hospital(client):
+async def test_membership_request_requires_family_member_1_only(client):
     email = unique_email("onboard")
     senior = auth_header(await register_senior(client, email))
     missing = await client.post(
@@ -248,4 +252,21 @@ async def test_membership_request_requires_family_and_hospital(client):
         json={"plan_key": "single"},
     )
     assert missing.status_code == 422
+
+    created = await client.post(
+        "/api/v1/memberships/requests",
+        headers=senior,
+        json={
+            "plan_key": "single",
+            "family_contact_1_name": "Asha Sharma",
+            "family_contact_1_phone": "9876543210",
+            "family_contact_2_name": "Rohit",
+        },
+    )
+    assert created.status_code == 200, created.text
+    body = created.json()
+    assert body["family_contact_1_name"] == "Asha Sharma"
+    assert body["family_contact_2_name"] == "Rohit"
+    assert body["family_contact_2_phone"] is None
+    assert body["emergency_contact_name"] is None
 

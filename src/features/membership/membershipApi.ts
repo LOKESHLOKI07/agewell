@@ -79,7 +79,9 @@ export async function createMembershipPurchaseRequest(input: {
   familyContact1Phone: string;
   familyContact2Name?: string;
   familyContact2Phone?: string;
-  preferredHospital: string;
+  emergencyContactName?: string;
+  emergencyContactPhone?: string;
+  preferredHospital?: string;
 }): Promise<MembershipRequest> {
   try {
     const response = await apiClient.post('/memberships/requests', {
@@ -89,6 +91,8 @@ export async function createMembershipPurchaseRequest(input: {
       family_contact_1_phone: input.familyContact1Phone,
       family_contact_2_name: input.familyContact2Name,
       family_contact_2_phone: input.familyContact2Phone,
+      emergency_contact_name: input.emergencyContactName,
+      emergency_contact_phone: input.emergencyContactPhone,
       preferred_hospital: input.preferredHospital,
     });
     return toMembershipRequest(response.data);

@@ -119,7 +119,12 @@ function StatusBody({
 
       <View style={styles.timeline}>
         {steps.map((step, index) => (
-          <TimelineRow key={step.id} step={step} isLast={index === steps.length - 1} />
+          <TimelineRow
+            key={step.id}
+            step={step}
+            index={index}
+            isLast={index === steps.length - 1}
+          />
         ))}
       </View>
 
@@ -142,23 +147,45 @@ function StatusBody({
   );
 }
 
-function TimelineRow({ step, isLast }: { step: ApplicationTimelineStep; isLast: boolean }) {
+function TimelineRow({
+  step,
+  index,
+  isLast,
+}: {
+  step: ApplicationTimelineStep;
+  index: number;
+  isLast: boolean;
+}) {
   const completed = step.tone === 'completed';
   const current = step.tone === 'current';
+  const number = index + 1;
 
   return (
     <View style={styles.row}>
       <View style={styles.rail}>
+        {completed ? (
+          <View style={styles.checkDot}>
+            <Icon name="checkmark" size={10} color={familyHome.white} />
+          </View>
+        ) : (
+          <View style={styles.checkSpacer} />
+        )}
         <View
           style={[
-            styles.dot,
-            completed ? styles.dotDone : null,
-            current ? styles.dotCurrent : null,
-            !completed && !current ? styles.dotPending : null,
+            styles.numCircle,
+            completed ? styles.numCircleDone : null,
+            current ? styles.numCircleCurrent : null,
+            !completed && !current ? styles.numCirclePending : null,
           ]}
         >
-          {completed ? <Icon name="checkmark" size={12} color={familyHome.white} /> : null}
-          {current ? <View style={styles.dotInner} /> : null}
+          <Text
+            style={[
+              styles.numText,
+              completed || current ? styles.numTextActive : styles.numTextPending,
+            ]}
+          >
+            {number}
+          </Text>
         </View>
         {!isLast ? (
           <View style={[styles.line, completed ? styles.lineDone : styles.linePending]} />
@@ -212,19 +239,39 @@ const styles = StyleSheet.create({
   metaPlan: { ...typography.captionStrong, color: familyHome.greenDark, marginTop: 4 },
   metaTime: { ...typography.caption, color: familyHome.muted },
   timeline: { gap: 0 },
-  row: { flexDirection: 'row', gap: spacing.md },
-  rail: { width: 28, alignItems: 'center' },
-  dot: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+  row: { flexDirection: 'row', gap: spacing.sm },
+  rail: { width: 52, alignItems: 'center' },
+  checkDot: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: familyHome.green,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  checkSpacer: {
+    width: 16,
+    height: 16,
+    marginBottom: 4,
+  },
+  numCircle: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  dotDone: { backgroundColor: familyHome.greenDark },
-  dotCurrent: { backgroundColor: familyHome.blue },
-  dotPending: { backgroundColor: '#E5E5E5' },
-  dotInner: { width: 8, height: 8, borderRadius: 4, backgroundColor: familyHome.white },
+  numCircleDone: { backgroundColor: familyHome.green },
+  numCircleCurrent: { backgroundColor: familyHome.greenDark },
+  numCirclePending: { backgroundColor: '#E8E8E8' },
+  numText: {
+    fontFamily: 'Poppins_600SemiBold',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  numTextActive: { color: familyHome.white },
+  numTextPending: { color: APPLY_NAVY },
   line: { width: 2, flex: 1, minHeight: 28, marginVertical: 4 },
   lineDone: { backgroundColor: familyHome.green },
   linePending: { backgroundColor: '#E5E5E5' },

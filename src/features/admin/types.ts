@@ -36,6 +36,7 @@ export interface AdminSenior {
   dateOfBirth: string;
   address: string;
   emergencyContact: string;
+  emergencyContactName?: string | null;
   preferredLanguage: string | null;
   familyContact1Name?: string | null;
   familyContact1Phone?: string | null;

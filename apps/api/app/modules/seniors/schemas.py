@@ -32,6 +32,7 @@ class SeniorBase(BaseModel):
     date_of_birth: date
     address: str
     emergency_contact: str
+    emergency_contact_name: Optional[str] = None
     preferred_language: Optional[str] = None
     family_contact_1_name: Optional[str] = None
     family_contact_1_phone: Optional[str] = None
@@ -55,6 +56,7 @@ class SeniorUpdate(BaseModel):
     date_of_birth: Optional[date] = None
     address: Optional[str] = None
     emergency_contact: Optional[str] = None
+    emergency_contact_name: Optional[str] = None
     preferred_language: Optional[str] = None
     family_contact_1_name: Optional[str] = None
     family_contact_1_phone: Optional[str] = None

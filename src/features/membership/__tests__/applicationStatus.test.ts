@@ -19,6 +19,8 @@ const baseRequest: MembershipRequest = {
   familyContact1Phone: '9876543210',
   familyContact2Name: null,
   familyContact2Phone: null,
+  emergencyContactName: null,
+  emergencyContactPhone: null,
   preferredHospital: 'Nearby',
   visitPlannedAt: null,
   visitScheduledStart: null,

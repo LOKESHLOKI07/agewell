@@ -183,15 +183,16 @@ class MembershipService:
         plan = await self.repo.get_plan_by_name(plan_name)
         if not plan:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Membership plan is not available.")
-        notes = _onboarding_notes(payload)
         created = await self.repo.create_request(
             senior_id=senior_id,
             plan_id=plan.id,
-            notes=notes,
+            notes=payload.notes,
             family_contact_1_name=payload.family_contact_1_name,
             family_contact_1_phone=payload.family_contact_1_phone,
             family_contact_2_name=payload.family_contact_2_name,
             family_contact_2_phone=payload.family_contact_2_phone,
+            emergency_contact_name=payload.emergency_contact_name,
+            emergency_contact_phone=payload.emergency_contact_phone,
             preferred_hospital=payload.preferred_hospital,
         )
         return await self._request_response(created.id)
@@ -500,6 +501,8 @@ class MembershipService:
             family_contact_1_phone=getattr(request, "family_contact_1_phone", None),
             family_contact_2_name=getattr(request, "family_contact_2_name", None),
             family_contact_2_phone=getattr(request, "family_contact_2_phone", None),
+            emergency_contact_name=getattr(request, "emergency_contact_name", None),
+            emergency_contact_phone=getattr(request, "emergency_contact_phone", None),
             preferred_hospital=getattr(request, "preferred_hospital", None),
             visit_planned_at=getattr(request, "visit_planned_at", None),
             visit_scheduled_start=getattr(request, "visit_scheduled_start", None),
@@ -515,19 +518,6 @@ class MembershipService:
             created_at=request.created_at,
             reviewed_at=request.reviewed_at,
         )
-
-
-def _onboarding_notes(payload: MembershipRequestCreate) -> Optional[str]:
-    lines = [
-        f"Family 1: {payload.family_contact_1_name} ({payload.family_contact_1_phone})",
-    ]
-    if payload.family_contact_2_name and payload.family_contact_2_phone:
-        lines.append(f"Family 2: {payload.family_contact_2_name} ({payload.family_contact_2_phone})")
-    lines.append(f"Nearby hospital: {payload.preferred_hospital}")
-    extra = payload.notes.strip() if payload.notes and payload.notes.strip() else None
-    if extra:
-        lines.append(extra)
-    return "\n".join(lines)
 
 
 def _senior_name(senior: Senior) -> Optional[str]:

@@ -12,6 +12,7 @@ class Senior(Base):
     date_of_birth = Column(Date)
     address = Column(String)
     emergency_contact = Column(String)
+    emergency_contact_name = Column(String, nullable=True)
     family_contact_1_name = Column(String, nullable=True)
     family_contact_1_phone = Column(String, nullable=True)
     family_contact_2_name = Column(String, nullable=True)

@@ -19,7 +19,7 @@ import {
   useReviewAdminMembershipRequest,
   useUpdateAdminMembershipRequestStage,
 } from './hooks';
-import { getAdminErrorMessage, getSectionState, humanizeStatus } from './selectors';
+import { adminContactLine, getAdminErrorMessage, getSectionState, humanizeStatus } from './selectors';
 import { ADMIN_PAGE_SIZE } from './types';
 import { formatLongDate } from '@/utils/date';
 import type { MembershipRequest, MembershipRequestStatus } from '@/features/membership/membershipTypes';
@@ -351,6 +351,19 @@ function RequestWorkflowPanel({
       <Text style={styles.workflowTitle}>
         {request.seniorName ?? 'Senior'} · {stageLabel(request.stage)}
       </Text>
+      <Text style={styles.notes}>
+        Family 1: {adminContactLine(request.familyContact1Name, request.familyContact1Phone)}
+      </Text>
+      {request.familyContact2Name || request.familyContact2Phone ? (
+        <Text style={styles.notes}>
+          Family 2: {adminContactLine(request.familyContact2Name, request.familyContact2Phone)}
+        </Text>
+      ) : null}
+      {request.emergencyContactName || request.emergencyContactPhone ? (
+        <Text style={styles.notes}>
+          Emergency: {adminContactLine(request.emergencyContactName, request.emergencyContactPhone)}
+        </Text>
+      ) : null}
       {request.notes ? <Text style={styles.notes}>{request.notes}</Text> : null}
 
       <AdminSearchPicker

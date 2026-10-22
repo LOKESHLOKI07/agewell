@@ -52,6 +52,8 @@ export function toMembershipRequest(payload: unknown): MembershipRequest {
     familyContact1Phone: asOptionalString(data.family_contact_1_phone),
     familyContact2Name: asOptionalString(data.family_contact_2_name),
     familyContact2Phone: asOptionalString(data.family_contact_2_phone),
+    emergencyContactName: asOptionalString(data.emergency_contact_name),
+    emergencyContactPhone: asOptionalString(data.emergency_contact_phone),
     preferredHospital: asOptionalString(data.preferred_hospital),
     visitPlannedAt: asOptionalString(data.visit_planned_at),
     visitScheduledStart: asOptionalString(data.visit_scheduled_start),

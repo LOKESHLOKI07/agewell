@@ -35,6 +35,8 @@ export interface MembershipRequest {
   familyContact1Phone: string | null;
   familyContact2Name: string | null;
   familyContact2Phone: string | null;
+  emergencyContactName: string | null;
+  emergencyContactPhone: string | null;
   preferredHospital: string | null;
   visitPlannedAt: string | null;
   visitScheduledStart: string | null;

@@ -80,6 +80,8 @@ class MembershipRequest(Base):
     family_contact_1_phone = Column(String, nullable=True)
     family_contact_2_name = Column(String, nullable=True)
     family_contact_2_phone = Column(String, nullable=True)
+    emergency_contact_name = Column(String, nullable=True)
+    emergency_contact_phone = Column(String, nullable=True)
     preferred_hospital = Column(String, nullable=True)
     visit_planned_at = Column(DateTime(timezone=True), nullable=True)
     visit_scheduled_start = Column(DateTime(timezone=True), nullable=True)
