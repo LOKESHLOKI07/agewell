@@ -33,8 +33,8 @@ export const EMERGENCY_TYPE_OPTIONS: readonly EmergencyTypeOption[] = [
   },
   {
     type: 'AGEWELL_SUPPORT',
-    title: 'AgeWell Support',
-    accessibilityLabel: 'AgeWell Support',
+    title: 'EldCare Support',
+    accessibilityLabel: 'EldCare Support',
     icon: 'call-outline',
   },
 ];
@@ -57,7 +57,7 @@ export const RECIPIENT_CHIP_META: { role: string; label: string; icon: IconName 
   { role: 'FAMILY', label: 'Family Members', icon: 'people-outline' },
   { role: 'CARE_MANAGER', label: 'Care Manager', icon: 'account-circle' },
   { role: 'COMPANION', label: 'Companion', icon: 'people' },
-  { role: 'AGEWELL_SUPPORT', label: 'AgeWell Support', icon: 'call-outline' },
+  { role: 'AGEWELL_SUPPORT', label: 'EldCare Support', icon: 'call-outline' },
 ];
 
 const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];

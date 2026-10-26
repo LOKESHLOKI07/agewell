@@ -1,4 +1,4 @@
-"""Calendar-day filters for AgeWell use Asia/Kolkata (IST).
+"""Calendar-day filters for EldCare use Asia/Kolkata (IST).
 
 Seniors, families, and care associates do not currently store a timezone.
 Do not add a timezone column until a product requirement exists.

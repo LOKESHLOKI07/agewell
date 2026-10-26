@@ -77,7 +77,7 @@ function detailFromRequest(request: ServiceRequest, tone: GroceryOrderTone): str
       return 'This order was cancelled';
     case 'progress':
     case 'en_route':
-      return 'AgeWell is fulfilling your grocery list';
+      return 'EldCare is fulfilling your grocery list';
     default:
       return 'Grocery list received';
   }

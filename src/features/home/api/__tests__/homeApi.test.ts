@@ -245,7 +245,7 @@ describe('homeApi', () => {
         {
           id: 'n-1',
           title: 'Welcome',
-          message: 'Welcome to AgeWell',
+          message: 'Welcome to EldCare',
           priority: 'INFO',
           is_read: false,
           created_at: '2026-08-20T05:17:08.209718Z',

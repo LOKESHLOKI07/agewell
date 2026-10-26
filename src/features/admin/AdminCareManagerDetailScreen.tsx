@@ -136,7 +136,7 @@ export function AdminCareManagerDetailScreen() {
         id: `joined-${query.data?.userId ?? 'user'}`,
         entityName: 'User',
         entityId: query.data?.userId ?? null,
-        action: 'Joined AgeWell',
+        action: 'Joined EldCare',
         changes: null,
         createdAt: user.data.createdAt,
       });
@@ -197,7 +197,7 @@ export function AdminCareManagerDetailScreen() {
         onRetry={() => void query.refetch()}
         loadingMessage="Loading care team member..."
         emptyTitle="Care team member not found"
-        emptyMessage="This staff record is not in AgeWell."
+        emptyMessage="This staff record is not in EldCare."
         errorKind="care"
       >
         {staff ? (

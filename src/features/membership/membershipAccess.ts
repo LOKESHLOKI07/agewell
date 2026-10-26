@@ -8,7 +8,7 @@ import { openMembershipPurchase } from './openMembershipPurchase';
 
 export const MEMBERSHIP_REQUIRED_TITLE = 'Membership required';
 export const MEMBERSHIP_REQUIRED_MESSAGE =
-  'Buy an AgeWell Single Membership to continue with this service. Add-on services can still be used without a membership.';
+  'Buy an EldCare Single Membership to continue with this service. Add-on services can still be used without a membership.';
 
 export const EMERGENCY_SUPPORT_SLUG = 'emergency-sos';
 export const CARE_MANAGER_SLUG = 'care-manager';

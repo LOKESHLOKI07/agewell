@@ -55,7 +55,7 @@ function LabTestingLive() {
       <ServicePageHeader />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <MembershipServiceHero slug="lab-testing" />
-        <Text style={styles.hint}>Nearby diagnostic labs · reminders and reports in AgeWell</Text>
+        <Text style={styles.hint}>Nearby diagnostic labs · reminders and reports in EldCare</Text>
         {catalog.isPending ? <Text style={styles.hint}>Loading tests…</Text> : null}
         {catalog.isError ? (
           <Pressable onPress={() => void catalog.refetch()} accessibilityRole="button">

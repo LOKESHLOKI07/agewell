@@ -24,7 +24,7 @@ jest.mock('@/api/client', () => ({
 
 const mockedPost = apiClient.post as jest.MockedFunction<typeof apiClient.post>;
 
-describe('AgeWell Emergency Widget', () => {
+describe('EldCare Emergency Widget', () => {
   it('identifies the widget deep link without exposing secrets', () => {
     expect(EMERGENCY_WIDGET_NAME).toBe('AgeWellEmergency');
     expect(EMERGENCY_WIDGET_PATH).toBe('/emergency/widget-sos');
@@ -92,7 +92,7 @@ describe('AgeWell Emergency Widget', () => {
 
   it('handles API failure without leaking backend dumps', () => {
     expect(
-      getEmergencyCreateErrorMessage(new ApiError('Unable to connect to AgeWell. Please check your internet connection.')),
+      getEmergencyCreateErrorMessage(new ApiError('Unable to connect to EldCare. Please check your internet connection.')),
     ).toBe('Unable to create emergency request. Please check your connection and try again.');
     expect(getEmergencyCreateErrorMessage(new ApiError("You don't have permission to access this information.", 403))).toBe(
       "You don't have permission to access this information.",

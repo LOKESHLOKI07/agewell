@@ -8,6 +8,6 @@ export async function requestEmergencyAssistance(seniorId: string): Promise<Emer
     seniorId,
     status: 'coordinating',
     createdAt: new Date().toISOString(),
-    message: 'AgeWell Emergency Team Notified',
+    message: 'EldCare Emergency Team Notified',
   };
 }

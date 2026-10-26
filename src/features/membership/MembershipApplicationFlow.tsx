@@ -2,7 +2,6 @@ import { useState } from 'react';
 import {
   Alert,
   Image,
-  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -162,7 +161,7 @@ function IntroBody({ onStart, bottomInset }: { onStart: () => void; bottomInset:
   return (
     <View style={styles.introWrap}>
       <View style={styles.introCopy}>
-        <Text style={styles.introTitle}>{`Apply for\nAgeWell Membership`}</Text>
+        <Text style={styles.introTitle}>{`Apply for\nEldCare Membership`}</Text>
         <Text style={styles.introSubtitle}>
           Take the first step towards a safer, healthier and happier life.
         </Text>
@@ -184,7 +183,7 @@ function IntroBody({ onStart, bottomInset }: { onStart: () => void; bottomInset:
       <View style={styles.introHeroWrap}>
         <Image
           source={coupleImage}
-          style={[styles.introHero, Platform.OS === 'web' ? styles.introHeroCrop : null]}
+          style={styles.introHero}
           resizeMode="cover"
           accessibilityRole="image"
           accessibilityLabel="Elderly couple"
@@ -441,12 +440,9 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   introHero: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     width: '100%',
     height: '100%',
-  },
-  introHeroCrop: {
-    objectPosition: 'center 40%',
   },
   introCtaWrap: {
     position: 'absolute',

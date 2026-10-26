@@ -4,12 +4,10 @@ import { StatusBar } from 'expo-status-bar';
 import { useEventListener } from 'expo';
 import { useVideoPlayer, VideoView } from 'expo-video';
 
-const splashVideo = require('../../../assets/splash/proper_splash_screen.mp4');
+const splashVideo = require('../../../assets/splash/EldCare_Splash_Screen_Animated.mp4');
 
 const splashBackgroundColor = '#FEF8E8';
 const SPLASH_FALLBACK_MS = 12000;
-/** The clip ends on a black frame — stop before that tail. */
-const BLACK_TAIL_SECONDS = 0.8;
 
 export function SplashScreen({
   onReady,
@@ -35,7 +33,6 @@ export function SplashScreen({
   const player = useVideoPlayer(splashVideo, (videoPlayer) => {
     videoPlayer.loop = false;
     videoPlayer.muted = true;
-    videoPlayer.timeUpdateEventInterval = 0.05;
     videoPlayer.play();
   });
 
@@ -43,23 +40,10 @@ export function SplashScreen({
     if (finishedRef.current) {
       return;
     }
-    const duration = player.duration;
-    if (Number.isFinite(duration) && duration > BLACK_TAIL_SECONDS) {
-      player.currentTime = duration - BLACK_TAIL_SECONDS;
-    }
     player.pause();
     finish();
   }, [finish, player]);
 
-  useEventListener(player, 'timeUpdate', ({ currentTime }) => {
-    const duration = player.duration;
-    if (!Number.isFinite(duration) || duration <= BLACK_TAIL_SECONDS) {
-      return;
-    }
-    if (currentTime >= duration - BLACK_TAIL_SECONDS) {
-      holdLastFrameAndFinish();
-    }
-  });
   useEventListener(player, 'playToEnd', holdLastFrameAndFinish);
   useEventListener(player, 'statusChange', ({ status, error }) => {
     if (status === 'error' || error) {
@@ -75,7 +59,7 @@ export function SplashScreen({
   return (
     <View
       style={[styles.screen, { width, height }]}
-      accessibilityLabel="AgeWell. Your Parents. Our Care."
+      accessibilityLabel="EldCare. Your Parents. Our Care."
       onLayout={onReady}
     >
       <StatusBar style="dark" />

@@ -28,7 +28,7 @@ export const mockNotifications: AppNotification[] = [
   {
     id: 'notif-payment-success',
     title: 'Payment successful',
-    description: 'AgeWell Family membership payment of ₹9,999 was received.',
+    description: 'EldCare Family membership payment of ₹9,999 was received.',
     type: 'payment',
     createdAt: '2026-08-18T08:05:00+05:30',
     read: true,
@@ -36,7 +36,7 @@ export const mockNotifications: AppNotification[] = [
   {
     id: 'notif-service-received',
     title: 'Service request received',
-    description: 'AgeWell will contact you shortly about your latest service request.',
+    description: 'EldCare will contact you shortly about your latest service request.',
     type: 'service',
     createdAt: '2026-08-17T14:40:00+05:30',
     read: false,

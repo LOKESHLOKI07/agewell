@@ -19,10 +19,11 @@ import DateTimePicker, {
   type DateTimePickerEvent,
 } from '@react-native-community/datetimepicker';
 import * as Location from 'expo-location';
-import { router } from 'expo-router';
+
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView } from '@/components/KeyboardAwareScrollView';
-import { LoadingState, PrimaryButton, SecondaryButton } from '@/components';
+import { LoadingState } from '@/components';
+
 import type { IconName } from '@/components/ui';
 import { Icon } from '@/components/ui';
 import { spacing, typography } from '@/constants/theme';
@@ -37,7 +38,7 @@ import type { ServiceOffering } from './catalogTypes';
 import type { LocalTransportSuggestion } from './localTransportPlaces';
 import { MEMBERSHIP_SERVICE_AREA_LINE } from './membershipServicePageVariant';
 import { filterOutstationPlaces } from './outstationTransportPlaces';
-import { membershipPurchaseHref } from './planCatalog';
+
 import { SERVICE_HERO_IMAGES } from './serviceHeroes'
 import { servicePageType } from './servicePageType';
 import {
@@ -54,7 +55,7 @@ const heroImage = SERVICE_HERO_IMAGES.transport;
 
 const SLUG = 'transport';
 const VIDEO_URL =
-  'https://www.youtube.com/results?search_query=Outstation+Travel+Made+Easy+for+Seniors+AgeWell';
+  'https://www.youtube.com/results?search_query=Outstation+Travel+Made+Easy+for+Seniors+EldCare';
 const LEAD = 'Well-trained driver assistance for outstation trips. Cost as per trip need.';
 const HERO_BODY =
   'Safe, comfortable outstation travel with well-trained drivers and care coordination.';
@@ -790,10 +791,10 @@ function MemberLiveBody() {
 
       <Text style={styles.sectionTitle}>Select Vehicle Category</Text>
 
-      {catalog.isPending && !catalog.data?.length ? (
+      {catalog.isPending && !offerings.length ? (
         <Text style={styles.empty}>Loading vehicles…</Text>
       ) : null}
-      {catalog.isError && !catalog.data?.length ? (
+      {catalog.isError && !offerings.length ? (
         <Pressable onPress={() => void catalog.refetch()} accessibilityRole="button">
           <Text style={styles.viewAll}>Unable to load · Tap to retry</Text>
         </Pressable>
@@ -1060,7 +1061,7 @@ function MemberLiveBody() {
           <Text style={styles.videoThumbDuration}>7:12</Text>
         </View>
         <View style={styles.videoCopy}>
-          <Text style={styles.videoTitle}>Tips for a Safe & Comfortable Outstation Journey with AgeWell</Text>
+          <Text style={styles.videoTitle}>Tips for a Safe & Comfortable Outstation Journey with EldCare</Text>
           <View style={styles.watchRow}>
             <Icon name="play" size={11} color={familyHome.red} />
             <Text style={styles.watchLabel}>YouTube Video</Text>
@@ -1092,16 +1093,16 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   heroFullImage: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     width: '100%',
     height: '100%',
   },
   heroScrim: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(255,255,255,0.55)',
   },
   heroFullContent: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'space-between',
@@ -1525,7 +1526,7 @@ const styles = StyleSheet.create({
   },
   videoThumbImage: { width: '100%', height: '100%' },
   videoThumbPlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(0,0,0,0.22)',

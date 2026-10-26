@@ -6,7 +6,7 @@ export default function PaymentMethodsScreen() {
       <InfoParagraph>
         No real cards or UPI details are stored in this app. Phase 2 will connect Razorpay for membership billing.
       </InfoParagraph>
-      <InfoParagraph>Current mock method: UPI · AgeWell Family auto-pay</InfoParagraph>
+      <InfoParagraph>Current mock method: UPI · EldCare Family auto-pay</InfoParagraph>
     </SimpleInfoScreen>
   );
 }

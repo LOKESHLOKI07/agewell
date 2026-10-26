@@ -62,7 +62,7 @@ export default function PrivacyScreen() {
           <View style={styles.locationBlock}>
             <Text style={styles.label}>Location sharing</Text>
             <Text style={styles.locationCopy}>
-              Live location is shared from Live Tracking using your current device location. AgeWell does not keep a
+              Live location is shared from Live Tracking using your current device location. EldCare does not keep a
               Start/Stop status on the server.
             </Text>
             {role === 'SENIOR' ? (

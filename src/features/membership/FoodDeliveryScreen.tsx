@@ -43,7 +43,7 @@ import { useTabScreenBottomPad } from '@/utils/safeBottom';
 const SLUG = 'food';
 const heroImage = SERVICE_HERO_IMAGES.food;
 const VIDEO_URL =
-  'https://www.youtube.com/results?search_query=Healthy+Home-style+Tiffin+Service+AgeWell';
+  'https://www.youtube.com/results?search_query=Healthy+Home-style+Tiffin+Service+EldCare';
 
 const SERVICE_DETAILS =
   'Fresh, home-made, authentic meals for breakfast, lunch and/or dinner. Vegetarian and non-vegetarian options available as per your preference.';

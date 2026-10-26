@@ -291,7 +291,7 @@ class ConciergeService:
         except HTTPException:
             raise HTTPException(
                 status_code=400,
-                detail=f"I could not find the AgeWell service “{slug}”. Please try another service.",
+                detail=f"I could not find the EldCare service “{slug}”. Please try another service.",
             ) from None
 
         notes = self._notes_for(intent, params, service_meta["title"] if service_meta else slug)
@@ -391,7 +391,7 @@ class ConciergeService:
         when = str(params.get("when") or "As soon as possible")
         items_note = str(params.get("items_note") or "")
         meta = SERVICES_BY_SLUG.get(slug)
-        title = meta["title"] if meta else "AgeWell service"
+        title = meta["title"] if meta else "EldCare service"
         icon = ICON_BY_SLUG.get(slug, "sparkles")
 
         if intent in (ConciergeIntent.care_manager_call, ConciergeIntent.escalate_human) or slug == "care-manager":
@@ -443,7 +443,7 @@ class ConciergeService:
         )
 
     def _notes_for(self, intent: ConciergeIntent, params: dict, service_title: str) -> str:
-        bits = [f"Created via AgeWell Bot for {service_title}."]
+        bits = [f"Created via EldCare Bot for {service_title}."]
         if params.get("items_note"):
             bits.append(f"Details: {params['items_note']}")
         if params.get("when"):

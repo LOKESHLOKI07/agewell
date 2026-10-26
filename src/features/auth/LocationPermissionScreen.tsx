@@ -145,13 +145,13 @@ export function LocationPermissionScreen({
           {mode === 'manual' ? (
             <>
               <Text style={styles.title}>Enter your location</Text>
-              <Text style={styles.subtitle}>Tell us your area so we can check AgeWell service availability.</Text>
+              <Text style={styles.subtitle}>Tell us your area so we can check EldCare service availability.</Text>
             </>
           ) : (
             <>
-              <Text style={styles.title}>AgeWell needs your location</Text>
+              <Text style={styles.title}>EldCare needs your location</Text>
               <Text style={styles.subtitle}>
-                We use your location to check whether AgeWell services are currently available in your area.
+                We use your location to check whether EldCare services are currently available in your area.
               </Text>
             </>
           )}

@@ -16,7 +16,7 @@ export function EmergencyButton({
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={label}
-      accessibilityHint="Opens a confirmation before notifying the AgeWell emergency team. This does not call emergency services."
+      accessibilityHint="Opens a confirmation before notifying the EldCare emergency team. This does not call emergency services."
       style={({ pressed }) => [styles.button, pressed ? styles.pressed : null]}
     >
       <Icon name="alert-circle-outline" size={22} color={colors.white} />

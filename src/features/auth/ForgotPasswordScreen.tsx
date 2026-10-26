@@ -93,7 +93,7 @@ export function ForgotPasswordScreen() {
           <Text style={styles.subtitle}>
             {sent
               ? `We sent a 6-digit code to ${email.trim()}. Check your inbox (and spam).`
-              : 'Enter the email on your AgeWell account. We’ll send a code so you can set a new password.'}
+              : 'Enter the email on your EldCare account. We’ll send a code so you can set a new password.'}
           </Text>
         </View>
 

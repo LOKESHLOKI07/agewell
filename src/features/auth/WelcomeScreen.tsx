@@ -60,7 +60,7 @@ export function WelcomeScreen() {
           minimumFontScale={0.72}
           maxFontSizeMultiplier={1.2}
         >
-          {isCareApp() ? 'Welcome to AgeWell Care' : 'Welcome to AgeWell'}
+          {isCareApp() ? 'Welcome to EldCare Care' : 'Welcome to EldCare'}
         </Text>
         <Text style={styles.subtitle} maxFontSizeMultiplier={1.2}>
           {isCareApp()
@@ -96,7 +96,7 @@ export function WelcomeScreen() {
           <Text
             style={styles.legalLink}
             onPress={() =>
-              Alert.alert('Terms & Conditions', 'AgeWell terms will be published here.')
+              Alert.alert('Terms & Conditions', 'EldCare terms will be published here.')
             }
             accessibilityRole="link"
           >
@@ -106,7 +106,7 @@ export function WelcomeScreen() {
           <Text
             style={styles.legalLink}
             onPress={() =>
-              Alert.alert('Privacy Policy', 'AgeWell privacy details will be published here.')
+              Alert.alert('Privacy Policy', 'EldCare privacy details will be published here.')
             }
             accessibilityRole="link"
           >

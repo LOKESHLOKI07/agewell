@@ -12,11 +12,11 @@ export const ASSOCIATE_NOT_SHARING_MESSAGE = "Live location isn't available yet.
 export const ASSOCIATE_ON_THE_WAY_MESSAGE = 'Care Associate is on the way';
 export const ASSOCIATE_SHARE_CONFIRM_TITLE = 'Share Live Location';
 export const ASSOCIATE_SHARE_CONFIRM_MESSAGE =
-  'Share your live location with the senior and family for this visit? AgeWell will read your current location while this screen is open. Sharing is not saved as a Start/Stop status on the server.';
+  'Share your live location with the senior and family for this visit? EldCare will read your current location while this screen is open. Sharing is not saved as a Start/Stop status on the server.';
 export const LOCATION_PERMISSION_MESSAGE =
-  'Location permission is required to share your location. Allow AgeWell to use location, and turn on Precise location.';
+  'Location permission is required to share your location. Allow EldCare to use location, and turn on Precise location.';
 export const LOCATION_PERMISSION_BLOCKED_MESSAGE =
-  'Location is blocked for AgeWell. Open Settings, allow location, and turn on Precise location.';
+  'Location is blocked for EldCare. Open Settings, allow location, and turn on Precise location.';
 export const LOCATION_SERVICES_MESSAGE =
   'Turn on Location when the phone asks, or open Settings, then try again.';
 export const LOCATION_NO_FIX_MESSAGE =
@@ -30,7 +30,7 @@ export const POINT_CREATE_FAILED_MESSAGE = 'We could not share your current loca
 export const SHARING_ACTIVE_MESSAGE = 'Your live location is being shared.';
 export const SHARING_CONFIRM_TITLE = 'Share live location?';
 export const SHARING_CONFIRM_MESSAGE =
-  'AgeWell will read your current location while this screen is open and share it with authorized family and care staff. Sharing is not saved as a Start/Stop status on the server.';
+  'EldCare will read your current location while this screen is open and share it with authorized family and care staff. Sharing is not saved as a Start/Stop status on the server.';
 
 export function canPostTrackingPoints(role: AuthRole | null | undefined): boolean {
   return role === 'SENIOR';
@@ -60,7 +60,7 @@ export const DELIVERY_NOT_SHARING_MESSAGE = "Delivery executive location isn't a
 export const DELIVERY_ON_THE_WAY_MESSAGE = 'Delivery executive is on the way';
 export const DELIVERY_SHARE_CONFIRM_TITLE = 'Share Live Location';
 export const DELIVERY_SHARE_CONFIRM_MESSAGE =
-  'Share your live location with the senior and family for this delivery? AgeWell will read your current location while this screen is open.';
+  'Share your live location with the senior and family for this delivery? EldCare will read your current location while this screen is open.';
 
 export function newestSession(sessions: TrackingSession[] | undefined): TrackingSession | null {
   return sessions?.[0] ?? null;

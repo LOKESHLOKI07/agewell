@@ -9,6 +9,8 @@ export type AddonBookNow = {
   title: string;
   lines: string[];
   options?: AddonBookOption[];
+  color?: string;
+  background?: string;
 };
 
 /** Legacy book-now catalogue — all home add-ons now use dedicated gate screens. */

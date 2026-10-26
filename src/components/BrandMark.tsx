@@ -5,12 +5,12 @@ export function BrandMark({ size = 'large' }: { size?: 'large' | 'small' }) {
   const isLarge = size === 'large';
 
   return (
-    <View style={styles.wrap} accessibilityRole="image" accessibilityLabel="AgeWell India">
+    <View style={styles.wrap} accessibilityRole="image" accessibilityLabel="EldCare India">
       <View style={[styles.mark, isLarge ? styles.markLarge : styles.markSmall]}>
-        <Text style={[styles.letter, isLarge ? styles.letterLarge : styles.letterSmall]}>A</Text>
+        <Text style={[styles.letter, isLarge ? styles.letterLarge : styles.letterSmall]}>E</Text>
       </View>
       <Text style={[styles.wordmark, isLarge ? styles.wordmarkLarge : styles.wordmarkSmall]}>
-        AGEWELL INDIA
+        ELDCARE INDIA
       </Text>
     </View>
   );

@@ -12,7 +12,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   BloodDrop,
 } from 'healthicons-react-native/filled';
-import { LoadingState, PrimaryButton, SecondaryButton } from '@/components';
+import { LoadingState, PrimaryButton } from '@/components';
+
 import { Icon, type IconName } from '@/components/ui';
 import { minTouchSize, spacing, typography } from '@/constants/theme';
 import { ServicePageHeader } from '@/features/home/components/ServicePageHeader';
@@ -213,7 +214,7 @@ function SoftHero({
   );
 }
 
-function PhotoHero() {
+export function PhotoHero() {
   return (
     <View style={styles.photoHero} accessibilityRole="summary">
       <View style={styles.photoHeroCopy}>
@@ -230,7 +231,7 @@ function PhotoHero() {
   );
 }
 
-function FeaturesGrid() {
+export function FeaturesGrid() {
   return (
     <View style={styles.featuresCard}>
       {GATE_FEATURES.map((item) => (
@@ -308,7 +309,7 @@ function OutsideAreaBody() {
           <View style={styles.flex}>
             <Text style={styles.membershipTitle}>Membership Required</Text>
             <Text style={styles.membershipBody}>
-              Personalised Diet Plan is available only for AgeWell members.
+              Personalised Diet Plan is available only for EldCare members.
             </Text>
           </View>
         </View>

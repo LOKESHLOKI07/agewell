@@ -20,10 +20,7 @@ import { ServicePageHeader } from '@/features/home/components/ServicePageHeader'
 import { familyHome } from '@/features/home/components/familyHomeTheme';
 import { servicePageType } from '@/features/membership/servicePageType';
 import { MarketplaceServiceIcon } from '@/features/services/components/MarketplaceServiceIcon';
-import {
-  filterOfferingsByKind,
-  type ServiceOffering,
-} from '@/features/membership/catalogTypes';
+import { filterOfferingsByKind } from '@/features/membership/catalogTypes';
 import {
   filterRequestsBySlug,
   liveRequestToneMeta,
@@ -45,7 +42,7 @@ import { useTabScreenBottomPad } from '@/utils/safeBottom';
 const SLUG = 'maid-assistance';
 const heroImage = SERVICE_HERO_IMAGES['maid-assistance'] ?? SERVICE_HERO_IMAGES['home-repair'];
 const VIDEO_URL =
-  'https://www.youtube.com/results?search_query=House+Maid+Service+AgeWell';
+  'https://www.youtube.com/results?search_query=House+Maid+Service+EldCare';
 
 const DEFAULT_LEAD = 'Trained maid for house & utensil cleaning, stock drying.';
 const SERVICE_DETAILS =
@@ -55,7 +52,7 @@ const PLEASE_NOTE = [
   'This is a chargeable add-on service.',
   'Cost may vary based on your specific requirements and location.',
   'Once you raise a request, our Customer Care team will contact you for more details.',
-  'All maids are trained and verified by AgeWell.',
+  'All maids are trained and verified by EldCare.',
 ] as const;
 
 const TASK_CARDS: { title: string; icon: IconName; color: string; soft: string }[] = [

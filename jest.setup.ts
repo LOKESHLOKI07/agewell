@@ -1,5 +1,18 @@
 process.env.EXPO_PUBLIC_API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000';
 
+jest.mock('react-native', () => ({
+  Platform: {
+    OS: 'web',
+    select: (spec: { web?: unknown; default?: unknown; native?: unknown }) =>
+      spec.web ?? spec.native ?? spec.default,
+  },
+  StyleSheet: {
+    create: (styles: unknown) => styles,
+    absoluteFill: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
+    hairlineWidth: 1,
+  },
+}));
+
 (globalThis as { __DEV__?: boolean }).__DEV__ = true;
 
 jest.mock('expo-secure-store', () => {

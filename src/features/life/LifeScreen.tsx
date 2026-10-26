@@ -16,7 +16,7 @@ export function LifeScreen() {
       <AgeWellHeader title={t('life.title')} showBack showProfile={false} />
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.intro}>
-          Explore culture, learning, and leisure. Content appears here when AgeWell publishes it — nothing is invented
+          Explore culture, learning, and leisure. Content appears here when EldCare publishes it — nothing is invented
           for this demo.
         </Text>
         <SectionTitle title="Categories" />

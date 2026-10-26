@@ -10,6 +10,7 @@ import {
   SERVICE_AREA_LOCKED_MESSAGE,
   SERVICE_AREA_LOCKED_TITLE,
 } from '@/features/auth/serviceAreaPreference';
+import { useServiceTier } from '@/features/auth/useServiceLocality';
 import { useServicesLive } from '@/features/auth/useServicesLive';
 import { ServicePageHeader } from '@/features/home/components/ServicePageHeader';
 import { familyHome } from '@/features/home/components/familyHomeTheme';
@@ -18,10 +19,11 @@ import { fetchMembershipRequests } from './membershipApi';
 import { membershipQueryKeys } from './queryKeys';
 import {
   MEMBERSHIP_ONBOARDING_NOTE,
-  MEMBERSHIP_PLAN_CATALOG,
   getMembershipPlanByKey,
   membershipApplyHref,
+  membershipPlansForTier,
   type MembershipPlanKey,
+  type PricedMembershipPlan,
 } from './planCatalog';
 
 const APPLICATION_STATUS_HREF = '/account/application-status' as Href;
@@ -39,26 +41,23 @@ const PLAN_THEME = {
   },
 } as const;
 
-type CatalogPlan = (typeof MEMBERSHIP_PLAN_CATALOG)[number];
-
 export function MembershipPurchaseScreen({ planKey }: { planKey?: MembershipPlanKey }) {
   const insets = useSafeAreaInsets();
   const isAuthenticated = useAuthStore((state) => state.status === 'AUTHENTICATED');
   const servicesLive = useServicesLive();
   const membership = useCurrentMembership();
+  const catalog = membershipPlansForTier(useServiceTier());
   const pending = useQuery({
     queryKey: membershipQueryKeys.requests({ status: 'REQUESTED' }),
     queryFn: () => fetchMembershipRequests({ status: 'REQUESTED', limit: 20, offset: 0 }),
     enabled: isAuthenticated,
   });
 
-  const plans = planKey
-    ? MEMBERSHIP_PLAN_CATALOG.filter((plan) => plan.key === planKey)
-    : [...MEMBERSHIP_PLAN_CATALOG];
+  const plans = planKey ? catalog.filter((plan) => plan.key === planKey) : catalog;
   const hasActive = membership.data?.status.toUpperCase() === 'ACTIVE';
   const pendingRequest = pending.data?.items[0] ?? null;
 
-  const onPlanPress = (plan: CatalogPlan) => {
+  const onPlanPress = (plan: PricedMembershipPlan) => {
     if (hasActive) {
       return;
     }
@@ -112,7 +111,7 @@ function PlanPurchaseCard({
   pendingPlanName,
   onPress,
 }: {
-  plan: CatalogPlan;
+  plan: PricedMembershipPlan;
   hasActive: boolean;
   pendingPlanName: string | null;
   onPress: () => void;
@@ -155,7 +154,7 @@ function PlanPurchaseCard({
         </>
       ) : (
         <Text style={styles.noPay}>
-          Continue to fill the AgeWell membership application. A home visit and review come next —
+          Continue to fill the EldCare membership application. A home visit and review come next —
           payment is only after your application is accepted.
         </Text>
       )}

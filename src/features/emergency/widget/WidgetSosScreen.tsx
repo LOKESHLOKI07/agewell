@@ -261,7 +261,7 @@ export function WidgetSosScreen() {
             <Icon name="warning" size={28} color={C.amber} />
             <Text style={styles.partialTitle}>Help request received</Text>
             <Text style={styles.partialBody}>
-              We couldn&apos;t reach one or more of your emergency contacts. AgeWell will keep trying to get you
+              We couldn&apos;t reach one or more of your emergency contacts. EldCare will keep trying to get you
               help.
             </Text>
             <Pressable style={styles.primaryAmber} onPress={viewStatus} accessibilityRole="button">
@@ -303,7 +303,7 @@ export function WidgetSosScreen() {
             <Icon name="shield-checkmark-outline" size={28} color={C.green} />
             <Text style={styles.partialTitle}>Help is already being arranged</Text>
             <Text style={styles.partialBody}>
-              An AgeWell emergency request is already active. Your care team has been alerted.
+              An EldCare emergency request is already active. Your care team has been alerted.
             </Text>
             <Pressable style={styles.primaryGreen} onPress={viewStatus} accessibilityRole="button">
               <Text style={styles.primaryGreenText}>View Emergency Status</Text>
@@ -359,9 +359,9 @@ export function WidgetSosScreen() {
           </Text>
 
           {status !== 'AUTHENTICATED' ? (
-            <Text style={styles.gate}>Sign in to AgeWell to use Emergency Support.</Text>
+            <Text style={styles.gate}>Sign in to EldCare to use Emergency Support.</Text>
           ) : role !== 'SENIOR' ? (
-            <Text style={styles.gate}>This Home Screen button is for AgeWell members.</Text>
+            <Text style={styles.gate}>This Home Screen button is for EldCare members.</Text>
           ) : variant === 'loading' ? (
             <Text style={styles.gate}>Checking Emergency Support…</Text>
           ) : variant === 'non_serviceable' ? (
@@ -376,7 +376,7 @@ export function WidgetSosScreen() {
                 onPressIn={onHoldStart}
                 onPressOut={clearHold}
                 accessibilityRole="button"
-                accessibilityLabel="Get Help. Press and hold for 3 seconds to send an AgeWell emergency alert"
+                accessibilityLabel="Get Help. Press and hold for 3 seconds to send an EldCare emergency alert"
                 style={styles.holdOuter}
               >
                 <View style={styles.holdInner}>
@@ -420,13 +420,13 @@ export function WidgetSosScreen() {
               </Pressable>
               <View style={styles.infoChip}>
                 <Icon name="shield-checkmark-outline" size={18} color={C.red} />
-                <Text style={styles.infoChipText}>This will alert your emergency contacts through AgeWell.</Text>
+                <Text style={styles.infoChipText}>This will alert your emergency contacts through EldCare.</Text>
               </View>
               <Text style={styles.disclaimer}>This does not call 911 or ambulance.</Text>
             </>
           ) : (
             <Pressable style={styles.primaryRed} onPress={goHome} accessibilityRole="button">
-              <Text style={styles.primaryGreenText}>Open AgeWell</Text>
+              <Text style={styles.primaryGreenText}>Open EldCare</Text>
             </Pressable>
           )}
         </View>

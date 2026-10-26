@@ -1,4 +1,5 @@
 import { getMembershipKind } from '@/features/auth/membershipPlanPreference';
+import type { ServiceTier } from '@/features/auth/serviceArea';
 import type { Href } from 'expo-router';
 
 export type MembershipPlanKey = 'single' | 'couple';
@@ -6,18 +7,35 @@ export type MembershipPlanKey = 'single' | 'couple';
 export const MEMBERSHIP_ONBOARDING_NOTE =
   'Onboarding takes time. Services cannot start instantly after a medical emergency — take membership beforehand.';
 
+/** Mumbai (tier1) vs Chandrapur (tier2). Unknown/null tier keeps Mumbai prices. */
+export const MEMBERSHIP_PLAN_PRICES = {
+  tier1: { single: 15499, couple: 18499 },
+  tier2: { single: 13999, couple: 16999 },
+} as const;
+
+export function membershipPriceInr(
+  key: MembershipPlanKey,
+  tier: ServiceTier | null | undefined,
+): number {
+  return MEMBERSHIP_PLAN_PRICES[tier === 'tier2' ? 'tier2' : 'tier1'][key];
+}
+
+export function formatMembershipPrice(amount: number): string {
+  return `₹${amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
+}
+
 export const MEMBERSHIP_PLAN_CATALOG = [
   {
     key: 'single' as const,
     name: 'Single Membership',
-    blurb: 'Full AgeWell care for one senior.',
+    blurb: 'Full EldCare care for one senior.',
     features: [
       '21 membership services included',
       '20 companion visits / month (up to 30 mins)',
       'Entrance CCTV add-on available',
       '2 panic buttons with CCTV pack',
     ],
-    price: '₹15,499',
+    price: formatMembershipPrice(MEMBERSHIP_PLAN_PRICES.tier1.single),
     priceNote: '+ ₹4,000 for entrance CCTV + 2 panic buttons',
   },
   {
@@ -30,10 +48,22 @@ export const MEMBERSHIP_PLAN_CATALOG = [
       'Entrance CCTV add-on available',
       '3 panic buttons with CCTV pack',
     ],
-    price: '₹18,499',
+    price: formatMembershipPrice(MEMBERSHIP_PLAN_PRICES.tier1.couple),
     priceNote: '+ ₹5,500 for CCTV + 3 panic buttons',
   },
 ] as const;
+
+export type MembershipCatalogPlan = (typeof MEMBERSHIP_PLAN_CATALOG)[number];
+export type PricedMembershipPlan = Omit<MembershipCatalogPlan, 'price'> & { price: string };
+
+export function membershipPlansForTier(
+  tier: ServiceTier | null | undefined,
+): PricedMembershipPlan[] {
+  return MEMBERSHIP_PLAN_CATALOG.map((plan) => ({
+    ...plan,
+    price: formatMembershipPrice(membershipPriceInr(plan.key, tier)),
+  }));
+}
 
 export function getMembershipPlanByKey(key: string | undefined): (typeof MEMBERSHIP_PLAN_CATALOG)[number] | undefined {
   const normalized = key === 'basic' ? 'single' : key;
@@ -52,7 +82,7 @@ export function membershipPurchaseHref(planKey?: MembershipPlanKey): Href {
   return { pathname: '/account/purchase', params: { plan: planKey } };
 }
 
-/** Multi-step AgeWell membership application (visit → review → pay). */
+/** Multi-step EldCare membership application (visit → review → pay). */
 export function membershipApplyHref(planKey: MembershipPlanKey): Href {
   return { pathname: '/account/apply', params: { plan: planKey } };
 }

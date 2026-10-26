@@ -11,7 +11,8 @@ import {
 } from 'react-native';
 import { router, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LoadingState, PrimaryButton, SecondaryButton } from '@/components';
+import { LoadingState } from '@/components';
+
 import type { IconName } from '@/components/ui';
 import { Icon } from '@/components/ui';
 import { spacing, typography } from '@/constants/theme';
@@ -21,7 +22,7 @@ import { ServiceHelpBanner } from '@/features/membership/ServiceHelpBanner';
 import { MarketplaceServiceIcon } from '@/features/services/components/MarketplaceServiceIcon';
 import { useTabScreenBottomPad } from '@/utils/safeBottom';
 import { MEMBERSHIP_SERVICE_AREA_LINE } from './membershipServicePageVariant';
-import { membershipPurchaseHref } from './planCatalog';
+
 import { SERVICE_HERO_IMAGES } from './serviceHeroes'
 import { servicePageType } from './servicePageType';
 import { MembershipNoMembershipPreview } from './MembershipNoMembershipPreview';
@@ -413,7 +414,7 @@ function LiveViewPanel({ onBack, bottomPad }: { onBack: () => void; bottomPad: n
               <Icon name="camera-outline" size={36} color={familyHome.muted} />
               <Text style={styles.streamUnavailableTitle}>Live stream unavailable</Text>
               <Text style={styles.streamUnavailableBody}>
-                Your camera feed will appear here once hardware is linked by AgeWell operations.
+                Your camera feed will appear here once hardware is linked by EldCare operations.
               </Text>
             </View>
           )}
@@ -611,16 +612,16 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   heroFullImage: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     width: '100%',
     height: '100%',
   },
   heroScrim: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(255,255,255,0.55)',
   },
   heroFullContent: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'space-between',
@@ -913,13 +914,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   viewportImage: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     width: '100%',
     height: '100%',
     opacity: 0.45,
   },
   viewportScrim: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0,0,0,0.35)',
   },
   liveRedBadge: {

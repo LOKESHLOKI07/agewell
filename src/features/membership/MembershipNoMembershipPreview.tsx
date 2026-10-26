@@ -87,7 +87,7 @@ export function MembershipNoMembershipPreview({ slug, title }: Props) {
         onPress={() =>
           Alert.alert(
             'Talk to Expert',
-            'AgeWell will reach you during service hours (10:00 AM–6:00 PM) to guide you on the best plan.',
+            'EldCare will reach you during service hours (10:00 AM–6:00 PM) to guide you on the best plan.',
           )
         }
         accessibilityRole="button"
@@ -172,12 +172,12 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   videoImage: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     width: '100%',
     height: '100%',
   },
   videoOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(10,24,56,0.28)',
     justifyContent: 'flex-end',
     padding: spacing.lg,
@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
   },
   videoHeadline: { ...typography.subtitle, color: familyHome.white },
   playWrap: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
   },

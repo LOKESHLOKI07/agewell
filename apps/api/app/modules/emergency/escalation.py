@@ -2,7 +2,7 @@
 
 After create, Family + Companion are notified immediately. This module records
 `escalation_due_at` on the emergency case (PostgreSQL) and runs a background
-poller so a ~30s Care Manager / AgeWell Support escalation survives API
+poller so a ~30s Care Manager / EldCare Support escalation survives API
 process restart.
 
 There is no Celery/RQ worker in this repo. REDIS_URL is configured but unused

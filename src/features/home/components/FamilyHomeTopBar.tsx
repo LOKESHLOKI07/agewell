@@ -31,7 +31,7 @@ export function FamilyHomeTopBar({
           style={styles.logo}
           resizeMode="contain"
           accessibilityRole="image"
-          accessibilityLabel="AgeWell. Your Parents. Our Care."
+          accessibilityLabel="EldCare. Your Parents. Our Care."
         />
       </View>
 
@@ -40,7 +40,7 @@ export function FamilyHomeTopBar({
         {showChat ? (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Ask AgeWell assistant"
+            accessibilityLabel="Ask EldCare assistant"
             onPress={() => router.push('/concierge' as Href)}
             style={styles.avatarBtn}
           >
@@ -78,7 +78,7 @@ const styles = StyleSheet.create({
     marginLeft: 0,
   },
   logo: {
-    // Wordmark is ~3:2 — give it width so AgeWell + tagline stay readable.
+    // Wordmark is ~3:2 — give it width so EldCare + tagline stay readable.
     // Pull flush to the screen’s left edge (asset has transparent inset).
     width: 168,
     height: 72,

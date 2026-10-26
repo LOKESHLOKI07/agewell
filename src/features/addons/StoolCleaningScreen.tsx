@@ -44,7 +44,7 @@ import { useTabScreenBottomPad } from '@/utils/safeBottom';
 const SLUG = 'stool-cleaning';
 const heroImage = SERVICE_HERO_IMAGES['stool-cleaning'];
 const VIDEO_URL =
-  'https://www.youtube.com/results?search_query=Perineal+Care+Stool+Cleaning+AgeWell';
+  'https://www.youtube.com/results?search_query=Perineal+Care+Stool+Cleaning+EldCare';
 
 const DEFAULT_LEAD = 'Monthly (Morning + evening) stool cleaning & servicing.';
 const SERVICE_DETAILS =

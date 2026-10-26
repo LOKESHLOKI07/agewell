@@ -45,7 +45,7 @@ import { useTabScreenBottomPad } from '@/utils/safeBottom';
 const SLUG = 'emergency-companion';
 const heroImage = SERVICE_HERO_IMAGES.companion;
 const VIDEO_URL =
-  'https://www.youtube.com/results?search_query=How+Emergency+Companion+Helps+AgeWell';
+  'https://www.youtube.com/results?search_query=How+Emergency+Companion+Helps+EldCare';
 
 const DEFAULT_LEAD =
   'Hospital companion provided during your hospitalization. Handles all hospital procedures. Stays at hospital for 8-10 hours. Updates family about health condition & Discharge. (Extra Cost based on availability)';

@@ -49,7 +49,7 @@ import { useTabScreenBottomPad } from '@/utils/safeBottom';
 const SLUG = 'ayurvedic-massage';
 const heroImage = SERVICE_HERO_IMAGES['ayurvedic-massage'] ?? SERVICE_HERO_IMAGES.companion;
 const VIDEO_URL =
-  'https://www.youtube.com/results?search_query=Benefits+of+Ayurvedic+Massage+at+Home+AgeWell';
+  'https://www.youtube.com/results?search_query=Benefits+of+Ayurvedic+Massage+at+Home+EldCare';
 
 const DEFAULT_LEAD = 'Ayurvedic massage at home by certified therapist.';
 const SERVICE_DETAILS =
@@ -57,7 +57,7 @@ const SERVICE_DETAILS =
 
 const PLEASE_NOTE = [
   'This is a chargeable add-on service.',
-  'All therapists are trained and verified by AgeWell.',
+  'All therapists are trained and verified by EldCare.',
   'Once you raise a request, our Customer Care team will contact you to confirm timing and details.',
 ] as const;
 

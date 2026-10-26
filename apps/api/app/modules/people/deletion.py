@@ -28,7 +28,7 @@ from app.modules.training.models import StaffDocument, StaffTrainingProgress
 from app.modules.users.models import User
 from app.modules.visits.models import Visit, VisitReport, VisitTask
 
-STILL_LINKED = "This record is still linked to other AgeWell data and could not be deleted."
+STILL_LINKED = "This record is still linked to other EldCare data and could not be deleted."
 
 
 def _uid(value) -> UUID:

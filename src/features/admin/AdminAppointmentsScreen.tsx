@@ -118,7 +118,7 @@ export function AdminAppointmentDetailScreen() {
         onRetry={() => void query.refetch()}
         loadingMessage="Loading appointment..."
         emptyTitle="Appointment not found"
-        emptyMessage="This appointment is not in AgeWell."
+        emptyMessage="This appointment is not in EldCare."
       >
         {query.data ? (
           <View style={[styles.card, shadows.card]}>

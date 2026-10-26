@@ -3,7 +3,7 @@ import type { Membership } from '@/types';
 export const mockMemberships: Membership[] = [
   {
     id: 'membership-family',
-    name: 'AgeWell Family',
+    name: 'EldCare Family',
     priceInrPerMonth: 9999,
     nextRenewalAt: '2026-09-18T00:00:00+05:30',
   },

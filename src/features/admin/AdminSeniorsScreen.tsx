@@ -67,7 +67,7 @@ export function AdminSeniorsScreen() {
     <>
     <AdminScreen
       title="Seniors"
-      subtitle="People in AgeWell care. Open a card to view the full profile."
+      subtitle="People in EldCare care. Open a card to view the full profile."
       actions={
         <PrimaryButton label="Create senior" fullWidth={false} onPress={() => router.push('/(admin)/seniors/new' as Href)} />
       }

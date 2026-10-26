@@ -39,7 +39,7 @@ import { useHasActiveMembership } from './useHasActiveMembership';
 import { useSystemBottomInset } from '@/utils/safeBottom';
 import { toDisplayDate } from '@/utils/date';
 
-const VIDEO_URL = 'https://www.youtube.com/results?search_query=How+Companion+Support+Makes+a+Difference+AgeWell';
+const VIDEO_URL = 'https://www.youtube.com/results?search_query=How+Companion+Support+Makes+a+Difference+EldCare';
 const SERVICE_AREA_SHORT = 'Kandivali, Borivali, Warora, Bhadravati & Wani';
 const HOURS_LABEL = '10 AM - 6 PM';
 
@@ -343,7 +343,7 @@ function ComingSoonFooter() {
         <Icon name="help-circle-outline" size={18} color={familyHome.blue} />
         <View style={styles.flex}>
           <Text style={styles.infoTitle}>Stay Connected</Text>
-          <Text style={styles.infoBody}>Follow us for updates as we bring AgeWell to more locations soon.</Text>
+          <Text style={styles.infoBody}>Follow us for updates as we bring EldCare to more locations soon.</Text>
         </View>
       </View>
       <Pressable
@@ -360,7 +360,7 @@ function ComingSoonFooter() {
   );
 }
 
-function MembershipRequiredFooter() {
+export function MembershipRequiredFooter() {
   return (
     <View style={styles.membershipCard}>
       <View style={styles.membershipHead}>
@@ -369,18 +369,18 @@ function MembershipRequiredFooter() {
         </View>
         <View style={styles.flex}>
           <Text style={styles.membershipTitle}>Membership Required</Text>
-          <Text style={styles.membershipBody}>Companion Visit is available to AgeWell members.</Text>
+          <Text style={styles.membershipBody}>Companion Visit is available to EldCare members.</Text>
         </View>
       </View>
 
       <Pressable
         onPress={() => router.push(membershipPurchaseHref())}
         accessibilityRole="button"
-        accessibilityLabel="Join AgeWell Membership"
+        accessibilityLabel="Join EldCare Membership"
         style={({ pressed }) => [styles.joinPromo, pressed ? styles.pressed : null]}
       >
         <View style={styles.flex}>
-          <Text style={styles.joinPromoTitle}>Join AgeWell Membership</Text>
+          <Text style={styles.joinPromoTitle}>Join EldCare Membership</Text>
           <Text style={styles.joinPromoBody}>
             Get access to Companion Visit and many other services for a safer, healthier and happier life.
           </Text>
@@ -462,7 +462,7 @@ function MemberBody({
           <View style={styles.flex}>
             <Text style={styles.pendingTitle}>Companion assignment pending</Text>
             <Text style={styles.pendingBody}>
-              AgeWell will assign a companion for your visits. You can still schedule a visit below.
+              EldCare will assign a companion for your visits. You can still schedule a visit below.
             </Text>
           </View>
         </View>
@@ -586,7 +586,7 @@ function MemberBody({
           </View>
           <Text style={styles.videoCompactTitle}>How Companion Support Makes a Difference</Text>
           <Text style={styles.videoCompactBody}>
-            See how AgeWell companions help with daily life, appointments and friendly company.
+            See how EldCare companions help with daily life, appointments and friendly company.
           </Text>
         </View>
         <Icon name="chevron-forward" size={16} color={familyHome.muted} />
@@ -923,7 +923,7 @@ const styles = StyleSheet.create({
   },
   videoThumbImage: { width: '100%', height: '100%' },
   videoThumbPlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(0,0,0,0.22)',

@@ -267,11 +267,11 @@ describe('live map logic', () => {
   it('maps network and API errors without fake markers', () => {
     const error = liveLocationStatus({
       isFetching: false,
-      error: new ApiError('Unable to connect to AgeWell. Please check your internet connection.', undefined),
+      error: new ApiError('Unable to connect to EldCare. Please check your internet connection.', undefined),
       point: null,
     });
     expect(error).toBe('error');
-    expect(liveStatusMessage({ status: error, error: new ApiError('Unable to connect to AgeWell. Please check your internet connection.'), timestamp: null })).toMatch(/internet/i);
+    expect(liveStatusMessage({ status: error, error: new ApiError('Unable to connect to EldCare. Please check your internet connection.'), timestamp: null })).toMatch(/internet/i);
     const forbidden = liveLocationStatus({
       isFetching: false,
       error: new ApiError(LOCATION_FORBIDDEN_MESSAGE, 403),

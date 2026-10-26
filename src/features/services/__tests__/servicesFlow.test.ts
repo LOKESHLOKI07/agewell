@@ -88,6 +88,7 @@ describe('create service request', () => {
       serviceId: physio.id,
       status: 'REQUESTED',
       notes: null,
+      createdAt: null,
     });
 
     expect(mockedPost).toHaveBeenCalledWith(
@@ -108,7 +109,7 @@ describe('create service request', () => {
       status: 'REQUESTED',
     });
     expect(created).not.toHaveProperty('scheduledAt');
-    expect(created).not.toHaveProperty('createdAt');
+    expect(created.createdAt).toBeNull();
     expect(created).not.toHaveProperty('preferredDate');
   });
 
@@ -173,6 +174,6 @@ describe('create service request', () => {
     });
     await expect(
       createServiceRequest({ seniorId: 'senior-1', serviceId: physio.id }),
-    ).rejects.toMatchObject({ message: 'Unable to connect to AgeWell. Please check your internet connection.' });
+    ).rejects.toMatchObject({ message: 'Unable to connect to EldCare. Please check your internet connection.' });
   });
 });

@@ -86,7 +86,7 @@ export function useGoogleSignIn() {
     }
     setError(null);
     if (isExpoGo() || Platform.OS !== 'android') {
-      setError('Google sign-in works in the AgeWell Android APK, not in Expo Go. Install the latest APK from EAS.');
+      setError('Google sign-in works in the EldCare Android APK, not in Expo Go. Install the latest APK from EAS.');
       return;
     }
     if (!clientId) {
@@ -95,7 +95,7 @@ export function useGoogleSignIn() {
     }
     const native = loadGoogleNative();
     if (!native) {
-      setError('Google sign-in is missing from this build. Install the latest AgeWell APK.');
+      setError('Google sign-in is missing from this build. Install the latest EldCare APK.');
       return;
     }
 

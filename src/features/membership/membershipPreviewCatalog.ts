@@ -31,7 +31,7 @@ const DEFAULT_BENEFITS: MembershipPreviewBenefit[] = [
   {
     icon: 'headset',
     title: 'Service coordination',
-    line: 'Your Care Manager helps you access AgeWell services',
+    line: 'Your Care Manager helps you access EldCare services',
     bg: familyHome.blueSoft,
     color: familyHome.blue,
   },
@@ -62,7 +62,7 @@ const CARE_MANAGER_BENEFITS: MembershipPreviewBenefit[] = [
   {
     icon: 'headset',
     title: 'Service Coordination',
-    line: 'Helps you access all AgeWell services',
+    line: 'Helps you access all EldCare services',
     bg: familyHome.blueSoft,
     color: familyHome.blue,
   },
@@ -86,91 +86,91 @@ const OVERRIDES: Partial<Record<string, Partial<MembershipPreviewCopy> & { benef
   'care-manager': {
     description:
       'Our Care Managers understand your needs, coordinate services and ensure you always have the right support. Watch this short video to learn how our Care Manager service helps you and your family in everyday life.',
-    videoTitle: 'What is AgeWell Care Manager Service?',
-    videoSearch: 'Meet Our Care Managers AgeWell',
+    videoTitle: 'What is EldCare Care Manager Service?',
+    videoSearch: 'Meet Our Care Managers EldCare',
     membershipBody:
       'Get a dedicated Care Manager, regular visits, service coordination and personalised support with our membership plans.',
     benefits: CARE_MANAGER_BENEFITS,
   },
   'emergency-sos': {
-    videoTitle: 'AgeWell Emergency Support',
-    membershipBody: 'Get 24×7 SOS alerts to family, Care Manager and companion with an AgeWell membership.',
+    videoTitle: 'EldCare Emergency Support',
+    membershipBody: 'Get 24×7 SOS alerts to family, Care Manager and companion with an EldCare membership.',
   },
   companion: {
-    videoTitle: 'AgeWell Companion Support',
+    videoTitle: 'EldCare Companion Support',
     membershipBody: 'Become a member for 20 companion visits a month and emergency companion cover.',
   },
   medicine: {
-    videoTitle: 'AgeWell Medicine Delivery',
+    videoTitle: 'EldCare Medicine Delivery',
     membershipBody: 'Members can upload a prescription and receive medicine delivery at home.',
   },
   'health-check': {
-    videoTitle: 'AgeWell Monthly Health Checks',
+    videoTitle: 'EldCare Monthly Health Checks',
     membershipBody: 'Members get monthly BP, pulse, SpO₂, temperature and blood sugar checks at home.',
   },
   'monthly-blood-test': {
-    videoTitle: 'AgeWell Monthly Blood Test',
+    videoTitle: 'EldCare Monthly Blood Test',
     membershipBody: 'Members receive one CBC a month with home collection. Extra tests are available at cost.',
   },
   doctor: {
-    videoTitle: 'AgeWell Doctor Visit',
+    videoTitle: 'EldCare Doctor Visit',
     membershipBody: 'Members receive a monthly doctor visit to review health and reports.',
   },
   'personalised-diet-plan': {
-    videoTitle: 'AgeWell Personalised Diet Plan',
+    videoTitle: 'EldCare Personalised Diet Plan',
     membershipBody: 'Members receive nutrition guidance tailored to their health needs and preferences.',
   },
   grocery: {
-    videoTitle: 'AgeWell Grocery Delivery',
+    videoTitle: 'EldCare Grocery Delivery',
     membershipBody: 'Members can order groceries from the catalogue or upload a handwritten list.',
   },
   'small-errands': {
-    videoTitle: 'AgeWell Small Errands Assistance',
+    videoTitle: 'EldCare Small Errands Assistance',
     membershipBody: 'Members can request companion help for small household errands.',
   },
   'errand-coordination': {
-    videoTitle: 'AgeWell Other Errands Assistance',
+    videoTitle: 'EldCare Other Errands Assistance',
     membershipBody: 'Members get help coordinating ironing, haircuts and other personal services.',
   },
   'banking-companion': {
-    videoTitle: 'AgeWell Banking Companion',
+    videoTitle: 'EldCare Banking Companion',
     membershipBody: 'Members get a trusted companion for banking errands and paperwork.',
   },
   'events-trips': {
-    videoTitle: 'AgeWell Local Events and Trips',
-    membershipBody: 'Members can join local events, AgeWell tours and companion-supported outings.',
+    videoTitle: 'EldCare Local Events and Trips',
+    membershipBody: 'Members can join local events, EldCare tours and companion-supported outings.',
   },
   'cyber-security': {
-    videoTitle: 'AgeWell Cyber Security Guidance',
+    videoTitle: 'EldCare Cyber Security Guidance',
     membershipBody: 'Members get help staying safe from online fraud and digital risks.',
   },
   ca: {
-    videoTitle: 'AgeWell CA Assistance',
+    videoTitle: 'EldCare CA Assistance',
     membershipBody: 'Members can get ITR filing and financial guidance through trusted CA partners.',
   },
   legal: {
-    videoTitle: 'AgeWell Legal Assistance',
+    videoTitle: 'EldCare Legal Assistance',
     membershipBody: 'Members can get expert legal advice for important family and property matters.',
   },
   'home-repair': {
-    videoTitle: 'AgeWell House Maintenance',
+    videoTitle: 'EldCare House Maintenance',
     membershipBody: 'Members can request reliable home maintenance for a safer, more comfortable home.',
   },
   'local-transport': {
-    videoTitle: 'AgeWell Local Area Transport',
+    videoTitle: 'EldCare Local Area Transport',
     membershipBody: 'Members get companion-supported coordination between cabs and rickshaws.',
   },
   transport: {
-    videoTitle: 'AgeWell Outstation Transport',
+    videoTitle: 'EldCare Outstation Transport',
     membershipBody: 'Members can request well-trained driver assistance for outstation trips.',
   },
   pooja: {
-    videoTitle: 'AgeWell House Pooja Assistance',
+    videoTitle: 'EldCare House Pooja Assistance',
     membershipBody: 'Members can request complete support for house pooja and spiritual care.',
   },
   cctv: {
-    videoTitle: 'AgeWell CCTV Dashboard',
-    membershipBody: 'Members can view entrance CCTV coverage and activity from the AgeWell app.',
+    videoTitle: 'EldCare CCTV Dashboard',
+    membershipBody: 'Members can view entrance CCTV coverage and activity from the EldCare app.',
   },
 };
 
@@ -180,15 +180,15 @@ export function getMembershipPreviewCopy(slug: string, fallbackTitle?: string): 
   const override = OVERRIDES[slug] ?? {};
   const title = override.title ?? fallbackTitle ?? hero?.headline ?? service?.title ?? slug;
   const description =
-    override.description ?? hero?.subtitle ?? service?.description ?? 'Available to AgeWell members in your area.';
-  const videoTitle = override.videoTitle ?? `What is AgeWell ${title}?`;
+    override.description ?? hero?.subtitle ?? service?.description ?? 'Available to EldCare members in your area.';
+  const videoTitle = override.videoTitle ?? `What is EldCare ${title}?`;
   return {
     title,
     description,
     videoTitle,
-    videoSearch: override.videoSearch ?? `${videoTitle} AgeWell`,
+    videoSearch: override.videoSearch ?? `${videoTitle} EldCare`,
     membershipBody:
-      override.membershipBody ?? `${title} is available to active AgeWell members in your service area.`,
+      override.membershipBody ?? `${title} is available to active EldCare members in your service area.`,
     benefits: override.benefits ?? DEFAULT_BENEFITS,
   };
 }

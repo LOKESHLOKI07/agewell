@@ -40,7 +40,7 @@ function jsonPost(data: unknown) {
 const payload = {
   id: '7d2c1a90-4b11-4c2e-9f6a-1b8d3e6a9c01',
   title: 'Emergency request created',
-  message: 'Your Medical Emergency request is on file in AgeWell. Open Help to view the request.',
+  message: 'Your Medical Emergency request is on file in EldCare. Open Help to view the request.',
   priority: 'EMERGENCY',
   is_read: false,
   created_at: '2026-08-20T10:15:00.000Z',
@@ -147,7 +147,7 @@ describe('emergency notification styling and copy', () => {
       ...payload,
       id: 'info-1',
       title: 'Welcome',
-      message: 'Welcome to AgeWell',
+      message: 'Welcome to EldCare',
       priority: 'INFO',
     });
     expect(isEmergencyNotification(info)).toBe(false);

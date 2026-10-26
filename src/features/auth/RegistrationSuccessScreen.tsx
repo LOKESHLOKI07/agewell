@@ -41,7 +41,7 @@ export function RegistrationSuccessScreen() {
   const message =
     decodeParam(params.message) ||
     (role === 'CARE_MANAGER'
-      ? 'Your application was submitted. AgeWell will review it before you can take visits.'
+      ? 'Your application was submitted. EldCare will review it before you can take visits.'
       : 'Your account was created and saved. You are signed in.');
 
   const title = role === 'CARE_MANAGER' ? 'Application submitted' : 'Registration successful';
@@ -77,10 +77,10 @@ export function RegistrationSuccessScreen() {
         <Text style={styles.body}>{message}</Text>
         <View style={styles.card}>
           <Text style={styles.label}>Signed in as</Text>
-          <Text style={styles.value}>{email || 'Your AgeWell account'}</Text>
+          <Text style={styles.value}>{email || 'Your EldCare account'}</Text>
           <Text style={styles.note}>No need to sign in again. Continuing automatically…</Text>
         </View>
-        <PrimaryButton label={continueLabel} onPress={goHome} accessibilityHint="Continues into your AgeWell home" />
+        <PrimaryButton label={continueLabel} onPress={goHome} accessibilityHint="Continues into your EldCare home" />
       </View>
     </View>
   );

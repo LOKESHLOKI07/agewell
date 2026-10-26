@@ -64,7 +64,7 @@ export function EmergencyBanner() {
               onPress={() => openType(option.type)}
               accessibilityRole="button"
               accessibilityLabel={option.accessibilityLabel}
-              accessibilityHint="Opens confirmation before creating an AgeWell emergency case"
+              accessibilityHint="Opens confirmation before creating an EldCare emergency case"
             >
               <IconWell tone="emergency" size={40} rounded="full">
                 <Icon name={option.icon} size={18} color={colors.emergency} />

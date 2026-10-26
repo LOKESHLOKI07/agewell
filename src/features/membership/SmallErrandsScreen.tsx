@@ -10,9 +10,10 @@ import {
   Text,
   View,
 } from 'react-native';
-import { router } from 'expo-router';
+
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LoadingState, PrimaryButton, SecondaryButton } from '@/components';
+import { LoadingState } from '@/components';
+
 import type { IconName } from '@/components/ui';
 import { Icon } from '@/components/ui';
 import { spacing, typography } from '@/constants/theme';
@@ -27,7 +28,7 @@ import type { ServiceOffering } from './catalogTypes';
 import { useAssignedCompanion } from './careManagerHooks';
 import { telHref } from './careManagerHours';
 import { MEMBERSHIP_SERVICE_AREA_LINE } from './membershipServicePageVariant';
-import { membershipPurchaseHref } from './planCatalog';
+
 import { SERVICE_HERO_IMAGES } from './serviceHeroes'
 import { servicePageType } from './servicePageType';
 import {
@@ -46,7 +47,7 @@ const heroImage = SERVICE_HERO_IMAGES['small-errands'];
 const SLUG = 'small-errands';
 const DEFAULT_HOURS = '10:00 AM – 6:00 PM';
 const VIDEO_URL =
-  'https://www.youtube.com/results?search_query=How+Our+Companion+Helps+with+Your+Everyday+Errands+AgeWell';
+  'https://www.youtube.com/results?search_query=How+Our+Companion+Helps+with+Your+Everyday+Errands+EldCare';
 /** Exactly 3 common-service cards visible without clipping. */
 const SERVICE_CARD_GAP = 8;
 const SERVICE_CARD_WIDTH = Math.floor(
@@ -169,7 +170,7 @@ function HeroBanner({
           source={heroImage}
           style={styles.heroImage}
           resizeMode="cover"
-          accessibilityLabel="AgeWell companion assisting with small errands"
+          accessibilityLabel="EldCare companion assisting with small errands"
         />
         {tone === 'outside' ? (
           <View style={styles.heroCallout}>
@@ -410,10 +411,10 @@ function MemberLiveBody() {
 
       <Text style={styles.sectionTitle}>Common Services</Text>
 
-      {catalog.isPending && !catalog.data?.length ? (
+      {catalog.isPending && !offerings.length ? (
         <Text style={styles.empty}>Loading services…</Text>
       ) : null}
-      {catalog.isError && !catalog.data?.length ? (
+      {catalog.isError && !offerings.length ? (
         <Pressable onPress={() => void catalog.refetch()} accessibilityRole="button">
           <Text style={styles.viewAll}>Unable to load · Tap to retry</Text>
         </Pressable>
@@ -1021,7 +1022,7 @@ const styles = StyleSheet.create({
   },
   videoThumbImage: { width: '100%', height: '100%' },
   videoThumbPlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(0,0,0,0.22)',

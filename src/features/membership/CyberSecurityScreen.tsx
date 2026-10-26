@@ -9,9 +9,10 @@ import {
   Text,
   View,
 } from 'react-native';
-import { router } from 'expo-router';
+
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LoadingState, PrimaryButton, SecondaryButton } from '@/components';
+import { LoadingState } from '@/components';
+
 import type { IconName } from '@/components/ui';
 import { Icon } from '@/components/ui';
 import { spacing, typography } from '@/constants/theme';
@@ -26,7 +27,7 @@ import type { ServiceOffering } from './catalogTypes';
 import { parseOfferingMeta } from './catalogTypes';
 import { telHref } from './careManagerHours';
 import { MEMBERSHIP_SERVICE_AREA_LINE } from './membershipServicePageVariant';
-import { membershipPurchaseHref } from './planCatalog';
+
 import { SERVICE_HERO_IMAGES } from './serviceHeroes'
 import { servicePageType } from './servicePageType';
 import {
@@ -413,10 +414,10 @@ function MemberLiveBody() {
         <Text style={styles.sectionHint}>{CATEGORY_HINT}</Text>
       </View>
 
-      {catalog.isPending && !catalog.data?.length ? (
+      {catalog.isPending && !categories.length ? (
         <Text style={styles.empty}>Loading categories…</Text>
       ) : null}
-      {catalog.isError && !catalog.data?.length ? (
+      {catalog.isError && !categories.length ? (
         <Pressable onPress={() => void catalog.refetch()} accessibilityRole="button">
           <Text style={styles.viewAll}>Unable to load · Tap to retry</Text>
         </Pressable>
@@ -642,16 +643,16 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   heroFullImage: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     width: '100%',
     height: '100%',
   },
   heroScrim: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(255,255,255,0.55)',
   },
   heroFullContent: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'space-between',
@@ -1054,7 +1055,7 @@ const styles = StyleSheet.create({
   },
   videoThumbImage: { width: '100%', height: '100%' },
   playBtn: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(0,0,0,0.22)',

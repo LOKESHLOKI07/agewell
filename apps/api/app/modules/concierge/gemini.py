@@ -54,7 +54,7 @@ async def understand_with_gemini(
                     "text": (
                         f"Senior context (authorized):\n{context_summary}\n\n"
                         f"Senior message:\n{message}\n\n"
-                        "Reply as AgeWell Bot. Return JSON only."
+                        "Reply as EldCare Bot. Return JSON only."
                     )
                 }
             ],

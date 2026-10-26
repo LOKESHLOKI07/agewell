@@ -4,14 +4,14 @@ export const EMERGENCY_WIDGET_URI = 'agewell://emergency/widget-sos';
 export const EMERGENCY_WIDGET_HOLD_MS = 3000;
 
 export const EMERGENCY_WIDGET_COPY = {
-  brand: 'AgeWell',
+  brand: 'EldCare',
   emoji: '🆘',
   title: 'EMERGENCY',
   action: 'GET HELP',
   widgetAction: 'SOS',
   widgetHint: 'Tap for Help',
   accessibilityLabel:
-    'AgeWell Emergency. SOS. Opens a confirmation before notifying AgeWell support. This does not call emergency services.',
+    'EldCare Emergency. SOS. Opens a confirmation before notifying EldCare support. This does not call emergency services.',
 } as const;
 
 export const EMERGENCY_WIDGET_TRIGGER = 'HOME_PANIC_BUTTON' as const;

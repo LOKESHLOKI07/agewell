@@ -63,7 +63,7 @@ export function EmergencyHelpScreen() {
         <Text style={styles.selected}>{emergencyTypeLabel(selectedType)}</Text>
         <Text style={styles.body}>Are you sure you want to create an emergency request?</Text>
         <Text style={styles.note}>
-          This creates an AgeWell emergency case. AgeWell does not send an ambulance or contact emergency
+          This creates an EldCare emergency case. EldCare does not send an ambulance or contact emergency
           services from this screen.
         </Text>
         {createMutation.isError ? (
@@ -89,7 +89,7 @@ export function EmergencyHelpScreen() {
             loading={submitting}
             disabled={!canSubmit}
             onPress={() => void onConfirm()}
-            accessibilityHint="Creates an AgeWell emergency case"
+            accessibilityHint="Creates an EldCare emergency case"
           />
         </View>
       </EmergencySubScreen>
@@ -103,12 +103,12 @@ export function EmergencyHelpScreen() {
           onPress={() => setSelectedType('MEDICAL')}
           accessibilityRole="button"
           accessibilityLabel="SOS. Opens confirmation for a medical emergency request"
-          accessibilityHint="Creates an AgeWell emergency case after confirmation. This does not call emergency services."
+          accessibilityHint="Creates an EldCare emergency case after confirmation. This does not call emergency services."
           style={({ pressed }) => [styles.sos, pressed ? styles.pressed : null]}
         >
           <Text style={styles.sosText}>SOS</Text>
         </Pressable>
-        <Text style={styles.sosHint}>Tap to start an AgeWell emergency request</Text>
+        <Text style={styles.sosHint}>Tap to start an EldCare emergency request</Text>
       </View>
 
       {active ? (
@@ -126,7 +126,7 @@ export function EmergencyHelpScreen() {
         </Pressable>
       ) : null}
 
-      <Text style={styles.lead}>Who AgeWell can notify</Text>
+      <Text style={styles.lead}>Who EldCare can notify</Text>
       <View style={styles.list}>
         {EMERGENCY_TYPE_OPTIONS.map((option) => (
           <Pressable
@@ -135,7 +135,7 @@ export function EmergencyHelpScreen() {
             onPress={() => setSelectedType(option.type)}
             accessibilityRole="button"
             accessibilityLabel={option.accessibilityLabel}
-            accessibilityHint="Opens a confirmation before creating an AgeWell emergency case"
+            accessibilityHint="Opens a confirmation before creating an EldCare emergency case"
           >
             <IconWell tone="emergency" size={48}>
               <Icon name={option.icon} size={22} color={colors.emergency} />
@@ -146,7 +146,7 @@ export function EmergencyHelpScreen() {
         ))}
       </View>
       <Text style={styles.footnote}>
-        AgeWell Support creates a support case. Calling support will be available soon.
+        EldCare Support creates a support case. Calling support will be available soon.
       </Text>
     </EmergencySubScreen>
   );

@@ -56,7 +56,7 @@ export const LIFESTYLE_ITEMS: LifestyleEvent[] = [
     kind: 'trip',
     title: 'Lonavala One Day Trip',
     when: 'Sat, 20 Sep · 7:00 AM departure',
-    place: 'Fixed departure · AgeWell outing',
+    place: 'Fixed departure · EldCare outing',
     costLabel: '₹1,800 / person',
     itinerary: 'Bhushi Dam · lunch · evening return · members get first priority',
     interestTag: 'Outing',

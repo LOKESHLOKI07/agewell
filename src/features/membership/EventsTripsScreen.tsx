@@ -8,9 +8,10 @@ import {
   Text,
   View,
 } from 'react-native';
-import { router } from 'expo-router';
+
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LoadingState, PrimaryButton, SecondaryButton } from '@/components';
+import { LoadingState } from '@/components';
+
 import type { IconName } from '@/components/ui';
 import { Icon } from '@/components/ui';
 import { spacing, typography } from '@/constants/theme';
@@ -22,7 +23,7 @@ import { useTabScreenBottomPad } from '@/utils/safeBottom';
 import type { ServiceOffering } from './catalogTypes';
 import { filterOfferingsByKind, parseOfferingMeta } from './catalogTypes';
 import { MEMBERSHIP_SERVICE_AREA_LINE } from './membershipServicePageVariant';
-import { membershipPurchaseHref } from './planCatalog';
+
 import { SERVICE_HERO_IMAGES } from './serviceHeroes'
 import { servicePageType } from './servicePageType';
 import { MembershipNoMembershipPreview } from './MembershipNoMembershipPreview';
@@ -34,7 +35,7 @@ const heroImage = SERVICE_HERO_IMAGES['events-trips'];
 
 const SLUG = 'events-trips';
 const LEAD =
-  'Discover nearby events and activities on the AgeWell app. Get priority access to AgeWell tours across Maharashtra & India. Companion assistance with luggage, boarding, seating & hotel check-in/out plus medication & emergency support. (Tours cost extra).';
+  'Discover nearby events and activities on the EldCare app. Get priority access to EldCare tours across Maharashtra & India. Companion assistance with luggage, boarding, seating & hotel check-in/out plus medication & emergency support. (Tours cost extra).';
 
 const ABOUT_BULLETS = [
   'Local area programs are shown based on your preferences and interests.',
@@ -51,8 +52,8 @@ const GATE_FEATURES: { icon: IconName; title: string; body: string }[] = [
   },
   {
     icon: 'people-outline',
-    title: 'AgeWell Tours',
-    body: 'Get priority access to AgeWell tours',
+    title: 'EldCare Tours',
+    body: 'Get priority access to EldCare tours',
   },
   {
     icon: 'hand-helping',
@@ -185,7 +186,7 @@ function GateHero({ tone }: { tone: 'outside' | 'membership' }) {
   const body =
     tone === 'outside'
       ? 'Events, activities and tours designed for new experiences and lasting memories.'
-      : 'Join AgeWell events and tours to explore, connect and create happy memories together.';
+      : 'Join EldCare events and tours to explore, connect and create happy memories together.';
 
   return (
     <View style={styles.heroFull} accessibilityLabel="Local events and trips">
@@ -417,10 +418,10 @@ function MemberLiveBody() {
         </View>
       </View>
 
-      {catalog.isPending && !catalog.data?.length ? (
+      {catalog.isPending && !offerings.length ? (
         <Text style={styles.empty}>Loading events…</Text>
       ) : null}
-      {catalog.isError && !catalog.data?.length ? (
+      {catalog.isError && !offerings.length ? (
         <Pressable onPress={() => void catalog.refetch()} accessibilityRole="button">
           <Text style={styles.viewAll}>Unable to load · Tap to retry</Text>
         </Pressable>
@@ -437,7 +438,7 @@ function MemberLiveBody() {
       />
 
       <OfferingSection
-        title="Outstation Trips (For AgeWell Members)"
+        title="Outstation Trips (For EldCare Members)"
         subtitle="Explore curated senior-friendly tour packages with companion support."
         items={trips}
         kind="tour"
@@ -463,7 +464,7 @@ function MemberLiveBody() {
         <View style={styles.flex}>
           <Text style={styles.familyPromoTitle}>Get Exclusive Trip Packages for Your Family</Text>
           <Text style={styles.familyPromoBody} numberOfLines={2}>
-            Special discounted packages for AgeWell members' families.
+            Special discounted packages for EldCare members' families.
           </Text>
         </View>
         <Icon name="chevron-forward" size={14} color="#B45309" />
@@ -659,7 +660,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   title: { ...servicePageType.pageTitle, color: familyHome.text },
-  liveTitle: { ...servicePageType.pageTitle, color: familyHome.text},
   lead: { ...typography.body, color: familyHome.muted, lineHeight: 22, marginTop: 4 },
   subtitle: { ...typography.body, color: familyHome.muted },
   heroFull: {
@@ -670,16 +670,16 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   heroFullImage: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     width: '100%',
     height: '100%',
   },
   heroScrim: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(255,255,255,0.55)',
   },
   heroFullContent: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'space-between',

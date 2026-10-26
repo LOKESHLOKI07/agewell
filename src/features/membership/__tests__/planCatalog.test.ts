@@ -4,6 +4,8 @@ import {
   MEMBERSHIP_ONBOARDING_NOTE,
   MEMBERSHIP_PLAN_CATALOG,
   membershipApplyHref,
+  membershipPlansForTier,
+  membershipPriceInr,
   membershipPurchaseHref,
   preferredMembershipPlanKey,
 } from '../planCatalog';
@@ -39,6 +41,22 @@ describe('membership plan catalog', () => {
       pathname: '/account/apply',
       params: { plan: 'single' },
     });
+  });
+
+  it('uses Mumbai prices for tier1 and Chandrapur prices for tier2', () => {
+    expect(membershipPriceInr('single', 'tier1')).toBe(15499);
+    expect(membershipPriceInr('couple', 'tier1')).toBe(18499);
+    expect(membershipPriceInr('single', 'tier2')).toBe(13999);
+    expect(membershipPriceInr('couple', 'tier2')).toBe(16999);
+    expect(membershipPriceInr('single', null)).toBe(15499);
+
+    const mumbai = membershipPlansForTier('tier1');
+    expect(mumbai.find((plan) => plan.key === 'single')?.price).toBe('₹15,499');
+    expect(mumbai.find((plan) => plan.key === 'couple')?.price).toBe('₹18,499');
+
+    const chandrapur = membershipPlansForTier('tier2');
+    expect(chandrapur.find((plan) => plan.key === 'single')?.price).toBe('₹13,999');
+    expect(chandrapur.find((plan) => plan.key === 'couple')?.price).toBe('₹16,999');
   });
 });
 

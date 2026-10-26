@@ -264,7 +264,7 @@ export function AdminUserDetailScreen() {
         onRetry={() => void query.refetch()}
         loadingMessage="Loading user..."
         emptyTitle="User not found"
-        emptyMessage="This user is not in AgeWell."
+        emptyMessage="This user is not in EldCare."
         errorKind="user"
       >
         {query.data ? (

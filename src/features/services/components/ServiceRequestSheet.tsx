@@ -44,7 +44,7 @@ export function ServiceRequestSheet({
           {seniorName ? ` · For ${seniorName}` : ''}
         </Text>
         <Text style={styles.note}>
-          This sends a request to AgeWell. Payment is not available in the app yet — no charge is made here.
+          This sends a request to EldCare. Payment is not available in the app yet — no charge is made here.
         </Text>
         {errorMessage ? (
           <Text style={styles.error} accessibilityRole="alert">

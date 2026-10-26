@@ -113,7 +113,7 @@ export function useConciergeVoice({ onFinalTranscript, language = 'en-IN' }: Opt
         }
         setVoiceError(
           code === 'not-allowed'
-            ? 'Microphone permission is needed to talk to AgeWell Bot.'
+            ? 'Microphone permission is needed to talk to EldCare Bot.'
             : 'I could not hear that clearly. Please try again or type your message.',
         );
       }),
@@ -211,13 +211,13 @@ export function useConciergeVoice({ onFinalTranscript, language = 'en-IN' }: Opt
         }
         const mic = await nativeSpeech.requestMicrophonePermissionsAsync();
         if (!mic.granted) {
-          setVoiceError('Please allow microphone access to talk to AgeWell Bot.');
+          setVoiceError('Please allow microphone access to talk to EldCare Bot.');
           return;
         }
         if (Platform.OS === 'ios') {
           const speechPerm = await nativeSpeech.requestSpeechRecognizerPermissionsAsync();
           if (!speechPerm.granted) {
-            setVoiceError('Please allow speech recognition to talk to AgeWell Bot.');
+            setVoiceError('Please allow speech recognition to talk to EldCare Bot.');
             return;
           }
         }

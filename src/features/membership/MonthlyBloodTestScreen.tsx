@@ -29,14 +29,14 @@ import {
 } from './monthlyBloodModel';
 import { filterOfferingsByKind, type ServiceOffering } from './catalogTypes';
 import { SERVICE_HERO_IMAGES } from './serviceHeroes'
-import { servicePageType } from './servicePageType';
+
 import { useMembershipSubmit } from './useMembershipSubmit';
 import { useHasActiveMembership } from './useHasActiveMembership';
 import { useServiceOfferings } from './useCatalog';
 import { useTabScreenBottomPad } from '@/utils/safeBottom';
 import { toDisplayDate } from '@/utils/date';
 
-const VIDEO_URL = 'https://www.youtube.com/results?search_query=Understanding+Your+Monthly+Blood+Test+AgeWell';
+const VIDEO_URL = 'https://www.youtube.com/results?search_query=Understanding+Your+Monthly+Blood+Test+EldCare';
 
 const EXTRA_TONES: { soft: string; color: string; icon: IconName }[] = [
   { soft: familyHome.greenSoft, color: familyHome.red, icon: 'water' },
@@ -596,7 +596,7 @@ const styles = StyleSheet.create({
   },
   videoThumbImage: { width: '100%', height: '100%' },
   videoThumbPlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(0,0,0,0.22)',

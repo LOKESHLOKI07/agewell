@@ -575,7 +575,7 @@ CANONICAL_PLAN_NAMES = ("Single Membership", "Couple Membership")
 
 
 async def retire_obsolete_membership_plans(session: AsyncSession) -> int:
-    """Remove leftover plans such as Premium. AgeWell only sells Single and Couple."""
+    """Remove leftover plans such as Premium. EldCare only sells Single and Couple."""
     single = (
         await session.execute(select(MembershipPlan).where(MembershipPlan.name == "Single Membership"))
     ).scalar_one_or_none()
@@ -900,7 +900,7 @@ async def seed_data():
         )
         
         # Notification
-        notification = Notification(id=uuid.uuid4(), user_id=u_senior.id, title="Welcome", message="Welcome to AgeWell")
+        notification = Notification(id=uuid.uuid4(), user_id=u_senior.id, title="Welcome", message="Welcome to EldCare")
         
         # Emergency
         e_case = EmergencyCase(

@@ -167,7 +167,7 @@ export function AdminVisitDetailScreen() {
         onRetry={() => void query.refetch()}
         loadingMessage="Loading visit..."
         emptyTitle="Visit not found"
-        emptyMessage="This visit is not in AgeWell."
+        emptyMessage="This visit is not in EldCare."
       >
         {query.data ? (
           <PremiumCard style={styles.card}>

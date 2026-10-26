@@ -41,7 +41,7 @@ import { useHasActiveMembership } from './useHasActiveMembership';
 import { useTabScreenBottomPad } from '@/utils/safeBottom';
 import { toDisplayDate } from '@/utils/date';
 
-const VIDEO_URL = 'https://www.youtube.com/results?search_query=How+to+Prepare+for+Your+Doctor+Visit+AgeWell';
+const VIDEO_URL = 'https://www.youtube.com/results?search_query=How+to+Prepare+for+Your+Doctor+Visit+EldCare';
 
 const FEATURES: { icon: IconName; title: string; line: string }[] = [
   { icon: 'stethoscope', title: 'Monthly Visit', line: 'One doctor/physician visit every month.' },
@@ -64,7 +64,7 @@ type ActivityItem = {
   statusLabel: string;
   tone: DoctorVisitTone;
   icon: IconName;
-  href: string;
+  href: string | { pathname: string; params?: Record<string, string> };
 };
 
 function membershipValidLabel(endDate: string | null | undefined): string | null {
@@ -265,7 +265,7 @@ function ComingSoonFooter() {
   );
 }
 
-function MembershipRequiredFooter() {
+export function MembershipRequiredFooter() {
   return (
     <View style={styles.membershipCard}>
       <View style={styles.membershipHead}>
@@ -274,7 +274,7 @@ function MembershipRequiredFooter() {
         </View>
         <View style={styles.flex}>
           <Text style={styles.membershipTitle}>Membership Required</Text>
-          <Text style={styles.membershipBody}>Doctor/Physician Visit service is available to AgeWell members.</Text>
+          <Text style={styles.membershipBody}>Doctor/Physician Visit service is available to EldCare members.</Text>
         </View>
       </View>
       <Pressable
@@ -283,7 +283,7 @@ function MembershipRequiredFooter() {
         accessibilityRole="button"
       >
         <View style={styles.flex}>
-          <Text style={styles.joinPromoTitle}>Join AgeWell Membership</Text>
+          <Text style={styles.joinPromoTitle}>Join EldCare Membership</Text>
           <Text style={styles.joinPromoBody}>
             Get access to monthly doctor visits and many other services for a safer, healthier and happier life.
           </Text>
@@ -732,7 +732,7 @@ const styles = StyleSheet.create({
   },
   videoThumbImage: { width: '100%', height: '100%' },
   videoThumbPlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(0,0,0,0.22)',

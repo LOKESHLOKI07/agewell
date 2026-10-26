@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "AgeWell India",
+    "name": "EldCare India",
     "slug": "agewell-india",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -61,14 +61,14 @@
         "expo-secure-store",
         {
           "configureAndroidBackup": true,
-          "faceIDPermission": "Allow AgeWell India to use Face ID to protect your account."
+          "faceIDPermission": "Allow EldCare India to use Face ID to protect your account."
         }
       ],
       "expo-font",
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Allow AgeWell to use your location to check whether services are available in your area, and to share live location with authorized family and care staff while you are using the app.",
+          "locationWhenInUsePermission": "Allow EldCare to use your location to check whether services are available in your area, and to share live location with authorized family and care staff while you are using the app.",
           "isIosBackgroundLocationEnabled": false,
           "isAndroidBackgroundLocationEnabled": false
         }
@@ -76,16 +76,16 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow AgeWell to use your photos so you can set a profile picture.",
-          "cameraPermission": "Allow AgeWell to use your camera so you can take a profile picture.",
+          "photosPermission": "Allow EldCare to use your photos so you can set a profile picture.",
+          "cameraPermission": "Allow EldCare to use your camera so you can take a profile picture.",
           "microphonePermission": false
         }
       ],
       [
         "expo-speech-recognition",
         {
-          "microphonePermission": "Allow AgeWell to use the microphone so seniors can talk to AgeWell Bot.",
-          "speechRecognitionPermission": "Allow AgeWell to turn speech into text for AgeWell Bot."
+          "microphonePermission": "Allow EldCare to use the microphone so seniors can talk to EldCare Bot.",
+          "speechRecognitionPermission": "Allow EldCare to turn speech into text for EldCare Bot."
         }
       ],
       "@react-native-google-signin/google-signin",

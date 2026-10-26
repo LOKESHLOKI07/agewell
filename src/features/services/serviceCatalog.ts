@@ -17,7 +17,7 @@ export type MarketplaceService = {
   ready: boolean;
 };
 
-/** AgeWell Single Membership services — brochure order (21). Food is an add-on. */
+/** EldCare Single Membership services — brochure order (21). Food is an add-on. */
 export const MARKETPLACE_SERVICES: MarketplaceService[] = [
   {
     id: 'emergency-sos',
@@ -169,7 +169,7 @@ export const MARKETPLACE_SERVICES: MarketplaceService[] = [
     id: 'events-trips',
     title: 'Local Events & Trips',
     description:
-      'Nearby events, priority AgeWell tours, and companion support for luggage, boarding and hotel check-in (tours cost extra).',
+      'Nearby events, priority EldCare tours, and companion support for luggage, boarding and hotel check-in (tours cost extra).',
     icon: 'calendar-days',
     color: familyHome.red,
     background: familyHome.white,

@@ -109,7 +109,7 @@ export function ServiceAreaScreen() {
 
       <View style={styles.body}>
         <AvailableHero />
-        <Text style={styles.title}>AgeWell is available in your area! 🥳</Text>
+        <Text style={styles.title}>EldCare is available in your area! 🥳</Text>
         <Text style={styles.subtitle}>We currently provide services in {SERVICE_AREA_CITIES}.</Text>
       </View>
 
@@ -145,14 +145,14 @@ export function ServiceAreaScreen() {
         onPress={() => void finishOnboarding()}
         disabled={busy}
         accessibilityRole="button"
-        accessibilityLabel="Continue to AgeWell"
+        accessibilityLabel="Continue to EldCare"
         style={({ pressed }) => [
           styles.button,
           styles.availableButton,
           pressed || busy ? styles.pressed : null,
         ]}
       >
-        {busy ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.buttonLabel}>Continue to AgeWell</Text>}
+        {busy ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.buttonLabel}>Continue to EldCare</Text>}
       </Pressable>
     </View>
   );
@@ -200,25 +200,6 @@ function AvailableHero() {
           strokeLinecap="round"
           strokeLinejoin="round"
         />
-      </Svg>
-    </View>
-  );
-}
-
-function ComingSoonHero() {
-  return (
-    <View style={styles.hero} accessibilityRole="image" accessibilityLabel="Coming to your area">
-      <Svg width={280} height={220} viewBox="0 0 280 220">
-        <Skyline />
-        <Path
-          d="M140 22c-32 0-58 26-58 58 0 42 58 98 58 98s58-56 58-98c0-32-26-58-58-58Z"
-          fill={ORANGE}
-        />
-        <Path
-          d="M140 22c-18 0-40 14-48 38 12-8 28-10 48-10 20 0 36 2 48 10-8-24-30-38-48-38Z"
-          fill="#FF9A4A"
-        />
-        <Circle cx="140" cy="80" r="22" fill="#FFFFFF" />
       </Svg>
     </View>
   );

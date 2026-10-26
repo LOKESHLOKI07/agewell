@@ -2,10 +2,10 @@ import { InfoParagraph, SimpleInfoScreen } from '@/features/profile/SimpleInfoSc
 
 export default function NotificationSettingsScreen() {
   return (
-    <SimpleInfoScreen title="Notifications" subtitle="How AgeWell alerts work">
+    <SimpleInfoScreen title="Notifications" subtitle="How EldCare alerts work">
       <InfoParagraph>
         Emergency SOS alerts are delivered as phone push notifications (Android via FCM, iPhone via APNs through Expo).
-        When you allow notifications, they can sound and vibrate even if AgeWell is closed or your phone is locked —
+        When you allow notifications, they can sound and vibrate even if EldCare is closed or your phone is locked —
         subject to your device notification settings.
       </InfoParagraph>
       <InfoParagraph>

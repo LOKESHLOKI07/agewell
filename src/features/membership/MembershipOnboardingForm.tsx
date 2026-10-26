@@ -36,7 +36,7 @@ export function MembershipOnboardingForm({
       <Text style={styles.kicker}>{planName}</Text>
       <Text style={styles.title}>Emergency details</Text>
       <Text style={styles.intro}>
-        Add two family members AgeWell can call, and the nearby hospital to use if admission is needed.
+        Add two family members EldCare can call, and the nearby hospital to use if admission is needed.
       </Text>
 
       <Text style={styles.section}>Family member 1</Text>

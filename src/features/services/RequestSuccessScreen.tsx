@@ -12,7 +12,7 @@ export function RequestSuccessScreen() {
           <Icon name="checkmark" size={32} color={colors.safe} />
         </IconWell>
         <Text style={styles.title}>Request Received</Text>
-        <Text style={styles.subtitle}>AgeWell will contact you shortly.</Text>
+        <Text style={styles.subtitle}>EldCare will contact you shortly.</Text>
       </View>
       <PrimaryButton label="Back to Home" onPress={() => router.replace('/(tabs)')} />
       <View style={styles.gap} />

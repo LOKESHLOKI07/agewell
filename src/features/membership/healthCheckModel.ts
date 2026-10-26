@@ -125,7 +125,7 @@ export function toHealthReportViews(input: {
       id: `req-${request.id}`,
       title: request.serviceName,
       dateLabel: null,
-      summary: request.notes?.trim() || 'AgeWell health check request',
+      summary: request.notes?.trim() || 'EldCare health check request',
       statusLabel: reportStatusLabel(request.status),
       tone,
       kind: 'request',

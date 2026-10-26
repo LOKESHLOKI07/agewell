@@ -53,7 +53,7 @@ RECIPIENT_LABELS = {
     RECIPIENT_FAMILY: "Family Member",
     RECIPIENT_CARE_MANAGER: "Care Manager",
     RECIPIENT_COMPANION: "Companion",
-    RECIPIENT_AGEWELL_SUPPORT: "AgeWell Support",
+    RECIPIENT_AGEWELL_SUPPORT: "EldCare Support",
 }
 
 

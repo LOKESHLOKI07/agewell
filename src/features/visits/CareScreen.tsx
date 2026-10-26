@@ -50,7 +50,7 @@ export function CareScreen() {
         <View style={styles.stack}>
           <View style={[styles.planCard, shadows.card]}>
             <Text style={styles.label}>Current care plan</Text>
-            <Text style={styles.planName}>{data.membership?.name ?? 'AgeWell Family'}</Text>
+            <Text style={styles.planName}>{data.membership?.name ?? 'EldCare Family'}</Text>
             <Text style={styles.planPrice}>
               {data.membership ? `${formatCurrencyInr(data.membership.priceInrPerMonth)}/month` : ''}
             </Text>
@@ -81,7 +81,7 @@ export function CareScreen() {
           <View style={[styles.noteCard, shadows.card]}>
             <Text style={styles.label}>Care Manager</Text>
             <Text style={styles.noteTitle}>{fullName(mockCareManager.firstName, mockCareManager.lastName)}</Text>
-            <Text style={styles.noteBody}>AgeWell Care Manager</Text>
+            <Text style={styles.noteBody}>EldCare Care Manager</Text>
           </View>
 
           <View style={[styles.noteCard, shadows.card]}>
@@ -112,7 +112,7 @@ export function CareScreen() {
               <EmptyState
                 icon="heart-outline"
                 title="No visits yet"
-                message="Visit history will appear here after the first AgeWell visit."
+                message="Visit history will appear here after the first EldCare visit."
               />
             ) : (
               <View style={styles.list}>

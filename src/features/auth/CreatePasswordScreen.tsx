@@ -64,7 +64,7 @@ export function CreatePasswordScreen() {
           <AgeWellLogo compact />
           <Text style={styles.title}>Create your password</Text>
           <Text style={styles.subtitle}>
-            Create a password so you can securely sign in to AgeWell
+            Create a password so you can securely sign in to EldCare
             {email ? ` with ${email}` : ''}.
           </Text>
         </View>

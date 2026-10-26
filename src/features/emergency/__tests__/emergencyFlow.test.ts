@@ -96,7 +96,7 @@ describe('Emergency type selection', () => {
   });
 
   it('maps AGEWELL_SUPPORT correctly', () => {
-    expect(emergencyTypeLabel('AGEWELL_SUPPORT')).toBe('AgeWell Support');
+    expect(emergencyTypeLabel('AGEWELL_SUPPORT')).toBe('EldCare Support');
     expect(toEmergencyCreateBody('AGEWELL_SUPPORT')).toEqual({ type: 'AGEWELL_SUPPORT', trigger_source: 'APP_SOS' });
   });
 });
@@ -216,7 +216,7 @@ describe('emergency errors and safety', () => {
   });
 
   it('maps network errors to a create-safe message', () => {
-    expect(getEmergencyCreateErrorMessage(new ApiError('Unable to connect to AgeWell. Please check your internet connection.'))).toBe(
+    expect(getEmergencyCreateErrorMessage(new ApiError('Unable to connect to EldCare. Please check your internet connection.'))).toBe(
       'Unable to create emergency request. Please check your connection and try again.',
     );
   });

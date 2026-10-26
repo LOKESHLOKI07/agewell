@@ -1,4 +1,4 @@
-/** Popular pickup / drop spots in the AgeWell service area (Kandivali & Borivali). */
+/** Popular pickup / drop spots in the EldCare service area (Kandivali & Borivali). */
 
 export type LocalTransportPlace = {
   id: string;

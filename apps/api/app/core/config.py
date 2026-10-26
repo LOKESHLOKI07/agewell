@@ -2,7 +2,7 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    PROJECT_NAME: str = "AgeWell API"
+    PROJECT_NAME: str = "EldCare API"
     ENVIRONMENT: str = "development"
     DATABASE_URL: str
     REDIS_URL: str
@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     SMTP_PORT: int = 587
     SMTP_USER: str = ""
     SMTP_PASS: str = ""
-    SMTP_FROM: str = "AgeWell <mountainexplorersindia@gmail.com>"
+    SMTP_FROM: str = "EldCare <mountainexplorersindia@gmail.com>"
     GOOGLE_CLIENT_ID: str = ""
     GOOGLE_CLIENT_SECRET: str = ""
     # Seconds after SOS before Care Manager / Support are notified if Family+Companion have not acknowledged.

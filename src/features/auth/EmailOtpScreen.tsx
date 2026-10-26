@@ -106,7 +106,7 @@ export function EmailOtpScreen() {
         return;
       }
       if (isSignIn) {
-        setError('No AgeWell account uses this email yet. Create an account from Welcome.');
+        setError('No EldCare account uses this email yet. Create an account from Welcome.');
         setBusy(false);
         return;
       }

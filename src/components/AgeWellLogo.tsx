@@ -24,7 +24,7 @@ export function AgeWellLogo({
       style={style}
       resizeMode="contain"
       accessibilityRole="image"
-      accessibilityLabel="AgeWell. Your Comfort Our Care."
+      accessibilityLabel="EldCare. Your Comfort Our Care."
     />
   );
 }

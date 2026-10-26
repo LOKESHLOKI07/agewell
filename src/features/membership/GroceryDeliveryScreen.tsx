@@ -41,7 +41,7 @@ import { useTabScreenBottomPad } from '@/utils/safeBottom';
 import { toDisplayDate } from '@/utils/date';
 
 const VIDEO_URL =
-  'https://www.youtube.com/results?search_query=Healthy+Eating+Made+Easy+AgeWell+Grocery';
+  'https://www.youtube.com/results?search_query=Healthy+Eating+Made+Easy+EldCare+Grocery';
 
 const STEPS: { icon: IconName; title: string; line: string }[] = [
   {
@@ -333,7 +333,7 @@ function ComingSoonFooter() {
   );
 }
 
-function MembershipRequiredFooter() {
+export function MembershipRequiredFooter() {
   return (
     <View style={styles.membershipCard}>
       <View style={styles.membershipHead}>
@@ -342,7 +342,7 @@ function MembershipRequiredFooter() {
         </View>
         <View style={styles.flex}>
           <Text style={styles.membershipTitle}>Membership Required</Text>
-          <Text style={styles.membershipBody}>Grocery Delivery service is available to AgeWell members.</Text>
+          <Text style={styles.membershipBody}>Grocery Delivery service is available to EldCare members.</Text>
         </View>
       </View>
       <Pressable
@@ -351,7 +351,7 @@ function MembershipRequiredFooter() {
         accessibilityRole="button"
       >
         <View style={styles.flex}>
-          <Text style={styles.joinPromoTitle}>Join AgeWell Membership</Text>
+          <Text style={styles.joinPromoTitle}>Join EldCare Membership</Text>
           <Text style={styles.joinPromoBody}>
             Get access to grocery delivery and many other services for a safer, healthier and happier life.
           </Text>
@@ -867,7 +867,7 @@ const styles = StyleSheet.create({
   },
   videoThumbImage: { width: '100%', height: '100%' },
   videoThumbPlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(0,0,0,0.22)',

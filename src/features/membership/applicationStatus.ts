@@ -89,7 +89,7 @@ export function buildApplicationTimeline(request: MembershipRequest): Applicatio
         id: 'rejected',
         title: 'Application Not Accepted',
         tone: 'current',
-        detail: 'AgeWell could not accept this application. Please contact support for next steps.',
+        detail: 'EldCare could not accept this application. Please contact support for next steps.',
         icon: 'shield-checkmark-outline',
       },
     ];
@@ -113,10 +113,10 @@ export function buildApplicationTimeline(request: MembershipRequest): Applicatio
       icon: 'calendar-outline',
       detail:
         request.visitPlannedAt
-          ? `Our team has planned a home visit by our AgeWell executive.\n${formatApplicationWhen(request.visitPlannedAt)}${staffLine ? `\n${staffLine}` : ''}`
+          ? `Our team has planned a home visit by our EldCare executive.\n${formatApplicationWhen(request.visitPlannedAt)}${staffLine ? `\n${staffLine}` : ''}`
           : displayRank === 1
-            ? 'Our team will plan a home visit by an AgeWell executive.'
-            : 'Our team has planned a home visit by our AgeWell executive.',
+            ? 'Our team will plan a home visit by an EldCare executive.'
+            : 'Our team has planned a home visit by our EldCare executive.',
     },
     {
       id: 'visit-scheduled',
@@ -126,7 +126,7 @@ export function buildApplicationTimeline(request: MembershipRequest): Applicatio
       detail: request.visitScheduledStart
         ? `Your home visit was scheduled on:\n${formatVisitWindow(request.visitScheduledStart, request.visitScheduledEnd)}`
         : displayRank === 2
-          ? 'Visit date will appear here once AgeWell schedules it.'
+          ? 'Visit date will appear here once EldCare schedules it.'
           : undefined,
     },
     {
@@ -154,7 +154,7 @@ export function buildApplicationTimeline(request: MembershipRequest): Applicatio
       icon: 'shield-checkmark-outline',
       detail:
         stage === 'ACCEPTED' || stage === 'APPROVED'
-          ? `Your application has been approved. Please complete the payment to activate your AgeWell membership.\n${formatApplicationWhen(request.acceptedAt)}`
+          ? `Your application has been approved. Please complete the payment to activate your EldCare membership.\n${formatApplicationWhen(request.acceptedAt)}`
           : 'You will be informed once your application is approved.',
     },
     {
@@ -166,7 +166,7 @@ export function buildApplicationTimeline(request: MembershipRequest): Applicatio
         stage === 'APPROVED'
           ? `Payment received. Membership is active.\n${formatApplicationWhen(request.paidAt)}`
           : stage === 'ACCEPTED'
-            ? 'Complete the payment to activate your AgeWell membership.'
+            ? 'Complete the payment to activate your EldCare membership.'
             : 'Pay Now appears only after your application is accepted.',
     },
   ];

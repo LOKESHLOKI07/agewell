@@ -1,4 +1,4 @@
-"""AgeWell membership services the Care Concierge may discuss or request."""
+"""EldCare membership services the Care Concierge may discuss or request."""
 
 from __future__ import annotations
 
@@ -115,7 +115,7 @@ AGEWELL_SERVICES: list[ServiceInfo] = [
     {
         "slug": "events-trips",
         "title": "Local Events & Trips",
-        "description": "Nearby events and AgeWell tours with companion support.",
+        "description": "Nearby events and EldCare tours with companion support.",
         "href": "/membership/events-trips",
         "bookable": False,
         "keywords": ("event", "trip", "tour", "outing"),

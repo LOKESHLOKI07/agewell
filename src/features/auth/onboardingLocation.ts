@@ -83,13 +83,13 @@ export const LOCATION_ISSUE_COPY: Record<
   denied: {
     title: 'Location permission needed',
     message:
-      'AgeWell needs location permission to check whether services are available in your area. Tap Allow Location Access again, or enter your area manually.',
+      'EldCare needs location permission to check whether services are available in your area. Tap Allow Location Access again, or enter your area manually.',
     openSettings: false,
   },
   blocked: {
     title: 'Location is blocked',
     message:
-      'Location permission is turned off for AgeWell. Open Settings, allow location, and turn on Precise location. You can also enter your area manually.',
+      'Location permission is turned off for EldCare. Open Settings, allow location, and turn on Precise location. You can also enter your area manually.',
     openSettings: true,
   },
   unavailable: {
@@ -101,7 +101,7 @@ export const LOCATION_ISSUE_COPY: Record<
   coarse: {
     title: 'Precise location is off',
     message:
-      'AgeWell is only allowed Approximate location, so this phone did not return a usable point. Open Settings, turn on Precise location, then try again. You can also enter your area manually.',
+      'EldCare is only allowed Approximate location, so this phone did not return a usable point. Open Settings, turn on Precise location, then try again. You can also enter your area manually.',
     openSettings: true,
   },
   no_fix: {

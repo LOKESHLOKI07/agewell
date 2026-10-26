@@ -8,7 +8,7 @@ export function AskAgeWellBar() {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel="Ask AgeWell. Say or type anything."
+      accessibilityLabel="Ask EldCare. Say or type anything."
       onPress={() => router.push('/concierge' as Href)}
       style={styles.bar}
     >
@@ -16,7 +16,7 @@ export function AskAgeWellBar() {
         <Icon name="mic" size={22} color={familyHome.white} />
       </View>
       <View style={styles.copy}>
-        <Text style={styles.title}>Ask AgeWell Bot</Text>
+        <Text style={styles.title}>Ask EldCare Bot</Text>
         <Text style={styles.subtitle}>Tap to talk or type</Text>
       </View>
       <Icon name="chevron-forward" size={20} color={familyHome.white} />

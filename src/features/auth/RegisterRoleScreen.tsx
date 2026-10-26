@@ -12,9 +12,9 @@ export function RegisterRoleScreen() {
     <View style={[styles.root, { paddingBottom: insets.bottom + spacing.xl }]}>
       <AgeWellHeader title="Create Account" showBack showProfile={false} />
       <View style={styles.content}>
-        <Text style={styles.heading}>How will you use AgeWell?</Text>
+        <Text style={styles.heading}>How will you use EldCare?</Text>
         <Text style={styles.sub}>
-          This app is for members. Care managers, companions, and delivery executives use the AgeWell Care app.
+          This app is for members. Care managers, companions, and delivery executives use the EldCare Care app.
         </Text>
         <Pressable
           style={({ pressed }) => [styles.card, pressed ? styles.pressed : null]}

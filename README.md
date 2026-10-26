@@ -1,6 +1,6 @@
-# AgeWell India — Family App (Phase 1)
+# EldCare India — Family App (Phase 1)
 
-AgeWell helps elderly people live independently while giving their children and family members visibility, support, healthcare coordination, and peace of mind.
+EldCare helps elderly people live independently while giving their children and family members visibility, support, healthcare coordination, and peace of mind.
 
 Phase 1 is a **polished Family mobile app UI prototype** built with React Native and Expo. It uses mock data only. There is no backend, no real authentication, and no live payments or emergency calling.
 
@@ -105,7 +105,7 @@ All sample records live in `src/mock/`:
 - `appointments.ts` — Dr. Mehta, Cardiology
 - `services.ts` — eight family services
 - `notifications.ts` — visit, appointment, care, payment, and service alerts
-- `payments.ts` / `memberships.ts` — AgeWell Family, ₹9,999/month
+- `payments.ts` / `memberships.ts` — EldCare Family, ₹9,999/month
 
 UI components do not hardcode this data.
 

@@ -18,7 +18,7 @@ async def lifespan(_app: FastAPI):
 
 app = FastAPI(title=settings.PROJECT_NAME, lifespan=lifespan)
 
-# Browsers on AgeWell web (:8444) and local Expo need CORS when calling the API (:8443).
+# Browsers on EldCare web (:8444) and local Expo need CORS when calling the API (:8443).
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

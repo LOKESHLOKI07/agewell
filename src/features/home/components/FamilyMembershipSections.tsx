@@ -3,7 +3,8 @@ import { router, type Href } from 'expo-router';
 import { Icon } from '@/components/ui';
 import { spacing, typography } from '@/constants/theme';
 import type { CurrentMembership, MembershipUsage } from '@/features/home/types/home';
-import { MEMBERSHIP_PLAN_CATALOG, MEMBERSHIP_ONBOARDING_NOTE } from '@/features/membership/planCatalog';
+import { useServiceTier } from '@/features/auth/useServiceLocality';
+import { MEMBERSHIP_ONBOARDING_NOTE, membershipPlansForTier } from '@/features/membership/planCatalog';
 import { openMembershipPurchase } from '@/features/membership/openMembershipPurchase';
 import { FamilyHomeSectionHeader } from './FamilyHomePrimitives';
 import { familyHome } from './familyHomeTheme';
@@ -101,6 +102,7 @@ const PLAN_THEME = {
 export function FamilyMembershipPlansCarousel() {
   const { width: windowWidth } = useWindowDimensions();
   const cardWidth = Math.min(320, Math.max(260, windowWidth - spacing.xl * 2 - 28));
+  const plans = membershipPlansForTier(useServiceTier());
 
   return (
     <View style={styles.section}>
@@ -116,7 +118,7 @@ export function FamilyMembershipPlansCarousel() {
         snapToInterval={cardWidth + spacing.md}
         contentContainerStyle={styles.plansRow}
       >
-        {MEMBERSHIP_PLAN_CATALOG.map((plan) => (
+        {plans.map((plan) => (
           <View
             key={plan.key}
             style={[styles.planCard, { width: cardWidth, backgroundColor: PLAN_THEME[plan.key].soft }]}

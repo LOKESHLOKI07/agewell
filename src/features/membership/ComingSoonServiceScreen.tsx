@@ -30,7 +30,7 @@ export function ComingSoonServiceScreen({ title, description, icon, color, backg
           <Text style={styles.badgeText}>Coming in the next build phase</Text>
         </View>
         <Text style={styles.note}>
-          This membership service is listed on AgeWell Home and Services. The full UI from the product
+          This membership service is listed on EldCare Home and Services. The full UI from the product
           board will land after Care Manager, Companion and SOS.
         </Text>
       </View>

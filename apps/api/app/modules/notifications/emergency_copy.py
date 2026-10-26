@@ -6,11 +6,11 @@ TYPE_LABELS = {
     EmergencyType.MEDICAL: "Medical Emergency",
     EmergencyType.HOSPITAL: "Hospital Assistance",
     EmergencyType.CARE_MANAGER: "Care Manager Assistance",
-    EmergencyType.AGEWELL_SUPPORT: "AgeWell Support",
+    EmergencyType.AGEWELL_SUPPORT: "EldCare Support",
 }
 
 TRIGGER_LABELS = {
-    "APP_SOS": "AgeWell App SOS",
+    "APP_SOS": "EldCare App SOS",
     "HOME_PANIC_BUTTON": "Home Panic Button",
 }
 
@@ -21,7 +21,7 @@ def emergency_type_label(emergency_type: EmergencyType) -> str:
 
 def trigger_source_label(source: Optional[str]) -> str:
     if not source:
-        return "AgeWell App SOS"
+        return "EldCare App SOS"
     return TRIGGER_LABELS.get(source, source.replace("_", " ").title())
 
 
@@ -41,14 +41,14 @@ def senior_emergency_copy(type_label: str) -> tuple[str, str]:
 def family_emergency_copy(first_name: Optional[str], type_label: str) -> tuple[str, str]:
     name = (first_name or "").strip() or "the senior"
     return (
-        "AgeWell Emergency",
+        "EldCare Emergency",
         f"{name} has triggered an SOS. Tap to respond.",
     )
 
 
 def care_manager_emergency_copy(type_label: str) -> tuple[str, str]:
     return (
-        "AgeWell Emergency",
+        "EldCare Emergency",
         f"No first response yet. A {type_label} SOS needs Care Manager attention. Tap to respond.",
     )
 
@@ -56,7 +56,7 @@ def care_manager_emergency_copy(type_label: str) -> tuple[str, str]:
 def companion_emergency_copy(first_name: Optional[str]) -> tuple[str, str]:
     name = (first_name or "").strip() or "the senior"
     return (
-        "AgeWell Emergency",
+        "EldCare Emergency",
         f"{name} has triggered an SOS. Tap to respond.",
     )
 
@@ -64,6 +64,6 @@ def companion_emergency_copy(first_name: Optional[str]) -> tuple[str, str]:
 def support_emergency_copy(first_name: Optional[str]) -> tuple[str, str]:
     name = (first_name or "").strip() or "the senior"
     return (
-        "AgeWell Emergency",
-        f"Escalated SOS for {name}. AgeWell Support — tap to respond.",
+        "EldCare Emergency",
+        f"Escalated SOS for {name}. EldCare Support — tap to respond.",
     )

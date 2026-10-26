@@ -64,7 +64,7 @@ function GenericAddonRequest({ id }: { id: string | undefined }) {
         <EmptyState
           icon="cart-outline"
           title="Add-on not found"
-          message="This item is not in your AgeWell service catalogue."
+          message="This item is not in your EldCare service catalogue."
           actionLabel="Back to store"
           onAction={() => safeGoBack(navigation.canGoBack(), role)}
         />
@@ -115,7 +115,7 @@ function GenericAddonRequestLive({
           style={styles.secondary}
           onPress={() => router.push('/account/help' as Href)}
           accessibilityRole="button"
-          accessibilityLabel="Contact AgeWell support"
+          accessibilityLabel="Contact EldCare support"
         >
           <Text style={styles.secondaryText}>Prefer to talk to someone? Contact support</Text>
         </Pressable>

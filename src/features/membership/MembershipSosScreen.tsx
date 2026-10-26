@@ -33,7 +33,7 @@ import { useTabScreenBottomPad } from '@/utils/safeBottom';
 import { toDisplayDate } from '@/utils/date';
 
 const HOLD_MS = 3000;
-const VIDEO_URL = 'https://www.youtube.com/results?search_query=What+is+AgeWell+Emergency+Support';
+const VIDEO_URL = 'https://www.youtube.com/results?search_query=What+is+EldCare+Emergency+Support';
 const SERVICE_AREA_LINE = MEMBERSHIP_SERVICE_AREA_LINE;
 
 const BENEFITS: { icon: IconName; title: string; line: string }[] = [
@@ -118,7 +118,7 @@ export function MembershipSosScreen() {
         void listQuery.refetch();
         Alert.alert(
           'Help alert already sent',
-          'Your emergency help alert was already sent. Family and your AgeWell care team have been notified — help is being arranged.',
+          'Your emergency help alert was already sent. Family and your EldCare care team have been notified — help is being arranged.',
           [{ text: 'OK' }],
         );
       }
@@ -129,7 +129,7 @@ export function MembershipSosScreen() {
     const caseId = active?.id;
     Alert.alert(
       'Help alert already sent',
-      'Your emergency help alert was already sent. Family and your AgeWell care team have been notified — help is being arranged.',
+      'Your emergency help alert was already sent. Family and your EldCare care team have been notified — help is being arranged.',
       caseId
         ? [
             { text: 'OK' },
@@ -266,14 +266,14 @@ function ComingSoonBody() {
         <Icon name="help-circle-outline" size={18} color={familyHome.blue} />
         <View style={styles.bannerCopy}>
           <Text style={styles.infoTitle}>Stay Connected</Text>
-          <Text style={styles.infoBody}>Follow us for updates as we bring AgeWell to more locations soon.</Text>
+          <Text style={styles.infoBody}>Follow us for updates as we bring EldCare to more locations soon.</Text>
         </View>
       </View>
     </View>
   );
 }
 
-function MembershipGateBody() {
+export function MembershipGateBody() {
   return (
     <View style={styles.stack}>
       <VideoCard />
@@ -283,7 +283,7 @@ function MembershipGateBody() {
         <Icon name="location" size={18} color={familyHome.greenDark} />
         <View style={styles.bannerCopy}>
           <Text style={styles.availableTitle}>Emergency Support is available in your area</Text>
-          <Text style={styles.availableBody}>AgeWell currently provides this service in Kandivali & Borivali, Mumbai.</Text>
+          <Text style={styles.availableBody}>EldCare currently provides this service in Kandivali & Borivali, Mumbai.</Text>
         </View>
       </View>
       <View style={styles.membershipBanner}>
@@ -291,7 +291,7 @@ function MembershipGateBody() {
         <View style={styles.bannerCopy}>
           <Text style={styles.membershipTitle}>Membership Required</Text>
           <Text style={styles.membershipBody}>
-            Emergency Support with the AgeWell SOS system is available to active members.
+            Emergency Support with the EldCare SOS system is available to active members.
           </Text>
         </View>
       </View>
@@ -353,7 +353,7 @@ function MemberSosBody({
     },
     {
       role: 'AGEWELL_SUPPORT',
-      label: 'AgeWell Support',
+      label: 'EldCare Support',
       sub: preferredHospital?.trim() || 'Escalates with Care Manager',
       icon: 'call-outline' as IconName,
     },
@@ -533,7 +533,7 @@ function MemberSosBody({
 function ExplainerCopy() {
   return (
     <Text style={styles.explainer}>
-      Emergency Support helps connect you with your trusted AgeWell support network during an emergency. A panic
+      Emergency Support helps connect you with your trusted EldCare support network during an emergency. A panic
       button can alert your family, care manager and companion. We provide 24×7 emergency assistance and hospital
       coordination, with a preferred hospital pre-selected for emergencies.
     </Text>
@@ -561,7 +561,7 @@ function VideoCard({ compact = false }: { compact?: boolean }) {
       <Pressable
         onPress={() => void Linking.openURL(VIDEO_URL)}
         accessibilityRole="button"
-        accessibilityLabel="Watch on YouTube: How AgeWell Emergency Support Works"
+        accessibilityLabel="Watch on YouTube: How EldCare Emergency Support Works"
         style={({ pressed }) => [styles.videoCardCompact, pressed ? styles.pressed : null]}
       >
         <View style={styles.videoThumb}>
@@ -575,9 +575,9 @@ function VideoCard({ compact = false }: { compact?: boolean }) {
             <Icon name="play" size={12} color={familyHome.red} />
             <Text style={styles.watchLabel}>Watch on YouTube</Text>
           </View>
-          <Text style={styles.videoCompactTitle}>How AgeWell Emergency Support Works</Text>
+          <Text style={styles.videoCompactTitle}>How EldCare Emergency Support Works</Text>
           <Text style={styles.videoCompactBody}>
-            A short guide to the SOS button, alerts, and how AgeWell responds in an emergency.
+            A short guide to the SOS button, alerts, and how EldCare responds in an emergency.
           </Text>
         </View>
         <Icon name="chevron-forward" size={16} color={familyHome.muted} />
@@ -589,13 +589,13 @@ function VideoCard({ compact = false }: { compact?: boolean }) {
     <Pressable
       onPress={() => void Linking.openURL(VIDEO_URL)}
       accessibilityRole="button"
-      accessibilityLabel="Watch: What is AgeWell Emergency Support?"
+      accessibilityLabel="Watch: What is EldCare Emergency Support?"
       style={({ pressed }) => [styles.videoCard, pressed ? styles.pressed : null]}
     >
       <View style={styles.videoHero}>
         <Image source={SERVICE_HERO_IMAGES['emergency-sos']} style={styles.videoImage} resizeMode="cover" />
         <View style={styles.videoOverlay} pointerEvents="none">
-          <Text style={styles.videoHeadline}>What is AgeWell Emergency Support?</Text>
+          <Text style={styles.videoHeadline}>What is EldCare Emergency Support?</Text>
         </View>
         <View style={styles.playWrap} pointerEvents="none">
           <View style={styles.playBtn}>
@@ -606,7 +606,7 @@ function VideoCard({ compact = false }: { compact?: boolean }) {
       </View>
       <View style={styles.videoCaption}>
         <Icon name="play" size={14} color={familyHome.red} />
-        <Text style={styles.videoCaptionText}>Watch: What is AgeWell Emergency Support?</Text>
+        <Text style={styles.videoCaptionText}>Watch: What is EldCare Emergency Support?</Text>
         <Icon name="chevron-forward" size={16} color={familyHome.muted} />
       </View>
     </Pressable>
@@ -1068,7 +1068,7 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   videoThumbPlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(0,0,0,0.22)',
@@ -1104,12 +1104,12 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   videoImage: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     width: '100%',
     height: '100%',
   },
   videoOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(10,24,56,0.28)',
     justifyContent: 'flex-end',
     padding: spacing.lg,
@@ -1120,7 +1120,7 @@ const styles = StyleSheet.create({
     color: familyHome.white,
   },
   playWrap: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
   },

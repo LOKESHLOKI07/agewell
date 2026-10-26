@@ -29,7 +29,7 @@ def parse_intent_fallback(message: str) -> dict:
             "intent": ConciergeIntent.chat.value,
             "confidence": 0.9,
             "reply": (
-                "Namaste! I am AgeWell Bot. I can help with all membership services — "
+                "Namaste! I am EldCare Bot. I can help with all membership services — "
                 "medicines, groceries, companion, doctor visits, transport, home help, and more. "
                 "What would you like help with today?"
             ),
@@ -139,7 +139,7 @@ def parse_intent_fallback(message: str) -> dict:
         "intent": ConciergeIntent.chat.value,
         "confidence": 0.55,
         "reply": (
-            "I am here with you. You can ask me anything about AgeWell — "
+            "I am here with you. You can ask me anything about EldCare — "
             "or say something like “I need medicines”, “call my care manager”, or “book a companion”. "
             "How can I help?"
         ),

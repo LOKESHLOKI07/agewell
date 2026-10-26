@@ -1,3 +1,4 @@
+import { resolveServiceAreaFromSenior, serviceAreaDeliveryLabel } from '@/features/auth/serviceArea';
 import { resolveCareManagerPageVariant } from '../careManagerVariant';
 import { CARE_MANAGER_CALL_HOURS_MESSAGE, isCareManagerCallOpen, whatsappHref } from '../careManagerHours';
 import { toAssignedCareManagerPage, toCareActivity } from '../careManagerMappers';
@@ -34,6 +35,24 @@ describe('resolveCareManagerPageVariant', () => {
         assigned: true,
       }),
     ).toBe('assigned');
+  });
+
+  it('labels the assigned card with one locality and region', () => {
+    expect(
+      serviceAreaDeliveryLabel(
+        resolveServiceAreaFromSenior({ inServiceArea: true, locationQuery: 'Kandivali West' }),
+      ),
+    ).toBe('Kandivali, Mumbai');
+    expect(
+      serviceAreaDeliveryLabel(
+        resolveServiceAreaFromSenior({ inServiceArea: true, locationQuery: 'Warora' }),
+      ),
+    ).toBe('Warora, Chandrapur');
+    expect(
+      serviceAreaDeliveryLabel(
+        resolveServiceAreaFromSenior({ inServiceArea: true, locationQuery: 'Wani' }),
+      ),
+    ).toBe('Wani, Chandrapur');
   });
 });
 

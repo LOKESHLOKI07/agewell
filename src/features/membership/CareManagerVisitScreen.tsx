@@ -16,7 +16,8 @@ import { Avatar, Icon, type IconName } from '@/components/ui';
 import { getApiErrorMessage } from '@/api/errors';
 import { minTouchSize, spacing, typography } from '@/constants/theme';
 import { ServicePageHeader } from '@/features/home/components/ServicePageHeader';
-import { SERVICE_AREA_CITIES } from '@/features/auth/serviceArea';
+import { SERVICE_AREA_CITIES, serviceAreaDeliveryLabel } from '@/features/auth/serviceArea';
+import { useServiceLocality } from '@/features/auth/useServiceLocality';
 import { familyHome } from '@/features/home/components/familyHomeTheme';
 import { MarketplaceServiceIcon } from '@/features/services/components/MarketplaceServiceIcon';
 import { useTabScreenBottomPad } from '@/utils/safeBottom';
@@ -47,7 +48,7 @@ import { SERVICE_HERO_IMAGES } from './serviceHeroes'
 import { servicePageType } from './servicePageType';
 import { useHasActiveMembership } from './useHasActiveMembership';
 
-const VIDEO_URL = 'https://www.youtube.com/results?search_query=Meet+Our+Care+Managers+AgeWell';
+const VIDEO_URL = 'https://www.youtube.com/results?search_query=Meet+Our+Care+Managers+EldCare';
 const SERVICE_AREA_LINE = SERVICE_AREA_CITIES;
 const HOURS_LABEL = '10 AM - 6 PM';
 
@@ -62,7 +63,7 @@ const SUPPORT_FEATURES: { icon: IconName; title: string; line: string; bg: strin
   {
     icon: 'headset',
     title: 'Service Coordination',
-    line: 'Helps you access all AgeWell services',
+    line: 'Helps you access all EldCare services',
     bg: familyHome.blueSoft,
     color: familyHome.blue,
   },
@@ -165,7 +166,7 @@ export function CareManagerVisitScreen() {
     }
     const href = whatsappHref(
       manager.phone,
-      `Hello ${manager.name ?? 'Care Manager'}, I would like to connect with AgeWell.`,
+      `Hello ${manager.name ?? 'Care Manager'}, I would like to connect with EldCare.`,
     );
     await Linking.openURL(href).catch(() => {
       Alert.alert('Unable to open WhatsApp', 'Please message the Care Manager from your contacts.');
@@ -223,7 +224,7 @@ export function CareManagerVisitScreen() {
             try {
               await visitMutation.mutateAsync({ scheduledAt, reason });
               setScheduleOpen(false);
-              Alert.alert('Visit requested', 'Your Care Manager visit request has been sent to AgeWell.');
+              Alert.alert('Visit requested', 'Your Care Manager visit request has been sent to EldCare.');
             } catch (error) {
               Alert.alert('Unable to schedule', getApiErrorMessage(error));
             }
@@ -262,7 +263,7 @@ function ComingSoonBody() {
   );
 }
 
-function UnassignedBody() {
+export function UnassignedBody() {
   return (
     <View style={styles.stack}>
       <VideoCard />
@@ -297,7 +298,7 @@ function UnassignedBody() {
         onPress={() =>
           Alert.alert(
             'Talk to Expert',
-            'AgeWell will assign a Care Manager and reach you during service hours (10:00 AM–6:00 PM).',
+            'EldCare will assign a Care Manager and reach you during service hours (10:00 AM–6:00 PM).',
           )
         }
         accessibilityRole="button"
@@ -336,6 +337,7 @@ function AssignedBody({
   onMessage: () => void;
   onSchedule: () => void;
 }) {
+  const locationLabel = serviceAreaDeliveryLabel(useServiceLocality());
   const name = manager.name ?? [manager.firstName, manager.lastName].filter(Boolean).join(' ') ?? 'Care Manager';
   return (
     <View style={styles.memberStack}>
@@ -346,7 +348,7 @@ function AssignedBody({
           <Text style={styles.profileRole}>Care Manager</Text>
           <View style={styles.profileMetaRow}>
             <Icon name="location" size={12} color={familyHome.blue} />
-            <Text style={styles.profileMeta}>{SERVICE_AREA_LINE}</Text>
+            <Text style={styles.profileMeta}>{locationLabel}</Text>
           </View>
           <View style={styles.assignedPill}>
             <View style={styles.assignedDot} />
@@ -492,13 +494,13 @@ function VideoCard({ compact = false }: { compact?: boolean }) {
     <Pressable
       onPress={() => void Linking.openURL(VIDEO_URL)}
       accessibilityRole="button"
-      accessibilityLabel="Watch: What is AgeWell Care Manager Service?"
+      accessibilityLabel="Watch: What is EldCare Care Manager Service?"
       style={({ pressed }) => [styles.videoCard, pressed ? styles.pressed : null]}
     >
       <View style={styles.videoHero}>
         <Image source={SERVICE_HERO_IMAGES['care-manager']} style={styles.videoImage} resizeMode="cover" />
         <View style={styles.videoOverlay} pointerEvents="none">
-          <Text style={styles.videoHeadline}>What is AgeWell Care Manager Service?</Text>
+          <Text style={styles.videoHeadline}>What is EldCare Care Manager Service?</Text>
         </View>
         <View style={styles.playWrap} pointerEvents="none">
           <View style={styles.playBtn}>
@@ -509,7 +511,7 @@ function VideoCard({ compact = false }: { compact?: boolean }) {
       </View>
       <View style={styles.videoCaption}>
         <Icon name="play" size={14} color={familyHome.red} />
-        <Text style={styles.videoCaptionText}>Watch: What is AgeWell Care Manager Service?</Text>
+        <Text style={styles.videoCaptionText}>Watch: What is EldCare Care Manager Service?</Text>
         <Icon name="chevron-forward" size={16} color={familyHome.muted} />
       </View>
     </Pressable>
@@ -711,7 +713,7 @@ const styles = StyleSheet.create({
   },
   videoThumbImage: { width: '100%', height: '100%' },
   videoThumbPlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(0,0,0,0.22)',
@@ -740,12 +742,12 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   videoImage: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     width: '100%',
     height: '100%',
   },
   videoOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(10,24,56,0.28)',
     justifyContent: 'flex-end',
     padding: spacing.lg,
@@ -753,7 +755,7 @@ const styles = StyleSheet.create({
   },
   videoHeadline: { ...typography.subtitle, color: familyHome.white },
   playWrap: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
   },

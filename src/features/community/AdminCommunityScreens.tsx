@@ -249,7 +249,7 @@ export function AdminCommunityDetailScreen() {
         onRetry={() => void query.refetch()}
         loadingMessage="Loading event..."
         emptyTitle="Event not found"
-        emptyMessage="This community event is not in AgeWell."
+        emptyMessage="This community event is not in EldCare."
       >
         {query.data ? (
           <View style={[styles.card, shadows.card]}>

@@ -17,11 +17,11 @@ def test_is_expo_push_token():
 
 def test_sos_push_copy():
     title, body = family_emergency_copy("John", "Medical Emergency")
-    assert title == "AgeWell Emergency"
+    assert title == "EldCare Emergency"
     assert "John has triggered an SOS" in body
     assert "Tap to respond" in body
     c_title, c_body = companion_emergency_copy("John")
-    assert c_title == "AgeWell Emergency"
+    assert c_title == "EldCare Emergency"
     assert "John has triggered an SOS" in c_body
 
 
@@ -52,7 +52,7 @@ async def test_expo_push_sender_posts_high_priority_emergency():
             settings.EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send"
             count = await sender.send_emergency(
                 user_ids=[user_id],
-                title="AgeWell Emergency",
+                title="EldCare Emergency",
                 body="John has triggered an SOS. Tap to respond.",
                 emergency_id=emergency_id,
             )

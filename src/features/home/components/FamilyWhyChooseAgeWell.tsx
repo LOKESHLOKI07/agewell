@@ -44,7 +44,7 @@ const REASONS: {
 export function FamilyWhyChooseAgeWell() {
   return (
     <View style={styles.section}>
-      <FamilyHomeSectionHeader title="Why Choose AgeWell?" />
+      <FamilyHomeSectionHeader title="Why Choose EldCare?" />
       <View style={styles.gridRow}>
         {REASONS.map((item) => (
           <View

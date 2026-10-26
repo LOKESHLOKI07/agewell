@@ -23,7 +23,7 @@ function chunkItems<T>(items: T[], size: number): T[][] {
   return rows;
 }
 
-/** View All add-ons — only the dedicated AgeWell add-on catalogue (not Single Membership). */
+/** View All add-ons — only the dedicated EldCare add-on catalogue (not Single Membership). */
 export function AddonsScreen() {
   const insets = useSafeAreaInsets();
   const bottomPad = useTabScreenBottomPad(spacing.xxl);

@@ -125,7 +125,7 @@ export function AdminDashboardScreen() {
           <Text style={styles.greeting} accessibilityRole="header">
             {greetingForHour(now.getHours())}, {displayName}
           </Text>
-          <Text style={styles.heroSub}>{"Here's what needs your attention across AgeWell today."}</Text>
+          <Text style={styles.heroSub}>{"Here's what needs your attention across EldCare today."}</Text>
         </View>
         <View style={styles.heroMeta}>
           <Text style={styles.heroDate}>{formatDashboardDate(now)}</Text>

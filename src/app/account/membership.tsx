@@ -36,7 +36,7 @@ export default function MembershipScreen() {
   const pending = pendingApplication.data?.items[0] ?? null;
 
   return (
-    <SimpleInfoScreen title="Membership" subtitle="Your current AgeWell plan">
+    <SimpleInfoScreen title="Membership" subtitle="Your current EldCare plan">
       {membershipState === 'loading' ? <LoadingState message="Loading membership..." /> : null}
       {membershipState === 'error' ? (
         <ErrorState message={getApiErrorMessage(membership.error)} onRetry={() => void membership.refetch()} />

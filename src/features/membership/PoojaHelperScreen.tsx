@@ -9,9 +9,10 @@ import {
   Text,
   View,
 } from 'react-native';
-import { router } from 'expo-router';
+
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LoadingState, PrimaryButton, SecondaryButton } from '@/components';
+import { LoadingState } from '@/components';
+
 import type { IconName } from '@/components/ui';
 import { Icon } from '@/components/ui';
 import { spacing, typography } from '@/constants/theme';
@@ -23,7 +24,7 @@ import { MarketplaceServiceIcon } from '@/features/services/components/Marketpla
 import { useTabScreenBottomPad } from '@/utils/safeBottom';
 import type { ServiceOffering } from './catalogTypes';
 import { MEMBERSHIP_SERVICE_AREA_LINE } from './membershipServicePageVariant';
-import { membershipPurchaseHref } from './planCatalog';
+
 import { SERVICE_HERO_IMAGES } from './serviceHeroes'
 import { servicePageType } from './servicePageType';
 import {
@@ -304,10 +305,10 @@ function MemberLiveBody() {
 
       <Text style={styles.sectionTitle}>Select a Pooja Service</Text>
 
-      {catalog.isPending && !catalog.data?.length ? (
+      {catalog.isPending && !offerings.length ? (
         <Text style={styles.empty}>Loading pooja services…</Text>
       ) : null}
-      {catalog.isError && !catalog.data?.length ? (
+      {catalog.isError && !offerings.length ? (
         <Pressable onPress={() => void catalog.refetch()} accessibilityRole="button">
           <Text style={styles.viewAll}>Unable to load · Tap to retry</Text>
         </Pressable>
@@ -499,7 +500,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   title: { ...servicePageType.pageTitle, color: familyHome.text },
-  liveTitle: { ...servicePageType.pageTitle, color: familyHome.text},
   lead: { ...typography.body, color: familyHome.muted, lineHeight: 22, marginTop: 4 },
   subtitle: { ...typography.body, color: familyHome.muted },
   heroFull: {
@@ -510,16 +510,16 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   heroFullImage: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     width: '100%',
     height: '100%',
   },
   heroScrim: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(255,255,255,0.55)',
   },
   heroFullContent: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'space-between',
@@ -844,7 +844,7 @@ const styles = StyleSheet.create({
   },
   videoThumbImage: { width: '100%', height: '100%' },
   videoThumbPlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(0,0,0,0.22)',

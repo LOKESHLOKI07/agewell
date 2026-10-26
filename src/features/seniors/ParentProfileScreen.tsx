@@ -86,7 +86,7 @@ export function ParentProfileScreen() {
 
   return (
     <Screen>
-      <AppHeader title={name} subtitle="Your AgeWell profile" showBack />
+      <AppHeader title={name} subtitle="Your EldCare profile" showBack />
 
       <View style={styles.stack}>
         <InfoCard title="Personal information">
@@ -128,7 +128,7 @@ export function ParentProfileScreen() {
 
         <Text style={styles.privacy}>
           Doctor and hospital details appear here after you add them in Health. This screen shows only what is saved on
-          your AgeWell account.
+          your EldCare account.
         </Text>
       </View>
     </Screen>

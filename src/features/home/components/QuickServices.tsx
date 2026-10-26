@@ -43,7 +43,7 @@ export function QuickServices({ services, state, error, onRetry }: QuickServices
     <View style={styles.container}>
       <SectionTitle
         title={t('home.quickServices')}
-        subtitle="Only services available in your AgeWell catalogue"
+        subtitle="Only services available in your EldCare catalogue"
         actionLabel="Browse all"
         onAction={() => router.push('/(tabs)/services' as Href)}
       />

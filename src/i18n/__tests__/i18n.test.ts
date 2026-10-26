@@ -5,7 +5,7 @@ import { mr } from '@/i18n/locales/mr';
 
 describe('i18n catalogues', () => {
   it('keeps English as the default complete catalogue', () => {
-    expect(en['brand.name']).toBe('AgeWell');
+    expect(en['brand.name']).toBe('EldCare');
     expect(en['emergency.disclaimer']).toMatch(/112/);
     expect(en['addons.noPayment']).toMatch(/not a purchase/i);
   });
@@ -13,7 +13,7 @@ describe('i18n catalogues', () => {
   it('provides Hindi and Marathi UI strings without translating API payloads', () => {
     expect(hi['home.todaysCare']).not.toBe(en['home.todaysCare']);
     expect(mr['home.todaysCare']).not.toBe(en['home.todaysCare']);
-    expect(translate('hi', 'brand.name')).toBe('AgeWell');
+    expect(translate('hi', 'brand.name')).toBe('EldCare');
     expect(translate('mr', 'common.back')).toBe('मागे');
   });
 

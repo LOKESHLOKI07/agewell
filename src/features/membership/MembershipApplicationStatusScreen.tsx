@@ -51,7 +51,7 @@ export function MembershipApplicationStatusScreen() {
         queryClient.invalidateQueries({ queryKey: homeQueryKeys.membershipCurrent }),
         queryClient.invalidateQueries({ queryKey: homeQueryKeys.membershipUsage }),
       ]);
-      Alert.alert('Payment confirmed', 'Your AgeWell membership is now active.');
+      Alert.alert('Payment confirmed', 'Your EldCare membership is now active.');
     },
     onError: (error) => {
       Alert.alert('Unable to pay', getApiErrorMessage(error));

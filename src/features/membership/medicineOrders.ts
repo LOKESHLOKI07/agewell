@@ -68,7 +68,7 @@ function detailFromRequest(request: ServiceRequest, tone: MedicineOrderTone): st
     case 'cancelled':
       return 'This order was cancelled';
     case 'progress':
-      return 'AgeWell is preparing your medicines';
+      return 'EldCare is preparing your medicines';
     default:
       return 'Prescription received';
   }

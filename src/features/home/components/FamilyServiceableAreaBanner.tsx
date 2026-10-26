@@ -1,12 +1,14 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { Icon } from '@/components/ui';
 import { spacing, typography } from '@/constants/theme';
-import { SERVICE_AREA_CITIES } from '@/features/auth/serviceArea';
+import { serviceAreaDeliveryLabel } from '@/features/auth/serviceArea';
+import { useServiceLocality } from '@/features/auth/useServiceLocality';
 import { familyHome } from './familyHomeTheme';
 
-const SERVICE_AREA_LABEL = SERVICE_AREA_CITIES;
-
 export function FamilyServiceableAreaBanner({ flush = false }: { flush?: boolean }) {
+  const locality = useServiceLocality();
+  const areaLabel = serviceAreaDeliveryLabel(locality);
+
   return (
     <View style={[styles.banner, flush ? styles.flush : null]} accessibilityRole="summary">
       <View style={styles.iconWrap}>
@@ -27,7 +29,7 @@ export function FamilyServiceableAreaBanner({ flush = false }: { flush?: boolean
           adjustsFontSizeToFit
           minimumFontScale={0.75}
         >
-          Delivering care in {SERVICE_AREA_LABEL}.
+          Delivering care in {areaLabel}.
         </Text>
       </View>
       <View style={styles.checkWrap}>

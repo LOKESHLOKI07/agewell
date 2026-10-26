@@ -17,14 +17,14 @@ export function RoleUnavailableScreen() {
   const label = role && isAuthRole(role) ? AUTH_ROLE_LABELS[role as AuthRole] : 'This';
   const careApp = isCareApp();
   const body = careApp
-    ? 'AgeWell Care is for care managers, companions, and delivery executives. Sign out and open the AgeWell member app.'
+    ? 'EldCare Care is for care managers, companions, and delivery executives. Sign out and open the EldCare member app.'
     : role === 'CARE_MANAGER'
-      ? 'Care staff should use the AgeWell Care app, not the member app. Sign out and open AgeWell Care.'
+      ? 'Care staff should use the EldCare Care app, not the member app. Sign out and open EldCare Care.'
       : 'You are signed in, but this role does not have a workspace in this app.';
 
   return (
     <View style={[styles.safe, { paddingTop: insets.top }]}>
-      <CareScreen title={`${label} account`} subtitle={careApp ? 'Wrong app for this account.' : 'Use a different AgeWell app.'}>
+      <CareScreen title={`${label} account`} subtitle={careApp ? 'Wrong app for this account.' : 'Use a different EldCare app.'}>
         <Text style={styles.body}>{body}</Text>
         <Pressable
           style={styles.logout}

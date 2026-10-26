@@ -123,7 +123,7 @@ export function ProfileScreen() {
         <MenuRow
           icon="person-outline"
           title="Personal Info"
-          subtitle="Your AgeWell account"
+          subtitle="Your EldCare account"
           onPress={() =>
             router.push({
               pathname: '/parent/[id]',
@@ -211,7 +211,7 @@ export function ProfileScreen() {
       <ConfirmDialog
         visible={confirmVisible}
         title="Sign out?"
-        message="You will need to sign in again to use AgeWell."
+        message="You will need to sign in again to use EldCare."
         confirmLabel="Sign out"
         cancelLabel="Stay signed in"
         destructive

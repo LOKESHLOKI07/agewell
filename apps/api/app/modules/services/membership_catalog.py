@@ -1,4 +1,4 @@
-"""Canonical AgeWell Single Membership catalogue (21 services).
+"""Canonical EldCare Single Membership catalogue (21 services).
 
 Used by seed and kept in sync with the mobile `serviceCatalog` slugs.
 Order matches the product brochure. Tiffin Box lives in addon_catalog.
@@ -116,7 +116,7 @@ MEMBERSHIP_SERVICES: list[MembershipServiceDef] = [
         "slug": "events-trips",
         "name": "Local Events & Trips",
         "category": ServiceCategory.COMMUNITY,
-        "description": "Nearby events, priority AgeWell tours across Maharashtra & India, and companion support for luggage, boarding, seating, hotel check-in/out plus medication & emergency help (tours cost extra).",
+        "description": "Nearby events, priority EldCare tours across Maharashtra & India, and companion support for luggage, boarding, seating, hotel check-in/out plus medication & emergency help (tours cost extra).",
         "admin_inbox": "community",
     },
     {
@@ -134,7 +134,7 @@ MEMBERSHIP_SERVICES: list[MembershipServiceDef] = [
         "name": "CA Assistance",
         "category": ServiceCategory.ADD_ON,
         "description": (
-            "Exclusive access to AgeWell CA partners for ITR filing, financial guidance and other CA services. "
+            "Exclusive access to EldCare CA partners for ITR filing, financial guidance and other CA services. "
             "Consultation and filing costs are charged separately."
         ),
         "admin_inbox": "requests",
@@ -150,7 +150,7 @@ MEMBERSHIP_SERVICES: list[MembershipServiceDef] = [
         "slug": "home-repair",
         "name": "House Maintenance",
         "category": ServiceCategory.FOOD_HOME,
-        "description": "Plumbing, electrical, carpentry, AC service and more with AgeWell coordination.",
+        "description": "Plumbing, electrical, carpentry, AC service and more with EldCare coordination.",
         "admin_inbox": "requests",
     },
     {

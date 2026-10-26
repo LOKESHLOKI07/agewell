@@ -22,7 +22,7 @@ export function ErrorState({
   const resolvedMessage =
     message ??
     (variant === 'offline'
-      ? 'Please check your connection. AgeWell will reload your care details when you are back online.'
+      ? 'Please check your connection. EldCare will reload your care details when you are back online.'
       : 'We could not load this information. Please try again.');
 
   return (

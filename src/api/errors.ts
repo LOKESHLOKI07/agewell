@@ -12,8 +12,8 @@ const MESSAGES = {
   emailExists: 'This email is already registered. Sign in, or use a different email.',
   phoneExists: 'This phone number is already registered. Sign in, or use a different number.',
   badRequest: 'Please check the information you entered and try again.',
-  server: 'AgeWell is having trouble right now. Please try again shortly.',
-  network: 'Unable to connect to AgeWell. Please check your internet connection.',
+  server: 'EldCare is having trouble right now. Please try again shortly.',
+  network: 'Unable to connect to EldCare. Please check your internet connection.',
   generic: 'Something went wrong. Please try again.',
 } as const;
 

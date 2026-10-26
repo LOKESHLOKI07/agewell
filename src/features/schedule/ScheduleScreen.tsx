@@ -70,7 +70,7 @@ export function ScheduleScreen() {
         }
       >
         <Text style={styles.intro}>
-          Care visits, doctor appointments, medicines, and service requests from your AgeWell records.
+          Care visits, doctor appointments, medicines, and service requests from your EldCare records.
         </Text>
 
         {state === 'loading' ? (

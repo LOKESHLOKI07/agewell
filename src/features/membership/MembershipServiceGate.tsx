@@ -3,7 +3,8 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView, LoadingState } from '@/components';
 import { Icon } from '@/components/ui';
-import { spacing, typography } from '@/constants/theme';
+import { spacing } from '@/constants/theme';
+
 import { ServicePageHeader } from '@/features/home/components/ServicePageHeader';
 import { familyHome } from '@/features/home/components/familyHomeTheme';
 import { MEMBERSHIP_SERVICE_AREA_LINE } from './membershipServicePageVariant';
@@ -91,7 +92,7 @@ function ComingSoonBody({ slug, title }: { slug: string; title: string }) {
         <View style={styles.bannerCopy}>
           <Text style={styles.infoTitle}>Stay Connected</Text>
           <Text style={styles.infoBody}>
-            Follow us for updates as we bring AgeWell to more locations soon.
+            Follow us for updates as we bring EldCare to more locations soon.
           </Text>
         </View>
       </View>

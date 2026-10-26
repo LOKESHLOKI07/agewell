@@ -49,7 +49,7 @@ async function ensureEmergencyChannel(): Promise<void> {
 
 /**
  * Request permission, create the emergency Android channel, obtain an Expo push
- * token (backed by FCM/APNs via Expo), and register it with the AgeWell API.
+ * token (backed by FCM/APNs via Expo), and register it with the EldCare API.
  */
 export async function registerForEmergencyPush(): Promise<string | null> {
   if (Platform.OS === 'web') {

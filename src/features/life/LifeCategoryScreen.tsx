@@ -22,11 +22,11 @@ export function LifeCategoryScreen() {
           title={category ? `${category.title}` : 'Category not found'}
           message={
             category
-              ? `${t('life.empty')} There is no AgeWell Life content API yet for ${category.title}.`
+              ? `${t('life.empty')} There is no EldCare Life content API yet for ${category.title}.`
               : t('life.empty')
           }
         />
-        <Text style={styles.note}>Backend required: entertainment / AgeWell Life content endpoints.</Text>
+        <Text style={styles.note}>Backend required: entertainment / EldCare Life content endpoints.</Text>
       </View>
     </View>
   );

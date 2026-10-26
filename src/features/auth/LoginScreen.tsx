@@ -110,7 +110,7 @@ function SignInMethods({
         <AgeWellLogo compact />
         <Text style={styles.title}>Sign in</Text>
         <Text style={styles.subtitle}>
-          {isCareApp() ? 'Choose how you want to sign in to AgeWell Care.' : 'Choose how you want to sign in to AgeWell.'}
+          {isCareApp() ? 'Choose how you want to sign in to EldCare Care.' : 'Choose how you want to sign in to EldCare.'}
         </Text>
       </View>
       <AuthMethodButtons
@@ -125,7 +125,7 @@ function SignInMethods({
           onPress={() => router.replace('/(auth)/welcome' as Href)}
           accessibilityRole="button"
         >
-          <Text style={styles.link}>New to AgeWell? Create an account</Text>
+          <Text style={styles.link}>New to EldCare? Create an account</Text>
         </Pressable>
       ) : null}
     </>
@@ -310,7 +310,7 @@ function SignInSubmit({ loading, onPress }: { loading: boolean; onPress: () => v
       disabled={loading}
       accessibilityRole="button"
       accessibilityLabel="Sign In"
-      accessibilityHint="Signs in to your AgeWell account"
+      accessibilityHint="Signs in to your EldCare account"
       accessibilityState={{ disabled: loading, busy: loading }}
       style={({ pressed }) => [
         styles.submit,

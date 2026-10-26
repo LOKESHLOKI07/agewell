@@ -1,6 +1,6 @@
 import { LIFE_CATEGORIES, findLifeCategory } from '../categories';
 
-describe('AgeWell Life categories', () => {
+describe('EldCare Life categories', () => {
   it('exposes the consumer category architecture without inventing content', () => {
     expect(LIFE_CATEGORIES.map((c) => c.id)).toEqual([
       'movies',

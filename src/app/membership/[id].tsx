@@ -44,7 +44,7 @@ export default function MembershipServiceByIdScreen() {
     return (
       <ComingSoonServiceScreen
         title="Service"
-        description="This AgeWell membership service was not found."
+        description="This EldCare membership service was not found."
         icon="help-circle-outline"
         color="#6B6B6B"
         background="#F5F5F5"

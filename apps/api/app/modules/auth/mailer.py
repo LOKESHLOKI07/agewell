@@ -13,11 +13,11 @@ def send_otp_email(to_email: str, code: str) -> None:
         raise RuntimeError("SMTP is not configured")
 
     message = EmailMessage()
-    message["Subject"] = "Your AgeWell verification code"
+    message["Subject"] = "Your EldCare verification code"
     message["From"] = settings.SMTP_FROM or settings.SMTP_USER
     message["To"] = to_email
     message.set_content(
-        f"Your AgeWell verification code is {code}.\n\n"
+        f"Your EldCare verification code is {code}.\n\n"
         "It expires in 10 minutes. If you did not request this, you can ignore this email."
     )
 

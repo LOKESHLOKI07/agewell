@@ -503,7 +503,7 @@ describe('admin APIs', () => {
 
     mockedGet.mockRejectedValueOnce({ isAxiosError: true, message: 'Network Error', code: 'ERR_NETWORK' });
     await expect(fetchAdminSeniors({ limit: 20, offset: 0 })).rejects.toMatchObject({
-      message: 'Unable to connect to AgeWell. Please check your internet connection.',
+      message: 'Unable to connect to EldCare. Please check your internet connection.',
     });
   });
 });

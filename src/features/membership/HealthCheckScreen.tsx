@@ -19,8 +19,9 @@ import {
   ThermometerDigital,
 } from 'healthicons-react-native/filled';
 import { KeyboardAwareScrollView, LoadingState, PrimaryButton, SecondaryButton } from '@/components';
-import { Icon, type IconName } from '@/components/ui';
-import { minTouchSize, spacing, typography } from '@/constants/theme';
+import { Icon } from '@/components/ui';
+import { spacing, typography } from '@/constants/theme';
+
 import { queryClient } from '@/api/queryClient';
 import { ServicePageHeader } from '@/features/home/components/ServicePageHeader';
 import { familyHome } from '@/features/home/components/familyHomeTheme';
@@ -66,7 +67,7 @@ function vitalIconFor(title: string, description?: string): HealthIcon {
   return Cardiogram;
 }
 
-const VIDEO_URL = 'https://www.youtube.com/results?search_query=How+AgeWell+Health+Checks+Help+You+Stay+Healthy';
+const VIDEO_URL = 'https://www.youtube.com/results?search_query=How+EldCare+Health+Checks+Help+You+Stay+Healthy';
 
 const DEFAULT_VITALS: { title: string; soft: string; color: string }[] = [
   { title: 'Blood Pressure (BP)', soft: familyHome.greenSoft, color: familyHome.green },
@@ -320,7 +321,7 @@ function ComingSoonFooter() {
   );
 }
 
-function MembershipRequiredFooter() {
+export function MembershipRequiredFooter() {
   return (
     <View style={styles.membershipCard}>
       <View style={styles.membershipHead}>
@@ -329,7 +330,7 @@ function MembershipRequiredFooter() {
         </View>
         <View style={styles.flex}>
           <Text style={styles.membershipTitle}>Membership Required</Text>
-          <Text style={styles.membershipBody}>Health Check service is available to AgeWell members.</Text>
+          <Text style={styles.membershipBody}>Health Check service is available to EldCare members.</Text>
         </View>
       </View>
       <Pressable
@@ -338,7 +339,7 @@ function MembershipRequiredFooter() {
         accessibilityRole="button"
       >
         <View style={styles.flex}>
-          <Text style={styles.joinPromoTitle}>Join AgeWell Membership</Text>
+          <Text style={styles.joinPromoTitle}>Join EldCare Membership</Text>
           <Text style={styles.joinPromoBody}>
             Get access to monthly health checks and many other services for a safer, healthier and happier life.
           </Text>
@@ -351,7 +352,7 @@ function MembershipRequiredFooter() {
   );
 }
 
-function MoreWithMembership({ extras }: { extras: ServiceOffering[] }) {
+export function MoreWithMembership({ extras }: { extras: ServiceOffering[] }) {
   return (
     <View style={styles.stack}>
       <Text style={styles.sectionTitle}>More with Membership</Text>
@@ -372,7 +373,6 @@ function MoreWithMembership({ extras }: { extras: ServiceOffering[] }) {
     </View>
   );
 }
-
 
 function MemberBody({
   reports,
@@ -563,7 +563,7 @@ function MemberBody({
       <Pressable
         onPress={() => void Linking.openURL(VIDEO_URL)}
         accessibilityRole="button"
-        accessibilityLabel="Watch on YouTube: How AgeWell Health Checks Help You Stay Healthy"
+        accessibilityLabel="Watch on YouTube: How EldCare Health Checks Help You Stay Healthy"
         style={({ pressed }) => [styles.videoCardCompact, pressed ? styles.pressed : null]}
       >
         <View style={styles.videoThumb}>
@@ -578,7 +578,7 @@ function MemberBody({
             <Icon name="play" size={12} color={familyHome.red} />
             <Text style={styles.watchLabel}>Watch on YouTube</Text>
           </View>
-          <Text style={styles.videoCompactTitle}>How AgeWell Health Checks Help You Stay Healthy</Text>
+          <Text style={styles.videoCompactTitle}>How EldCare Health Checks Help You Stay Healthy</Text>
           <Text style={styles.videoCompactBody}>
             See how monthly vitals checks help you and your family stay on top of everyday health.
           </Text>
@@ -893,7 +893,7 @@ const styles = StyleSheet.create({
   },
   videoThumbImage: { width: '100%', height: '100%' },
   videoThumbPlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(0,0,0,0.22)',

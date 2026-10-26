@@ -20,7 +20,7 @@ const ROWS: { id: string; label: string; icon: IconName; onPress: () => void }[]
     id: 'report',
     label: 'Report an Issue',
     icon: 'alert-circle-outline',
-    onPress: () => Alert.alert('Report an Issue', 'Contact AgeWell operations to escalate a field issue.'),
+    onPress: () => Alert.alert('Report an Issue', 'Contact EldCare operations to escalate a field issue.'),
   },
   {
     id: 'faq',

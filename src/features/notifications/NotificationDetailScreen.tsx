@@ -62,7 +62,7 @@ export function NotificationDetailScreen() {
               {notification.message ? <Text style={styles.message}>{notification.message}</Text> : null}
               {emergency ? (
                 <Text style={styles.note}>
-                  This is an AgeWell emergency request. AgeWell does not send an ambulance from this notification.
+                  This is an EldCare emergency request. EldCare does not send an ambulance from this notification.
                 </Text>
               ) : null}
               {notification.isRead ? (

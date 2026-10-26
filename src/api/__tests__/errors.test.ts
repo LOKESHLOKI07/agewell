@@ -73,19 +73,19 @@ describe('getApiErrorMessage', () => {
   it('maps 404 and 500', () => {
     expect(getApiErrorMessage(axiosError(404))).toBe('We could not find that information.');
     expect(getApiErrorMessage(axiosError(500))).toBe(
-      'AgeWell is having trouble right now. Please try again shortly.',
+      'EldCare is having trouble right now. Please try again shortly.',
     );
   });
 
   it('maps network failures to a connection message', () => {
     expect(getApiErrorMessage(axiosError(undefined, { message: 'Network Error', code: 'ERR_NETWORK' }))).toBe(
-      'Unable to connect to AgeWell. Please check your internet connection.',
+      'Unable to connect to EldCare. Please check your internet connection.',
     );
   });
 
   it('maps timeouts to a connection message', () => {
     expect(getApiErrorMessage(axiosError(undefined, { code: 'ECONNABORTED' }))).toBe(
-      'Unable to connect to AgeWell. Please check your internet connection.',
+      'Unable to connect to EldCare. Please check your internet connection.',
     );
   });
 });

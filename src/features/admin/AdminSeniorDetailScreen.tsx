@@ -275,7 +275,7 @@ export function AdminSeniorDetailScreen() {
         onRetry={() => void query.refetch()}
         loadingMessage="Loading senior..."
         emptyTitle="Senior not found"
-        emptyMessage="This senior is not in AgeWell."
+        emptyMessage="This senior is not in EldCare."
       >
         {senior ? (
           <>

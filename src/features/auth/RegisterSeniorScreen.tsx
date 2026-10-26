@@ -48,7 +48,7 @@ export function RegisterSeniorScreen() {
     <Screen>
       <AgeWellHeader title="Senior registration" showBack showProfile={false} />
       <Text style={styles.step}>Step 1 of 2 · Account & profile</Text>
-      <Text style={styles.intro}>Create your AgeWell senior account. No family or care links are created automatically.</Text>
+      <Text style={styles.intro}>Create your EldCare senior account. No family or care links are created automatically.</Text>
       <Field control={control} name="firstName" label="First name" error={errors.firstName?.message} />
       <Field control={control} name="lastName" label="Last name" error={errors.lastName?.message} />
       <Field control={control} name="email" label="Email" keyboardType="email-address" autoCapitalize="none" error={errors.email?.message} />

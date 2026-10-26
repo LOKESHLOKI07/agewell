@@ -124,7 +124,7 @@ export const SERVICE_HERO_COPY: Record<string, { headline: string; subtitle: str
   },
   'events-trips': {
     headline: 'Explore Together, Live Brighter',
-    subtitle: 'Local events, AgeWell tours and companion support (tours extra)',
+    subtitle: 'Local events, EldCare tours and companion support (tours extra)',
   },
   legal: {
     headline: 'Trusted Legal Support for a Secure Tomorrow',

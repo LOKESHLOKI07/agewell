@@ -49,7 +49,7 @@ async def get_current_user(
     if user.account_status in (AccountStatus.REJECTED, AccountStatus.DISABLED):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="This account is not allowed to access AgeWell.",
+            detail="This account is not allowed to access EldCare.",
         )
     return user
 

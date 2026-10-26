@@ -15,11 +15,15 @@ export type ServiceLocality = {
   label: string;
   tier: ServiceTier;
   keywords: string[];
+  center: { latitude: number; longitude: number };
 };
 
 /** Public line used on banners and lock screens. */
 export const SERVICE_AREA_CITIES =
   'Kandivali & Borivali, Mumbai, and Warora, Bhadravati & Wani, Chandrapur';
+
+const TIER1_CLUSTER_LABEL = 'Kandivali & Borivali, Mumbai';
+const TIER2_CLUSTER_LABEL = 'Warora, Bhadravati & Wani, Chandrapur';
 
 export const SERVICE_AREA_STAY_TUNED =
   'Stay tuned, we will start our service in your area shortly.';
@@ -56,30 +60,35 @@ export const SERVICE_LOCALITIES: ServiceLocality[] = [
     label: 'Kandivali, Mumbai',
     tier: 'tier1',
     keywords: ['kandivali', 'kandivli'],
+    center: { latitude: 19.204, longitude: 72.852 },
   },
   {
     id: 'borivali',
     label: 'Borivali, Mumbai',
     tier: 'tier1',
     keywords: ['borivali', 'borivli'],
+    center: { latitude: 19.232, longitude: 72.859 },
   },
   {
     id: 'warora',
     label: 'Warora, Chandrapur',
     tier: 'tier2',
     keywords: ['warora'],
+    center: { latitude: 20.228, longitude: 79.001 },
   },
   {
     id: 'bhadravati',
     label: 'Bhadravati, Chandrapur',
     tier: 'tier2',
     keywords: ['bhadravati'],
+    center: { latitude: 20.108, longitude: 79.117 },
   },
   {
     id: 'wani',
     label: 'Wani, Chandrapur',
     tier: 'tier2',
     keywords: ['wani'],
+    center: { latitude: 20.056, longitude: 78.953 },
   },
 ];
 
@@ -103,42 +112,82 @@ function matchesKeyword(normalized: string, keyword: string): boolean {
   return normalized.includes(keyword);
 }
 
-export function matchPlaceName(place: string): ServiceAreaMatch {
+function matchFromLocality(locality: ServiceLocality): ServiceAreaMatch {
+  return {
+    inServiceArea: true,
+    tier: locality.tier,
+    localityId: locality.id,
+    localityLabel: locality.label,
+  };
+}
+
+function clusterMatch(tier: ServiceTier): ServiceAreaMatch {
+  return {
+    inServiceArea: true,
+    tier,
+    localityId: tier === 'tier1' ? 'mumbai-west' : 'chandrapur-cluster',
+    localityLabel: tier === 'tier1' ? TIER1_CLUSTER_LABEL : TIER2_CLUSTER_LABEL,
+  };
+}
+
+function matchingLocalities(place: string): ServiceLocality[] {
   const normalized = place.trim().toLowerCase();
   if (!normalized) {
-    return NONE_SERVICE_AREA_MATCH;
+    return [];
   }
-  for (const locality of SERVICE_LOCALITIES) {
-    if (locality.keywords.some((keyword) => matchesKeyword(normalized, keyword))) {
-      return {
-        inServiceArea: true,
-        tier: locality.tier,
-        localityId: locality.id,
-        localityLabel: locality.label,
-      };
-    }
+  return SERVICE_LOCALITIES.filter((locality) =>
+    locality.keywords.some((keyword) => matchesKeyword(normalized, keyword)),
+  );
+}
+
+function uniquePlaceMatch(place: string): ServiceAreaMatch | null {
+  const matches = matchingLocalities(place);
+  if (matches.length === 1) {
+    return matchFromLocality(matches[0]);
+  }
+  return null;
+}
+
+function nearestLocality(latitude: number, longitude: number, tier: ServiceTier): ServiceLocality {
+  const candidates = SERVICE_LOCALITIES.filter((locality) => locality.tier === tier);
+  return candidates.reduce((best, current) => {
+    const bestDeltaLat = latitude - best.center.latitude;
+    const bestDeltaLng = longitude - best.center.longitude;
+    const currentDeltaLat = latitude - current.center.latitude;
+    const currentDeltaLng = longitude - current.center.longitude;
+    const bestDistance = bestDeltaLat * bestDeltaLat + bestDeltaLng * bestDeltaLng;
+    const currentDistance = currentDeltaLat * currentDeltaLat + currentDeltaLng * currentDeltaLng;
+    return currentDistance < bestDistance ? current : best;
+  });
+}
+
+export function matchPlaceName(place: string): ServiceAreaMatch {
+  const matches = matchingLocalities(place);
+  if (matches.length === 1) {
+    return matchFromLocality(matches[0]);
+  }
+  if (matches.length > 1) {
+    return clusterMatch(matches[0].tier);
   }
   return NONE_SERVICE_AREA_MATCH;
 }
 
 export function matchCoordinate(latitude: number, longitude: number): ServiceAreaMatch {
   if (inBounds(latitude, longitude, TIER1_BOUNDS)) {
-    return {
-      inServiceArea: true,
-      tier: 'tier1',
-      localityId: 'mumbai-west',
-      localityLabel: 'Kandivali & Borivali, Mumbai',
-    };
+    return matchFromLocality(nearestLocality(latitude, longitude, 'tier1'));
   }
   if (inBounds(latitude, longitude, TIER2_BOUNDS)) {
-    return {
-      inServiceArea: true,
-      tier: 'tier2',
-      localityId: 'chandrapur-cluster',
-      localityLabel: 'Warora, Bhadravati & Wani, Chandrapur',
-    };
+    return matchFromLocality(nearestLocality(latitude, longitude, 'tier2'));
   }
   return NONE_SERVICE_AREA_MATCH;
+}
+
+/** Banner copy: one locality and region, e.g. "Kandivali, Mumbai". */
+export function serviceAreaDeliveryLabel(
+  match: Pick<ServiceAreaMatch, 'inServiceArea' | 'localityLabel'> | null | undefined,
+): string {
+  const label = match?.inServiceArea ? match.localityLabel?.trim() : '';
+  return label || SERVICE_AREA_CITIES;
 }
 
 export function isCoordinateInServiceArea(latitude: number, longitude: number): boolean {
@@ -181,9 +230,9 @@ export async function resolveServiceAreaMatchFromGps(
   try {
     const results = await Location.reverseGeocodeAsync({ latitude, longitude });
     for (const address of results) {
-      const byPlace = matchPlaceName(joinAddressFields(address));
-      if (byPlace.inServiceArea) {
-        return byPlace;
+      const unique = uniquePlaceMatch(joinAddressFields(address));
+      if (unique) {
+        return unique;
       }
     }
   } catch {
@@ -225,9 +274,9 @@ export function resolveServiceAreaFromSenior(input: {
   address?: string | null;
 }): ServiceAreaMatch {
   if (input.locationQuery) {
-    const fromQuery = matchPlaceName(input.locationQuery);
-    if (fromQuery.inServiceArea) {
-      return fromQuery;
+    const uniqueFromQuery = uniquePlaceMatch(input.locationQuery);
+    if (uniqueFromQuery) {
+      return uniqueFromQuery;
     }
   }
   if (input.locationLat != null && input.locationLng != null) {
@@ -237,18 +286,25 @@ export function resolveServiceAreaFromSenior(input: {
     }
   }
   if (input.address) {
+    const uniqueFromAddress = uniquePlaceMatch(input.address);
+    if (uniqueFromAddress) {
+      return uniqueFromAddress;
+    }
+  }
+  if (input.locationQuery) {
+    const fromQuery = matchPlaceName(input.locationQuery);
+    if (fromQuery.inServiceArea) {
+      return fromQuery;
+    }
+  }
+  if (input.address) {
     const fromAddress = matchPlaceName(input.address);
     if (fromAddress.inServiceArea) {
       return fromAddress;
     }
   }
   if (input.inServiceArea) {
-    return {
-      inServiceArea: true,
-      tier: 'tier1',
-      localityId: 'mumbai-west',
-      localityLabel: 'Kandivali & Borivali, Mumbai',
-    };
+    return clusterMatch('tier1');
   }
   return NONE_SERVICE_AREA_MATCH;
 }

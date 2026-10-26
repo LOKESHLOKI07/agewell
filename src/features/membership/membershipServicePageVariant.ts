@@ -6,7 +6,7 @@ export type MembershipServicePageVariant =
   | 'serviceable_no_membership'
   | 'serviceable_with_membership';
 
-export const MEMBERSHIP_SERVICE_AREA_LINE = `AgeWell is currently serving ${SERVICE_AREA_CITIES}.`;
+export const MEMBERSHIP_SERVICE_AREA_LINE = `EldCare is currently serving ${SERVICE_AREA_CITIES}.`;
 
 /**
  * Page-level gate for membership (and add-on) service screens.

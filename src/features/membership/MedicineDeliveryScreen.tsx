@@ -39,7 +39,7 @@ import { useHasActiveMembership } from './useHasActiveMembership';
 import { useSystemBottomInset } from '@/utils/safeBottom';
 import { toDisplayDate } from '@/utils/date';
 
-const VIDEO_URL = 'https://www.youtube.com/results?search_query=How+AgeWell+Medicine+Delivery+Works';
+const VIDEO_URL = 'https://www.youtube.com/results?search_query=How+EldCare+Medicine+Delivery+Works';
 
 const GATE_BENEFITS: { icon: IconName; title: string; line: string }[] = [
   {
@@ -352,7 +352,7 @@ function ComingSoonFooter() {
   );
 }
 
-function MembershipRequiredFooter() {
+export function MembershipRequiredFooter() {
   return (
     <View style={styles.membershipCard}>
       <View style={styles.membershipHead}>
@@ -361,18 +361,18 @@ function MembershipRequiredFooter() {
         </View>
         <View style={styles.flex}>
           <Text style={styles.membershipTitle}>Membership Required</Text>
-          <Text style={styles.membershipBody}>Medicine Delivery is available to AgeWell members.</Text>
+          <Text style={styles.membershipBody}>Medicine Delivery is available to EldCare members.</Text>
         </View>
       </View>
 
       <Pressable
         onPress={() => router.push(membershipPurchaseHref())}
         accessibilityRole="button"
-        accessibilityLabel="Join AgeWell Membership"
+        accessibilityLabel="Join EldCare Membership"
         style={({ pressed }) => [styles.joinPromo, pressed ? styles.pressed : null]}
       >
         <View style={styles.flex}>
-          <Text style={styles.joinPromoTitle}>Join AgeWell Membership</Text>
+          <Text style={styles.joinPromoTitle}>Join EldCare Membership</Text>
           <Text style={styles.joinPromoBody}>
             Get access to Medicine Delivery and many other services for a safer, healthier and happier life.
           </Text>
@@ -527,7 +527,7 @@ function MemberBody({
         </View>
       ) : null}
 
-      <Text style={styles.sectionTitle}>Why choose AgeWell Medicine Delivery</Text>
+      <Text style={styles.sectionTitle}>Why choose EldCare Medicine Delivery</Text>
       <View style={styles.whyRow}>
         {WHY_FEATURES.map((item) => (
           <View key={item.title} style={[styles.whyCard, { backgroundColor: item.soft }]}>
@@ -541,7 +541,7 @@ function MemberBody({
       <Pressable
         onPress={() => void Linking.openURL(VIDEO_URL)}
         accessibilityRole="button"
-        accessibilityLabel="Watch on YouTube: How AgeWell Medicine Delivery Works"
+        accessibilityLabel="Watch on YouTube: How EldCare Medicine Delivery Works"
         style={({ pressed }) => [styles.videoCardCompact, pressed ? styles.pressed : null]}
       >
         <View style={styles.videoThumb}>
@@ -556,9 +556,9 @@ function MemberBody({
             <Icon name="play" size={12} color={familyHome.red} />
             <Text style={styles.watchLabel}>Watch on YouTube</Text>
           </View>
-          <Text style={styles.videoCompactTitle}>How AgeWell Medicine Delivery Works</Text>
+          <Text style={styles.videoCompactTitle}>How EldCare Medicine Delivery Works</Text>
           <Text style={styles.videoCompactBody}>
-            From prescription upload to doorstep delivery — see how AgeWell brings your medicines home.
+            From prescription upload to doorstep delivery — see how EldCare brings your medicines home.
           </Text>
         </View>
         <Icon name="chevron-forward" size={16} color={familyHome.muted} />
@@ -859,7 +859,7 @@ const styles = StyleSheet.create({
   },
   videoThumbImage: { width: '100%', height: '100%' },
   videoThumbPlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(0,0,0,0.22)',

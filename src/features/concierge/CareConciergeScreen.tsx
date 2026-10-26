@@ -61,7 +61,7 @@ function newId(prefix: string) {
 }
 
 const WELCOME_TEXT =
-  'Namaste! I am AgeWell Bot. I can talk with you and help with all membership services — medicines, care manager, companion, doctor, groceries, transport, home help, and more. What do you need today?';
+  'Namaste! I am EldCare Bot. I can talk with you and help with all membership services — medicines, care manager, companion, doctor, groceries, transport, home help, and more. What do you need today?';
 
 export function CareConciergeScreen() {
   const insets = useSafeAreaInsets();
@@ -351,7 +351,7 @@ export function CareConciergeScreen() {
       <View style={styles.composer}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={listening ? 'Stop listening' : 'Talk to AgeWell Bot'}
+          accessibilityLabel={listening ? 'Stop listening' : 'Talk to EldCare Bot'}
           onPress={toggleListening}
           disabled={busy}
           style={[styles.micBtn, listening && styles.micBtnActive, busy && styles.sendDisabled]}
@@ -361,7 +361,7 @@ export function CareConciergeScreen() {
         <TextInput
           value={draft}
           onChangeText={setDraft}
-          placeholder={listening ? 'Listening…' : 'Ask AgeWell Bot anything…'}
+          placeholder={listening ? 'Listening…' : 'Ask EldCare Bot anything…'}
           placeholderTextColor={familyHome.muted}
           style={styles.input}
           editable={!busy && !listening}
@@ -401,7 +401,7 @@ export function CareConciergeScreen() {
           <Icon name="chevron-back" size={24} color={familyHome.text} />
         </Pressable>
         <View style={styles.headerCopy}>
-          <Text style={styles.headerTitle}>AgeWell Bot</Text>
+          <Text style={styles.headerTitle}>EldCare Bot</Text>
           <Text style={styles.headerSub}>
             {listening ? 'Listening…' : speaking ? 'Speaking…' : 'Voice + chat · all services'}
           </Text>

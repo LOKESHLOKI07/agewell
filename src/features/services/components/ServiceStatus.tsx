@@ -14,7 +14,7 @@ export function ServiceStatus({ status, compact = false }: ServiceStatusProps) {
   return (
     <View style={styles.wrap} accessibilityRole="text" accessibilityLabel={`Service status ${label}`}>
       <StatusPill label={label} tone={statusToneFromLabel(status)} iconLabel={compact ? undefined : '•'} />
-      {!compact ? <Text style={styles.hint}>Status from AgeWell · not invented</Text> : null}
+      {!compact ? <Text style={styles.hint}>Status from EldCare · not invented</Text> : null}
     </View>
   );
 }

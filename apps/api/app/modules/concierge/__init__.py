@@ -1,1 +1,1 @@
-"""AgeWell Care Concierge — LLM understands; AgeWell APIs decide and act."""
+"""EldCare Care Concierge — LLM understands; EldCare APIs decide and act."""

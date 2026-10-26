@@ -77,7 +77,7 @@ export function RegisterCareScreen() {
         {staffKind ? `${STAFF_KIND_LABELS[staffKind]} · Pending review` : 'Application · Pending review'}
       </Text>
       <Text style={styles.intro}>
-        This is an application, not immediate access. AgeWell staff must approve you before work can be assigned.
+        This is an application, not immediate access. EldCare staff must approve you before work can be assigned.
       </Text>
       <Field control={control} name="firstName" label="First name" error={errors.firstName?.message} />
       <Field control={control} name="lastName" label="Last name" error={errors.lastName?.message} />
@@ -94,7 +94,7 @@ export function RegisterCareScreen() {
         </Text>
       ) : null}
       <PrimaryButton label="Submit application" loading={isSubmitting} onPress={handleSubmit(onSubmit)} />
-      <Text style={styles.hint}>If this succeeds, you will see a confirmation. Visits stay locked until AgeWell approves you.</Text>
+      <Text style={styles.hint}>If this succeeds, you will see a confirmation. Visits stay locked until EldCare approves you.</Text>
     </Screen>
   );
 }

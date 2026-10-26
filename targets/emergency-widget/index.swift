@@ -52,8 +52,8 @@ struct AgeWellEmergencyWidget: Widget {
       AgeWellEmergencyView()
         .widgetURL(URL(string: "agewell://emergency/widget-sos"))
     }
-    .configurationDisplayName("AgeWell Emergency")
-    .description("Get AgeWell emergency help from your Home Screen. This does not call 911.")
+    .configurationDisplayName("EldCare Emergency")
+    .description("Get EldCare emergency help from your Home Screen. This does not call 911.")
     .supportedFamilies([.systemSmall])
   }
 }

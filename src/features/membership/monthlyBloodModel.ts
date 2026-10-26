@@ -89,7 +89,7 @@ export function toMonthlyBloodStatusView(input: {
     return {
       kind: 'pending',
       scheduledAt: open.notes?.trim() || humanizeStatus(open.status),
-      collection: 'Home sample collection · AgeWell will confirm the window',
+      collection: 'Home sample collection · EldCare will confirm the window',
       href: '/(tabs)/orders',
     };
   }

@@ -167,7 +167,21 @@ describe('community registration', () => {
 
   it('selects only authorized family seniors', () => {
     const seniors = [
-      { id: 'john', userId: 'u1', firstName: 'John', lastName: 'Doe', dateOfBirth: '1940-01-01', address: '1', emergencyContact: '911', photo: null },
+      {
+        id: 'john',
+        userId: 'u1',
+        firstName: 'John',
+        lastName: 'Doe',
+        dateOfBirth: '1940-01-01',
+        address: '1',
+        emergencyContact: '911',
+        photo: null,
+        inServiceArea: true,
+        locationLat: null,
+        locationLng: null,
+        locationQuery: null,
+        locationSource: null,
+      },
     ];
     expect(isAuthorizedFamilySenior(seniors, 'john')).toBe(true);
     expect(isAuthorizedFamilySenior(seniors, 'jane')).toBe(false);

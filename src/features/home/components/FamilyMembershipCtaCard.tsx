@@ -11,7 +11,7 @@ export function FamilyMembershipCtaCard() {
       <View style={styles.card}>
         <View style={styles.copy}>
           <Text style={styles.title}>Get Membership to access all services</Text>
-          <Text style={styles.subtitle}>Join AgeWell membership and enjoy complete care.</Text>
+          <Text style={styles.subtitle}>Join EldCare membership and enjoy complete care.</Text>
           <Pressable
             onPress={() => openMembershipPurchase()}
             accessibilityRole="button"

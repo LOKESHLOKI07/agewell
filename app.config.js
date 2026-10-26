@@ -11,7 +11,7 @@ const variant = isCare ? 'care' : 'family';
 
 module.exports = {
   ...appJson.expo,
-  name: isCare ? 'AgeWell Care' : appJson.expo.name,
+  name: isCare ? 'EldCare Care' : appJson.expo.name,
   scheme: isCare ? 'agewell-care' : appJson.expo.scheme,
   ios: {
     ...appJson.expo.ios,
@@ -45,9 +45,9 @@ module.exports = {
               widgets: [
                 {
                   name: 'AgeWellEmergency',
-                  label: 'AgeWell Emergency',
+                  label: 'EldCare Emergency',
                   description:
-                    'Get AgeWell emergency help from your Home Screen. This does not call 911.',
+                    'Get EldCare emergency help from your Home Screen. This does not call 911.',
                   minWidth: '40dp',
                   minHeight: '40dp',
                   targetCellWidth: 1,

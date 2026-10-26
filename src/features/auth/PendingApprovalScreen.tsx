@@ -18,7 +18,7 @@ export function PendingApprovalScreen() {
         </IconWell>
         <Text style={styles.title}>Pending review</Text>
         <Text style={styles.body}>
-          Your application is with AgeWell operations. You cannot take visits or deliveries until you are approved.
+          Your application is with EldCare operations. You cannot take visits or deliveries until you are approved.
         </Text>
         <View style={styles.card}>
           <Text style={styles.label}>Current status</Text>

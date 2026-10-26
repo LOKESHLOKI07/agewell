@@ -1,5 +1,5 @@
 /**
- * AgeWell visual tokens.
+ * EldCare visual tokens.
  * Member + Care apps use brand green. Admin sidebar keeps its own purple tokens.
  */
 import { Platform, type ViewStyle } from 'react-native';

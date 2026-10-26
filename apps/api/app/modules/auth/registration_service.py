@@ -118,7 +118,7 @@ class RegistrationService:
         self.session.add(senior)
         await self.session.commit()
         await self.session.refresh(user)
-        return self._issue_tokens(user, "Senior account created. You can start using AgeWell.")
+        return self._issue_tokens(user, "Senior account created. You can start using EldCare.")
 
     async def register_family(self, payload: RegisterFamilyRequest) -> RegistrationResponse:
         existing = await self._existing_owner(
@@ -154,7 +154,7 @@ class RegistrationService:
         await self.session.refresh(user)
         return self._issue_tokens(
             user,
-            "Family account created. An AgeWell administrator must grant access to a senior before care data appears.",
+            "Family account created. An EldCare administrator must grant access to a senior before care data appears.",
         )
 
     async def register_care_associate(self, payload: RegisterCareAssociateRequest) -> RegistrationResponse:
@@ -191,7 +191,7 @@ class RegistrationService:
         await self.session.refresh(user)
         response = self._issue_tokens(
             user,
-            "Application submitted. AgeWell will review your profile before you can take visits.",
+            "Application submitted. EldCare will review your profile before you can take visits.",
         )
         response.care_status = CARE_STATUS_PENDING
         return response

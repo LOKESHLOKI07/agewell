@@ -93,12 +93,12 @@ def _assert_login_allowed(user: User, care=None) -> None:
     if AccountStatus is not None and account_status in (AccountStatus.REJECTED, AccountStatus.DISABLED):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="This account is not allowed to sign in. Contact AgeWell support.",
+            detail="This account is not allowed to sign in. Contact EldCare support.",
         )
     if care is not None and getattr(care, "status", None) in (CARE_STATUS_REJECTED, CARE_STATUS_DISABLED):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="This care application was not approved. Contact AgeWell support.",
+            detail="This care application was not approved. Contact EldCare support.",
         )
 
 
@@ -150,7 +150,7 @@ async def _send_email_otp(email: str) -> dict:
         await asyncio.to_thread(send_otp_email, email, code)
     except Exception:
         if settings.ENVIRONMENT == "development":
-            print(f"[AgeWell OTP] send failed; code for {email} is {code}")
+            print(f"[EldCare OTP] send failed; code for {email} is {code}")
         else:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -208,7 +208,7 @@ async def verify_password_reset(payload: EmailOtpVerifyRequest, db: AsyncSession
     if not user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No AgeWell account uses this email yet. Create an account from Welcome.",
+            detail="No EldCare account uses this email yet. Create an account from Welcome.",
         )
     care = (
         await db.execute(select(CareManager).where(CareManager.user_id == user.id))
@@ -232,7 +232,7 @@ async def reset_password(payload: PasswordResetRequest, db: AsyncSession = Depen
     if not user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No AgeWell account uses this email yet. Create an account from Welcome.",
+            detail="No EldCare account uses this email yet. Create an account from Welcome.",
         )
     care = (
         await db.execute(select(CareManager).where(CareManager.user_id == user.id))

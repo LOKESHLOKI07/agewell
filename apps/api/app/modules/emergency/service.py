@@ -495,7 +495,7 @@ class EmergencyService:
         await self.repo.add_event(
             case_id=case.id,
             event_description=(
-                "Escalated to Care Manager and AgeWell Support — "
+                "Escalated to Care Manager and EldCare Support — "
                 "no Family/Companion acknowledgement within the first-response window."
             ),
         )

@@ -19,7 +19,7 @@ type ServicePageHeaderProps = {
 
 /**
  * Uniform chrome for every service page (21 membership + add-ons):
- * AgeWell logo (left) · Back + notifications (right).
+ * EldCare logo (left) · Back + notifications (right).
  */
 export function ServicePageHeader({
   unreadCount = 0,
@@ -46,7 +46,7 @@ export function ServicePageHeader({
           style={styles.logo}
           resizeMode="contain"
           accessibilityRole="image"
-          accessibilityLabel="AgeWell. Your Comfort. Our Care."
+          accessibilityLabel="EldCare. Your Comfort. Our Care."
         />
       </View>
 

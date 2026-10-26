@@ -1,6 +1,6 @@
-# AgeWell Backend API
+# EldCare Backend API
 
-Phase 3 - Modular Monolith Backend Foundation for AgeWell platform.
+Phase 3 - Modular Monolith Backend Foundation for EldCare platform.
 
 ## Technology Stack
 - Python 3.12+

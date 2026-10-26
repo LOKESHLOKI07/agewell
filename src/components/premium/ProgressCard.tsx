@@ -68,7 +68,7 @@ export function ProgressCard({
                     <Text style={styles.addMoreText}>{addMoreLabel}</Text>
                   </Pressable>
                 ) : (
-                  <Text style={styles.fullNote}>Quota used · Contact AgeWell to request more</Text>
+                  <Text style={styles.fullNote}>Quota used · Contact EldCare to request more</Text>
                 )
               ) : null}
             </View>

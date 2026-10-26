@@ -23,7 +23,7 @@ export function useMembershipSubmit(slug: string) {
       await queryClient.invalidateQueries({ queryKey: homeQueryKeys.serviceRequests });
       Alert.alert(
         successTitle,
-        `AgeWell received your request (${created.status}). Ops can update it under Admin → Requests.`,
+        `EldCare received your request (${created.status}). Ops can update it under Admin → Requests.`,
       );
       return true;
     } catch (error) {

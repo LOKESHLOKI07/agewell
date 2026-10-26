@@ -30,7 +30,7 @@ export function SplashScreen({
   return (
     <View
       style={styles.screen}
-      accessibilityLabel="AgeWell. Your Parents. Our Care."
+      accessibilityLabel="EldCare. Your Parents. Our Care."
       onLayout={onReady}
     >
       <StatusBar style="dark" />

@@ -95,7 +95,7 @@ export function AdminEmergencyDetailScreen() {
         onRetry={() => void query.refetch()}
         loadingMessage="Loading emergency..."
         emptyTitle="Emergency not found"
-        emptyMessage="This emergency case is not in AgeWell."
+        emptyMessage="This emergency case is not in EldCare."
       >
         {query.data ? (
           <View style={[styles.card, shadows.card]}>

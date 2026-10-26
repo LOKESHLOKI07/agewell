@@ -24,6 +24,7 @@ import type {
   FoodMenuItemInput,
   GroceryCategoryInput,
   GroceryProductInput,
+  ServiceOffering,
   ServiceOfferingInput,
 } from './catalogTypes';
 
@@ -154,7 +155,7 @@ export function useDeleteFoodMenuItem() {
 }
 
 export function useServiceOfferings(serviceSlug?: string, includeInactive = false) {
-  return useQuery({
+  return useQuery<ServiceOffering[]>({
     queryKey: catalogQueryKeys.offerings(serviceSlug, includeInactive),
     queryFn: () => fetchServiceOfferings(serviceSlug, includeInactive),
   });

@@ -4,7 +4,7 @@ import { Avatar, Icon } from '@/components/ui';
 import { spacing, typography } from '@/constants/theme';
 import { ServicePageHeader } from '@/features/home/components/ServicePageHeader';
 import { familyHome } from '@/features/home/components/familyHomeTheme';
-import { servicePageType } from './servicePageType';
+
 import { MembershipServiceGate } from './MembershipServiceGate';
 import { MembershipServiceHero } from './MembershipServiceHero';
 
@@ -44,7 +44,7 @@ export function CarePersonVisitScreen(props: Props) {
   );
 }
 
-function CarePersonVisitBody({ title, person, videoHint, slug }: Props) {
+function CarePersonVisitBody({ person, videoHint, slug }: Props) {
   const insets = useSafeAreaInsets();
 
   const onCall = () => {

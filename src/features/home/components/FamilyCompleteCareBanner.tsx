@@ -16,7 +16,7 @@ export function FamilyCompleteCareBanner() {
           <Pressable
             onPress={() => router.push('/(tabs)/services' as Href)}
             accessibilityRole="button"
-            accessibilityLabel="Know more about AgeWell services"
+            accessibilityLabel="Know more about EldCare services"
             style={({ pressed }) => [styles.button, pressed ? styles.pressed : null]}
           >
             <Text style={styles.buttonLabel}>Know More</Text>

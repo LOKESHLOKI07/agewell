@@ -1,6 +1,6 @@
 import { brandGreen } from '@/components/AgeWellLogo';
 
-/** Family home mockup palette (green AgeWell look). Soft fills stay near-white. */
+/** Family home mockup palette (green EldCare look). Soft fills stay near-white. */
 export const familyHome = {
   green: brandGreen,
   greenDark: '#2F6B32',
@@ -24,4 +24,5 @@ export const familyHome = {
   muted: '#6B6B6B',
   border: '#EDEDED',
   white: '#FFFFFF',
+  surfaceMuted: '#F5F7F5',
 } as const;
