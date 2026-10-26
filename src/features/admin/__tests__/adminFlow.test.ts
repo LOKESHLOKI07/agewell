@@ -46,6 +46,7 @@ import {
 } from '../selectors';
 import {
   buildDashboardCards,
+  formatDashboardDate,
   greetingForHour,
   resolveAdminSearchTarget,
   visitStatusCounts,
@@ -586,6 +587,10 @@ describe('admin error and empty states', () => {
     ] : [])).toEqual({ completed: 1, upcoming: 1, missed: 1 });
     expect(cards.find((item) => item.key === 'users')?.breakdown?.find((row) => row.label === 'others')?.value).toBe(29);
     expect(greetingForHour(15)).toBe('Good afternoon');
+    const dashboardDate = new Date(2026, 9, 26);
+    expect(formatDashboardDate(dashboardDate)).toContain('2026');
+    expect(formatDashboardDate(dashboardDate, true)).not.toContain('2026');
+    expect(formatDashboardDate(dashboardDate, true).length).toBeLessThan(formatDashboardDate(dashboardDate).length);
     expect(resolveAdminSearchTarget('visits').href).toBe('/(admin)/visits');
     expect(resolveAdminSearchTarget('a@b.com')).toEqual({ href: '/(admin)/users', params: { email: 'a@b.com' } });
     expect(resolveAdminSearchTarget('Meera').href).toBe('/(admin)/seniors');

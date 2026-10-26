@@ -92,7 +92,8 @@ const styles = StyleSheet.create({
   wrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xl,
+    justifyContent: 'center',
+    gap: spacing.lg,
     flexWrap: 'wrap',
   },
   center: {

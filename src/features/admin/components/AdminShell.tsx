@@ -116,7 +116,14 @@ export function AdminShell({ children }: AdminShellProps) {
                   </View>
                 ) : null}
               </View>
-              <Text style={[styles.tabLabel, active ? styles.tabLabelActive : null]}>{item.label}</Text>
+              <Text
+                style={[styles.tabLabel, active ? styles.tabLabelActive : null]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.85}
+              >
+                {item.key === 'emergencies' ? 'Alerts' : item.label}
+              </Text>
             </Pressable>
           );
         })}
@@ -155,7 +162,10 @@ function AdminTopBar({
   return (
     <View style={[styles.topBar, compact ? styles.topBarCompact : null]}>
       {compact ? (
-        <AgeWellLogo width={108} height={48} />
+        <>
+          <AgeWellLogo width={88} height={40} />
+          <View style={styles.topBarSpacer} />
+        </>
       ) : showSearch ? (
         <View style={styles.searchWrap}>
           <Icon name="search-outline" size={18} color={colors.textMuted} />
@@ -344,6 +354,8 @@ const styles = StyleSheet.create({
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
     gap: spacing.lg,
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.md,
@@ -376,6 +388,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
+    marginLeft: 'auto',
   },
   bellBtn: {
     width: 40,
@@ -441,8 +454,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceElevated,
     borderTopWidth: 1,
     borderTopColor: colors.border,
-    minHeight: 72,
-    paddingTop: 8,
+    minHeight: 64,
+    paddingTop: 6,
+    paddingHorizontal: spacing.xs,
   },
   tab: {
     flex: 1,

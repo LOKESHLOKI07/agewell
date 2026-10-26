@@ -6,5 +6,6 @@ export function useAdminLayout() {
   return {
     width,
     isDesktop: isDesktopWidth(width),
+    isPhone: width < 600,
   };
 }

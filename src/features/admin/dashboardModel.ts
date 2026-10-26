@@ -50,13 +50,10 @@ export function greetingForHour(hour: number): string {
   return 'Good evening';
 }
 
-export function formatDashboardDate(date: Date): string {
-  return date.toLocaleDateString(undefined, {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
+export function formatDashboardDate(date: Date, compact = false): string {
+  return date.toLocaleDateString(undefined, compact
+    ? { weekday: 'short', day: 'numeric', month: 'short' }
+    : { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 }
 
 export function visitStatusCounts(visits: Visit[]): { completed: number; upcoming: number; missed: number } {

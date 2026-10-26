@@ -26,7 +26,7 @@ export function AdminScreen({
   contentStyle,
   backHref,
 }: AdminScreenProps) {
-  const { isDesktop } = useAdminLayout();
+  const { isDesktop, isPhone } = useAdminLayout();
 
   const goBack = () => {
     if (backHref) {
@@ -57,14 +57,16 @@ export function AdminScreen({
         </View>
       ) : null}
 
-      <View style={styles.titleRow}>
-        <View style={styles.titleBlock}>
-          <Text style={styles.title} accessibilityRole="header">
+      <View style={[styles.titleRow, isPhone ? styles.titleRowPhone : null]}>
+        <View style={[styles.titleBlock, isPhone ? styles.titleBlockPhone : null]}>
+          <Text style={[styles.title, isPhone ? styles.titlePhone : null]} accessibilityRole="header">
             {title}
           </Text>
           {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
         </View>
-        {!backHref && actions ? <View style={styles.actions}>{actions}</View> : null}
+        {!backHref && actions ? (
+          <View style={[styles.actions, isPhone ? styles.actionsPhone : null]}>{actions}</View>
+        ) : null}
       </View>
       {children}
     </View>
@@ -108,6 +110,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    flexWrap: 'wrap',
     gap: spacing.md,
     marginBottom: spacing.md,
     width: '100%',
@@ -131,13 +134,25 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     marginBottom: spacing.xl,
   },
+  titleRowPhone: {
+    flexDirection: 'column',
+    gap: spacing.sm,
+    marginBottom: spacing.lg,
+  },
   titleBlock: {
     flex: 1,
     minWidth: 200,
   },
+  titleBlockPhone: {
+    minWidth: 0,
+    width: '100%',
+  },
   title: {
     ...typography.title,
     color: colors.text,
+  },
+  titlePhone: {
+    ...typography.heading,
   },
   subtitle: {
     ...typography.body,
@@ -149,6 +164,9 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: spacing.sm,
     alignItems: 'center',
+  },
+  actionsPhone: {
+    width: '100%',
   },
   pressed: {
     opacity: 0.85,

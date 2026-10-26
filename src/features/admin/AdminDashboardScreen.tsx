@@ -45,7 +45,7 @@ const METRIC_TONES: Record<string, ColorTone> = {
 type MetricDensity = 'compact' | 'comfortable';
 
 export function AdminDashboardScreen() {
-  const { isDesktop, width } = useAdminLayout();
+  const { isDesktop, isPhone, width } = useAdminLayout();
   const email = useAuthStore((state) => state.user?.email);
   const now = new Date();
   const rawName = email?.split('@')[0] || 'Admin';
@@ -112,39 +112,50 @@ export function AdminDashboardScreen() {
   const wide = isDesktop && width >= 1180;
   const twoCol = wide || isDesktop ? styles.row2 : styles.stack;
   const threeCol = wide ? styles.row3 : styles.stack;
-  const metricDensity: MetricDensity = isDesktop ? 'compact' : 'comfortable';
-  const metricsTwoCol = !isDesktop && width >= 600;
+  const compact = !isDesktop;
+  const metricDensity: MetricDensity = 'compact';
+  const metricsTwoCol = compact;
 
   return (
     <KeyboardAwareScrollView
       style={styles.container}
-      contentContainerStyle={[styles.content, isDesktop ? styles.contentDesktop : null]}
+      contentContainerStyle={[
+        styles.content,
+        isDesktop ? styles.contentDesktop : null,
+        isPhone ? styles.contentPhone : null,
+      ]}
     >
-      <View style={styles.hero}>
-        <View style={styles.heroCopy}>
-          <Text style={styles.greeting} accessibilityRole="header">
+      <View style={[styles.hero, isPhone ? styles.heroPhone : null]}>
+        <View style={[styles.heroCopy, isPhone ? styles.heroCopyPhone : null]}>
+          <Text
+            style={[styles.greeting, isPhone ? styles.greetingPhone : null]}
+            accessibilityRole="header"
+            numberOfLines={isPhone ? 2 : undefined}
+          >
             {greetingForHour(now.getHours())}, {displayName}
           </Text>
-          <Text style={styles.heroSub}>{"Here's what needs your attention across EldCare today."}</Text>
+          <Text style={styles.heroSub}>
+            {isPhone ? 'What needs your attention today.' : "Here's what needs your attention across EldCare today."}
+          </Text>
         </View>
-        <View style={styles.heroMeta}>
-          <Text style={styles.heroDate}>{formatDashboardDate(now)}</Text>
+        <View style={[styles.heroMeta, isPhone ? styles.heroMetaPhone : null]}>
+          <Text style={styles.heroDate}>{formatDashboardDate(now, isPhone)}</Text>
         </View>
       </View>
 
       <View
         style={[
           styles.metrics,
-          isDesktop ? styles.metricsDesktop : null,
-          metricsTwoCol ? styles.metricsTablet : null,
+          isDesktop ? styles.metricsDesktop : styles.metricsTablet,
         ]}
       >
-        {cards.map((metric) => (
+        {cards.map((metric, index) => (
           <MetricCard
             key={metric.key}
             metric={metric}
             density={metricDensity}
             twoCol={metricsTwoCol}
+            fullWidth={metricsTwoCol && cards.length % 2 === 1 && index === cards.length - 1}
           />
         ))}
       </View>
@@ -152,18 +163,25 @@ export function AdminDashboardScreen() {
       <View>
         <Text style={styles.sectionLabel}>Analytics</Text>
         <View style={[threeCol, styles.sectionBody]}>
-          <Panel title="Seniors by care status" href="/(admin)/seniors" flex>
-            <AdminDonutChart slices={seniorSlices} centerLabel="membership" />
+          <Panel title="Seniors by care status" href="/(admin)/seniors" flex={!compact}>
+            <AdminDonutChart
+              slices={seniorSlices}
+              centerLabel="membership"
+              size={isPhone ? 132 : 168}
+              strokeWidth={isPhone ? 18 : 22}
+            />
           </Panel>
-          <Panel title="Today's visits" href="/(admin)/visits" flex>
+          <Panel title="Today's visits" href="/(admin)/visits" flex={!compact}>
             <AdminDonutChart
               slices={visitSlices}
               centerValue={String(visitCounts.completed || todayVisits.data?.total || 0)}
               centerLabel="completed"
+              size={isPhone ? 132 : 168}
+              strokeWidth={isPhone ? 18 : 22}
             />
           </Panel>
-          <Panel title="Service requests" href="/(admin)/requests" flex>
-            <AdminBarChart slices={requestBars} />
+          <Panel title="Service requests" href="/(admin)/requests" flex={!compact}>
+            <AdminBarChart slices={requestBars} compact={isPhone} />
           </Panel>
         </View>
       </View>
@@ -172,6 +190,7 @@ export function AdminDashboardScreen() {
         items={attention}
         loading={attentionLoading}
         urgent={attentionHasUrgent}
+        compact={isPhone}
         summary={{
           emergencies: emergencyCount,
           requests: pendingCount,
@@ -185,7 +204,7 @@ export function AdminDashboardScreen() {
       />
 
       <View style={twoCol}>
-        <Panel title="Today's activity" href="/(admin)/visits" flex>
+        <Panel title="Today's activity" href="/(admin)/visits" flex={!compact}>
           {todayVisits.isPending ? (
             <LoadingBlock label="Loading today's activity…" />
           ) : todayVisits.isError ? (
@@ -204,7 +223,7 @@ export function AdminDashboardScreen() {
             </View>
           )}
         </Panel>
-        <Panel title="Upcoming visits" href="/(admin)/visits" flex>
+        <Panel title="Upcoming visits" href="/(admin)/visits" flex={!compact}>
           {upcomingVisits.isPending ? (
             <LoadingBlock label="Loading visits…" />
           ) : upcoming.length ? (
@@ -214,14 +233,22 @@ export function AdminDashboardScreen() {
                 onPress={() => router.push(visit.href as Href)}
                 accessibilityRole="button"
                 accessibilityLabel={`${visit.name} at ${visit.time}`}
-                style={({ pressed }) => [styles.visitRow, pressed ? styles.pressed : null]}
+                style={({ pressed }) => [
+                  styles.visitRow,
+                  isPhone ? styles.visitRowPhone : null,
+                  pressed ? styles.pressed : null,
+                ]}
               >
-                <Text style={styles.visitTime}>{visit.time}</Text>
-                <View style={styles.visitAvatar}>
-                  <Text style={styles.visitInitial}>{visit.name.charAt(0)}</Text>
-                </View>
+                <Text style={[styles.visitTime, isPhone ? styles.visitTimePhone : null]}>{visit.time}</Text>
+                {isPhone ? null : (
+                  <View style={styles.visitAvatar}>
+                    <Text style={styles.visitInitial}>{visit.name.charAt(0)}</Text>
+                  </View>
+                )}
                 <View style={styles.rowCopy}>
-                  <Text style={styles.itemTitle}>{visit.name}</Text>
+                  <Text style={styles.itemTitle} numberOfLines={1}>
+                    {visit.name}
+                  </Text>
                   <Text style={styles.itemDetail} numberOfLines={1}>
                     {visit.type}
                   </Text>
@@ -264,18 +291,24 @@ function NeedsAttentionPanel({
   items,
   loading,
   urgent,
+  compact,
   summary,
   summariesLoading,
 }: {
   items: AdminAttentionItem[];
   loading: boolean;
   urgent: boolean;
+  compact?: boolean;
   summary: { emergencies: number; requests: number; missed: number };
   summariesLoading: { emergencies: boolean; requests: boolean; missed: boolean };
 }) {
   return (
     <View
-      style={[styles.attentionPanel, urgent ? styles.attentionPanelUrgent : null]}
+      style={[
+        styles.attentionPanel,
+        compact ? styles.attentionPanelPhone : null,
+        urgent ? styles.attentionPanelUrgent : null,
+      ]}
       accessibilityLabel="Needs attention"
     >
       <Pressable
@@ -299,27 +332,30 @@ function NeedsAttentionPanel({
         <Icon name="chevron-forward" size={16} color={urgent ? colors.emergency : colors.textMuted} />
       </Pressable>
 
-      <View style={styles.summaryRow}>
+      <View style={[styles.summaryRow, compact ? styles.summaryRowPhone : null]}>
         <SummaryChip
-          label="Open emergencies"
+          label={compact ? 'Emergencies' : 'Open emergencies'}
           value={summary.emergencies}
           loading={summariesLoading.emergencies}
           tone="emergency"
           href="/(admin)/emergencies"
+          compact={compact}
         />
         <SummaryChip
-          label="Pending requests"
+          label={compact ? 'Requests' : 'Pending requests'}
           value={summary.requests}
           loading={summariesLoading.requests}
           tone="warning"
           href="/(admin)/requests"
+          compact={compact}
         />
         <SummaryChip
-          label="Missed visits"
+          label={compact ? 'Missed' : 'Missed visits'}
           value={summary.missed}
           loading={summariesLoading.missed}
           tone="warning"
           href="/(admin)/visits"
+          compact={compact}
         />
       </View>
 
@@ -327,10 +363,10 @@ function NeedsAttentionPanel({
         <LoadingBlock label="Checking open issues…" />
       ) : items.length ? (
         items.map((item) => (
-          <View key={item.id} style={styles.attentionRow}>
+          <View key={item.id} style={[styles.attentionRow, compact ? styles.attentionRowPhone : null]}>
             <IconWell
               tone={item.kind === 'emergency' ? 'emergency' : item.kind === 'visit' ? 'warning' : 'info'}
-              size={40}
+              size={compact ? 36 : 40}
             >
               <Icon
                 name={
@@ -361,6 +397,7 @@ function NeedsAttentionPanel({
               accessibilityLabel={item.actionLabel}
               style={({ pressed }) => [
                 styles.actionBtn,
+                compact ? styles.actionBtnPhone : null,
                 item.kind === 'emergency' ? styles.actionBtnEmergency : null,
                 pressed ? styles.pressed : null,
               ]}
@@ -382,12 +419,14 @@ function SummaryChip({
   loading,
   tone,
   href,
+  compact,
 }: {
   label: string;
   value: number;
   loading: boolean;
   tone: 'emergency' | 'warning';
   href: string;
+  compact?: boolean;
 }) {
   const palette = tones[tone];
   const display = loading ? '—' : String(value);
@@ -400,6 +439,7 @@ function SummaryChip({
       accessibilityLabel={`${display} ${label}`}
       style={({ pressed }) => [
         styles.summaryChip,
+        compact ? styles.summaryChipPhone : null,
         elevated ? { backgroundColor: palette.bg, borderColor: palette.border } : null,
         pressed ? styles.pressed : null,
       ]}
@@ -441,10 +481,12 @@ function MetricCard({
   metric,
   density,
   twoCol,
+  fullWidth,
 }: {
   metric: AdminDashboardMetric;
   density: MetricDensity;
   twoCol: boolean;
+  fullWidth?: boolean;
 }) {
   const state = getSectionState({
     isPending: metric.state === 'loading',
@@ -467,7 +509,8 @@ function MetricCard({
       style={({ pressed }) => [
         styles.metric,
         compact ? styles.metricCompact : styles.metricComfortable,
-        twoCol ? styles.metricTwoCol : null,
+        twoCol ? styles.metricPhoneTile : null,
+        fullWidth ? styles.metricPhoneTileFull : null,
         isEmergency && state === 'ready' && (metric.value ?? 0) > 0 ? styles.metricUrgent : null,
         pressed ? styles.pressed : null,
       ]}
@@ -479,7 +522,7 @@ function MetricCard({
             {valueLabel}
           </Text>
           {state === 'ready' && metric.breakdown?.length ? (
-            <Text style={styles.breakdownInline} numberOfLines={1}>
+            <Text style={styles.breakdownInline} numberOfLines={twoCol ? 2 : 1}>
               {metric.breakdown.map((item) => `${item.value} ${item.label}`).join(' · ')}
             </Text>
           ) : state === 'loading' ? (
@@ -570,6 +613,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xxl,
     paddingTop: spacing.xl,
   },
+  contentPhone: {
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xxxl,
+    gap: spacing.lg,
+  },
   hero: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -577,13 +626,24 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
     flexWrap: 'wrap',
   },
+  heroPhone: {
+    flexDirection: 'column',
+    gap: spacing.xs,
+  },
   heroCopy: {
     flex: 1,
     minWidth: 220,
   },
+  heroCopyPhone: {
+    minWidth: 0,
+    width: '100%',
+  },
   greeting: {
     ...typography.display,
     color: colors.text,
+  },
+  greetingPhone: {
+    ...typography.title,
   },
   heroSub: {
     ...typography.body,
@@ -593,6 +653,10 @@ const styles = StyleSheet.create({
   heroMeta: {
     alignItems: 'flex-end',
     paddingTop: spacing.xs,
+  },
+  heroMetaPhone: {
+    alignItems: 'flex-start',
+    paddingTop: 0,
   },
   heroDate: {
     ...typography.bodyStrong,
@@ -636,6 +700,18 @@ const styles = StyleSheet.create({
     flexBasis: '47%',
     flexGrow: 1,
     minWidth: 160,
+  },
+  metricPhoneTile: {
+    flexGrow: 0,
+    flexShrink: 0,
+    flexBasis: '47%',
+    minWidth: 0,
+    minHeight: 0,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+  },
+  metricPhoneTileFull: {
+    flexBasis: '100%',
   },
   metricUrgent: {
     borderColor: colors.emergency,
@@ -715,16 +791,20 @@ const styles = StyleSheet.create({
   panel: {
     backgroundColor: colors.white,
     borderRadius: radius.lg,
-    padding: spacing.xl,
+    padding: spacing.lg,
     ...shadows.card,
     gap: spacing.md,
-    minWidth: 260,
+    minWidth: 0,
+    alignSelf: 'stretch',
     borderWidth: 1,
     borderColor: colors.border,
   },
   panelFlex: {
     flex: 1,
     flexBasis: 280,
+    minWidth: 260,
+    alignSelf: 'auto',
+    padding: spacing.xl,
   },
   panelHead: {
     flexDirection: 'row',
@@ -745,6 +825,9 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,
+  },
+  attentionPanelPhone: {
+    padding: spacing.lg,
   },
   attentionPanelUrgent: {
     backgroundColor: colors.emergencySoft,
@@ -784,6 +867,9 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: spacing.sm,
   },
+  summaryRowPhone: {
+    gap: spacing.xs,
+  },
   summaryChip: {
     flexGrow: 1,
     flexBasis: 140,
@@ -796,6 +882,13 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     justifyContent: 'center',
     gap: 2,
+  },
+  summaryChipPhone: {
+    flexBasis: 0,
+    minHeight: 56,
+    minWidth: 0,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.sm,
   },
   summaryValue: {
     ...typography.subtitle,
@@ -811,6 +904,11 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     paddingVertical: spacing.sm,
     minHeight: 56,
+  },
+  attentionRowPhone: {
+    alignItems: 'flex-start',
+    flexWrap: 'wrap',
+    minHeight: 0,
   },
   rowCopy: {
     flex: 1,
@@ -840,6 +938,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  actionBtnPhone: {
+    alignSelf: 'flex-start',
+    minWidth: 0,
+  },
   actionBtnEmergency: {
     backgroundColor: colors.emergency,
   },
@@ -853,6 +955,14 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     paddingVertical: spacing.sm,
     minHeight: 52,
+  },
+  visitRowPhone: {
+    gap: spacing.sm,
+    minHeight: 48,
+    flexWrap: 'wrap',
+  },
+  visitTimePhone: {
+    width: 56,
   },
   todayStats: {
     flexDirection: 'row',

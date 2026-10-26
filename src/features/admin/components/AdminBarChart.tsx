@@ -2,7 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { colors, radius, spacing, typography } from '@/constants/theme';
 import type { AdminChartSlice } from '../types';
 
-export function AdminBarChart({ slices }: { slices: AdminChartSlice[] }) {
+export function AdminBarChart({ slices, compact = false }: { slices: AdminChartSlice[]; compact?: boolean }) {
   const max = Math.max(1, ...slices.map((slice) => slice.value));
 
   if (!slices.length) {
@@ -13,7 +13,7 @@ export function AdminBarChart({ slices }: { slices: AdminChartSlice[] }) {
     <View style={styles.list}>
       {slices.map((slice) => (
         <View key={slice.label} style={styles.row}>
-          <Text style={styles.label} numberOfLines={1}>
+          <Text style={[styles.label, compact ? styles.labelCompact : null]} numberOfLines={1}>
             {slice.label}
           </Text>
           <View style={styles.track}>
@@ -47,6 +47,10 @@ const styles = StyleSheet.create({
     ...typography.captionStrong,
     color: colors.text,
     width: 128,
+  },
+  labelCompact: {
+    width: 84,
+    flexShrink: 1,
   },
   track: {
     flex: 1,

@@ -256,7 +256,8 @@ const styles = StyleSheet.create({
   },
   searchField: {
     flexGrow: 1,
-    flexBasis: 280,
+    flexBasis: 0,
+    minWidth: 160,
   },
   error: {
     ...typography.caption,
