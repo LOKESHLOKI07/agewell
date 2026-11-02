@@ -7,11 +7,17 @@ from app.api.schemas import ListPage
 from app.modules.notifications.models import NotificationPriority
 from app.modules.notifications.push import is_expo_push_token
 from app.modules.notifications.repository import DevicePushTokenRepository, NotificationRepository
+from app.modules.notifications.preferences import (
+    get_notification_preferences,
+    update_notification_preferences,
+)
 from app.modules.notifications.schemas import (
     AdminNotificationResponse,
     DevicePushTokenRegister,
     DevicePushTokenResponse,
     MarkAllReadResponse,
+    NotificationPreferenceResponse,
+    NotificationPreferenceUpdate,
     NotificationResponse,
 )
 
@@ -102,6 +108,23 @@ class NotificationService:
     async def unregister_device_token(self, user_id: UUID, token: str) -> MarkAllReadResponse:
         updated = await self.device_repo.delete_for_user(user_id=user_id, token=token.strip())
         return MarkAllReadResponse(updated=updated)
+
+    async def get_preferences(self, user_id: UUID) -> NotificationPreferenceResponse:
+        row = await get_notification_preferences(self.repo.session, user_id)
+        await self.repo.session.commit()
+        return NotificationPreferenceResponse.model_validate(row)
+
+    async def update_preferences(
+        self, user_id: UUID, payload: NotificationPreferenceUpdate
+    ) -> NotificationPreferenceResponse:
+        row = await update_notification_preferences(
+            self.repo.session,
+            user_id,
+            email_enabled=payload.email_enabled,
+            push_enabled=payload.push_enabled,
+            sms_enabled=payload.sms_enabled,
+        )
+        return NotificationPreferenceResponse.model_validate(row)
 
     async def _owned_notification(self, user_id: UUID, notification_id: UUID):
         row = await self.repo.get_by_id(notification_id)

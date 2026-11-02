@@ -45,3 +45,17 @@ class DevicePushTokenResponse(BaseModel):
 
 class DevicePushTokenUnregister(BaseModel):
     token: str = Field(min_length=20, max_length=512)
+
+
+class NotificationPreferenceResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    email_enabled: bool = True
+    push_enabled: bool = True
+    sms_enabled: bool = False
+
+
+class NotificationPreferenceUpdate(BaseModel):
+    email_enabled: Optional[bool] = None
+    push_enabled: Optional[bool] = None
+    sms_enabled: Optional[bool] = None

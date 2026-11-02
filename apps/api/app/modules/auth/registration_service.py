@@ -15,6 +15,7 @@ from app.modules.auth.schemas import (
 from app.modules.care.companion_services import is_service_companion_kind, normalize_companion_service_slugs
 from app.modules.care.models import CARE_STAFF_KIND_CARE_MANAGER, CARE_STATUS_PENDING, CareManager
 from app.modules.families.models import FamilyMember
+from app.modules.notifications.preferences import ensure_notification_preferences
 from app.modules.seniors.models import Senior
 from app.modules.users.models import AccountStatus, RoleEnum, User
 
@@ -113,6 +114,7 @@ class RegistrationService:
         )
         self.session.add(user)
         await self.session.flush()
+        await ensure_notification_preferences(self.session, user.id)
         senior = Senior(
             id=uuid4(),
             user_id=user.id,
@@ -152,6 +154,7 @@ class RegistrationService:
         )
         self.session.add(user)
         await self.session.flush()
+        await ensure_notification_preferences(self.session, user.id)
         reference = (payload.requested_senior_reference or "").strip() or None
         family = FamilyMember(
             id=uuid4(),
@@ -187,6 +190,7 @@ class RegistrationService:
         )
         self.session.add(user)
         await self.session.flush()
+        await ensure_notification_preferences(self.session, user.id)
         employee_id = f"PEND-{str(user.id).replace('-', '')[:12].upper()}"
         care = CareManager(
             id=uuid4(),

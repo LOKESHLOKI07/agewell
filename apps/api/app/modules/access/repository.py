@@ -3,7 +3,7 @@ from sqlalchemy.future import select
 from sqlalchemy import func, or_
 
 from app.modules.access.models import FamilySeniorAccess
-from app.modules.care.models import CareManager
+from app.modules.care.models import CARE_STATUS_ACTIVE, CareManager
 from app.modules.families.models import FamilyMember
 from app.modules.visits.models import Visit
 
@@ -105,6 +105,7 @@ class AccessRepository:
             .where(
                 Visit.senior_id == senior_id,
                 CareManager.user_id.is_not(None),
+                CareManager.status == CARE_STATUS_ACTIVE,
             )
         )
         if staff_kind is not None:
@@ -123,7 +124,11 @@ class AccessRepository:
                         Senior.companion_id == CareManager.id,
                     ),
                 )
-                .where(Senior.id == senior_id, CareManager.user_id.is_not(None))
+                .where(
+                    Senior.id == senior_id,
+                    CareManager.user_id.is_not(None),
+                    CareManager.status == CARE_STATUS_ACTIVE,
+                )
             )
         ).all()
         for standing_user_id, standing_kind in standing_rows:
@@ -143,10 +148,13 @@ class AccessRepository:
         return [senior_id for senior_id in result.scalars().all() if senior_id is not None]
 
     async def list_ops_user_ids(self) -> list:
-        from app.modules.users.models import RoleEnum, User
+        from app.modules.users.models import AccountStatus, RoleEnum, User
 
         result = await self.session.execute(
-            select(User.id).where(User.role.in_([RoleEnum.ADMIN, RoleEnum.OPERATIONS]))
+            select(User.id).where(
+                User.role.in_([RoleEnum.ADMIN, RoleEnum.OPERATIONS]),
+                User.account_status == AccountStatus.ACTIVE,
+            )
         )
         return list(result.scalars().all())
 

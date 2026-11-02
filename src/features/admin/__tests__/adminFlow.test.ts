@@ -551,6 +551,21 @@ describe('admin error and empty states', () => {
     expect(getAdminErrorMessage(new ApiError('nope', 403))).toBe(ADMIN_FORBIDDEN_MESSAGE);
     expect(getAdminErrorMessage(new ApiError('missing', 404))).toBe('missing');
     expect(getAdminErrorMessage(new ApiError('dup', 409), 'care')).toBe('This employee ID is already in use.');
+    expect(
+      getAdminErrorMessage(
+        new ApiError('This email is already registered. Sign in, or use a different email.', 409),
+        'care',
+      ),
+    ).toBe('This email is already registered. Sign in, or use a different email.');
+    expect(
+      getAdminErrorMessage(
+        new ApiError('This phone number is already registered. Sign in, or use a different number.', 409),
+        'care',
+      ),
+    ).toBe('This phone number is already registered. Sign in, or use a different number.');
+    expect(
+      getAdminErrorMessage(new ApiError('This employee ID is already in use.', 409), 'care'),
+    ).toBe('This employee ID is already in use.');
     expect(getAdminErrorMessage(new ApiError('dup', 409), 'user')).toBe('This email or phone is already in use.');
     expect(getAdminErrorMessage(new ApiError('bad', 422))).toBe('bad');
   });

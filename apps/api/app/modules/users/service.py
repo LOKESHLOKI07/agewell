@@ -69,6 +69,10 @@ class UserService:
             service_city=self._resolved_create_city(user_in, actor),
         )
         user = await self.repo.create(created)
+        from app.modules.notifications.preferences import ensure_notification_preferences
+
+        # repo.create already commits the user; persist default notification flags next.
+        await ensure_notification_preferences(self.repo.session, user.id)
         if self.audit_repo:
             await self.audit_repo.record(
                 entity_name="users",
@@ -76,7 +80,7 @@ class UserService:
                 action="CREATE",
                 changes=json.dumps({"email": user.email, "role": user.role.value}),
             )
-            await self.repo.session.commit()
+        await self.repo.session.commit()
         return to_user_response(user)
 
     async def get_user(self, user_id, *, actor: Optional[User] = None):

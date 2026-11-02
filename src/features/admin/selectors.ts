@@ -186,19 +186,36 @@ export function pageCount(total: number, limit: number): number {
   return Math.max(1, Math.ceil(total / limit));
 }
 
+const CARE_EMAIL_IN_USE = 'This email is already registered. Sign in, or use a different email.';
+const CARE_PHONE_IN_USE = 'This phone number is already registered. Sign in, or use a different number.';
+const CARE_EMPLOYEE_ID_IN_USE = 'This employee ID is already in use.';
+
+function resolveCareConflictMessage(message: string): string {
+  const normalized = message.toLowerCase();
+  if (normalized.includes('email')) {
+    return CARE_EMAIL_IN_USE;
+  }
+  if (normalized.includes('phone')) {
+    return CARE_PHONE_IN_USE;
+  }
+  return CARE_EMPLOYEE_ID_IN_USE;
+}
+
 export function getAdminErrorMessage(error: unknown, kind: 'default' | 'care' | 'user' = 'default'): string {
   const status = error instanceof ApiError ? error.status : undefined;
   if (status === 403) {
     return ADMIN_FORBIDDEN_MESSAGE;
   }
   if (status === 409) {
+    const detailMessage =
+      error instanceof ApiError ? error.message : getApiErrorMessage(error, 'admin');
     if (kind === 'care') {
-      return 'This employee ID is already in use.';
+      return resolveCareConflictMessage(detailMessage);
     }
     if (kind === 'user') {
       return 'This email or phone is already in use.';
     }
-    return 'This record already exists.';
+    return detailMessage || 'This record already exists.';
   }
   if (error instanceof ApiError) {
     return error.message;

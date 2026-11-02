@@ -14,6 +14,8 @@ from app.modules.notifications.schemas import (
     DevicePushTokenResponse,
     DevicePushTokenUnregister,
     MarkAllReadResponse,
+    NotificationPreferenceResponse,
+    NotificationPreferenceUpdate,
     NotificationResponse,
 )
 from app.modules.notifications.service import NotificationService
@@ -70,6 +72,23 @@ async def unregister_device_token(
     service: NotificationService = Depends(get_notification_service),
 ):
     return await service.unregister_device_token(current_user.id, payload.token)
+
+
+@router.get("/preferences", response_model=NotificationPreferenceResponse)
+async def get_notification_preferences(
+    current_user: User = Depends(get_current_user),
+    service: NotificationService = Depends(get_notification_service),
+):
+    return await service.get_preferences(current_user.id)
+
+
+@router.patch("/preferences", response_model=NotificationPreferenceResponse)
+async def update_notification_preferences(
+    payload: NotificationPreferenceUpdate,
+    current_user: User = Depends(get_current_user),
+    service: NotificationService = Depends(get_notification_service),
+):
+    return await service.update_preferences(current_user.id, payload)
 
 
 @router.post("/read-all", response_model=MarkAllReadResponse)

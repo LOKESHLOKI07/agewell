@@ -15,6 +15,7 @@ import { deleteAdminCareManager } from './api';
 import { useDeletePeopleRecords } from './hooks/useDeletePeopleRecords';
 import { useAdminCareManagers, useApproveAdminCareManager, useProvisionAdminStaff } from './hooks';
 import { ADMIN_STAFF_DEFAULT_PASSWORD } from './staffDefaults';
+import { showAdminRegisterSuccess } from './adminFeedback';
 import {
   adminCareManagerDisplay,
   adminStaffKindLabel,
@@ -297,7 +298,12 @@ export function AdminCareManagerCreateScreen() {
             },
             {
               onError: (error) => setFormError(getAdminErrorMessage(error, 'care')),
-              onSuccess: (row) => router.replace(`/(admin)/care-managers/${row.id}` as Href),
+              onSuccess: (row) => {
+                showAdminRegisterSuccess(
+                  `${adminStaffKindLabel(row.staffKind)} was registered. Share the password with them.`,
+                  () => router.replace(`/(admin)/care-managers/${row.id}` as Href),
+                );
+              },
             },
           );
         }}

@@ -232,6 +232,38 @@ async def test_unauthorized_family_does_not_receive_emergency_notification(clien
 
 
 @pytest.mark.asyncio
+async def test_notification_preferences_default_and_update(client):
+    senior = await login(client, SENIOR_EMAIL)
+    headers = auth_header(senior)
+    got = await client.get("/api/v1/notifications/preferences", headers=headers)
+    assert got.status_code == 200
+    body = got.json()
+    assert body["push_enabled"] is True
+    assert body["email_enabled"] is True
+    assert body["sms_enabled"] is False
+
+    updated = await client.patch(
+        "/api/v1/notifications/preferences",
+        headers=headers,
+        json={"push_enabled": False},
+    )
+    assert updated.status_code == 200
+    assert updated.json()["push_enabled"] is False
+
+    again = await client.get("/api/v1/notifications/preferences", headers=headers)
+    assert again.status_code == 200
+    assert again.json()["push_enabled"] is False
+
+    restore = await client.patch(
+        "/api/v1/notifications/preferences",
+        headers=headers,
+        json={"push_enabled": True},
+    )
+    assert restore.status_code == 200
+    assert restore.json()["push_enabled"] is True
+
+
+@pytest.mark.asyncio
 async def test_notifications_openapi(client):
     spec = (await client.get("/openapi.json")).json()
     paths = spec["paths"]
@@ -239,6 +271,8 @@ async def test_notifications_openapi(client):
     assert "post" in paths["/api/v1/notifications/read-all"]
     assert "post" in paths["/api/v1/notifications/device-tokens"]
     assert "delete" in paths["/api/v1/notifications/device-tokens"]
+    assert "get" in paths["/api/v1/notifications/preferences"]
+    assert "patch" in paths["/api/v1/notifications/preferences"]
     assert "get" in paths["/api/v1/notifications/{notification_id}"]
     assert "post" in paths["/api/v1/notifications/{notification_id}/read"]
     schema = spec["components"]["schemas"]["NotificationResponse"]["properties"]
@@ -255,3 +289,5 @@ async def test_notifications_openapi(client):
     assert "emergency_case_id" not in schema
     token_schema = spec["components"]["schemas"]["DevicePushTokenRegister"]["properties"]
     assert {"token", "platform", "app_variant"}.issubset(token_schema.keys())
+    pref_schema = spec["components"]["schemas"]["NotificationPreferenceResponse"]["properties"]
+    assert {"email_enabled", "push_enabled", "sms_enabled"}.issubset(pref_schema.keys())

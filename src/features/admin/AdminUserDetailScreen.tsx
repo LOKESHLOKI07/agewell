@@ -12,6 +12,7 @@ import {
   type ServiceCity,
 } from '@/features/auth/serviceCities';
 import { formatLongDate, formatRelativeDay, formatTime, toDisplayDate } from '@/utils/date';
+import { showAdminRegisterSuccess } from './adminFeedback';
 import { AdminFilterChips } from './components/AdminFilterChips';
 import { AdminQueryView } from './components/AdminQueryView';
 import { AdminScreen } from './components/AdminScreen';
@@ -657,7 +658,14 @@ export function AdminUserCreateScreen() {
                 { email, phone, role: nextRole, password, serviceCity: city ?? currentUser?.serviceCity ?? null },
                 {
                   onError: (error) => setFormError(getAdminErrorMessage(error, 'user')),
-                  onSuccess: (user) => router.replace(`/(admin)/users/${user.id}` as Href),
+                  onSuccess: (user) => {
+                    showAdminRegisterSuccess(
+                      createCityAdmin
+                        ? 'City admin account was created. Share the temporary password with them.'
+                        : 'Login account was created. Attach a Senior or Care profile if needed.',
+                      () => router.replace(`/(admin)/users/${user.id}` as Href),
+                    );
+                  },
                 },
               );
             }}

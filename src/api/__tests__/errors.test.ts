@@ -47,13 +47,16 @@ describe('getApiErrorMessage', () => {
     ).toBe('An emergency request is already active. Open it from Emergency Support.');
   });
 
-  it('maps registration 409 email/phone conflicts to clear copy', () => {
+  it('maps registration 409 email/phone/employee conflicts to clear copy', () => {
     expect(
       getApiErrorMessage(axiosError(409, { data: { detail: 'Email already exists' } })),
     ).toBe('This email is already registered. Sign in, or use a different email.');
     expect(
       getApiErrorMessage(axiosError(409, { data: { detail: 'Phone already exists' } })),
     ).toBe('This phone number is already registered. Sign in, or use a different number.');
+    expect(
+      getApiErrorMessage(axiosError(409, { data: { detail: 'employee_id already exists' } })),
+    ).toBe('This employee ID is already in use.');
   });
 
   it('keeps a wrapped ApiError message', () => {

@@ -46,16 +46,21 @@ async def test_expo_push_sender_posts_high_priority_emergency():
     mock_client.__aexit__ = AsyncMock(return_value=None)
     mock_client.post = AsyncMock(return_value=mock_response)
 
+    token_repo.session = MagicMock()
     with patch("app.modules.notifications.push.httpx.AsyncClient", return_value=mock_client):
         with patch("app.modules.notifications.push.settings") as settings:
             settings.EXPO_PUSH_ENABLED = True
             settings.EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send"
-            count = await sender.send_emergency(
-                user_ids=[user_id],
-                title="EldCare Emergency",
-                body="John has triggered an SOS. Tap to respond.",
-                emergency_id=emergency_id,
-            )
+            with patch(
+                "app.modules.notifications.preferences.filter_push_enabled_user_ids",
+                new=AsyncMock(return_value=[user_id]),
+            ):
+                count = await sender.send_emergency(
+                    user_ids=[user_id],
+                    title="EldCare Emergency",
+                    body="John has triggered an SOS. Tap to respond.",
+                    emergency_id=emergency_id,
+                )
 
     assert count == 1
     mock_client.post.assert_awaited_once()
@@ -73,6 +78,7 @@ async def test_expo_push_sender_posts_high_priority_emergency():
 @pytest.mark.asyncio
 async def test_expo_push_disabled_skips_send():
     token_repo = MagicMock()
+    token_repo.session = MagicMock()
     token_repo.list_tokens_for_users = AsyncMock(return_value=[MagicMock(token="ExponentPushToken[x]")])
     sender = ExpoPushSender(token_repo)
     with patch("app.modules.notifications.push.settings") as settings:
@@ -84,3 +90,29 @@ async def test_expo_push_disabled_skips_send():
             emergency_id=uuid4(),
         )
     assert count == 0
+
+
+@pytest.mark.asyncio
+async def test_expo_push_respects_push_enabled_preference():
+    token_repo = MagicMock()
+    token_repo.session = MagicMock()
+    token_repo.list_tokens_for_users = AsyncMock(return_value=[MagicMock(token="ExponentPushToken[device1]")])
+    sender = ExpoPushSender(token_repo)
+    user_id = uuid4()
+
+    with patch("app.modules.notifications.push.settings") as settings:
+        settings.EXPO_PUSH_ENABLED = True
+        with patch(
+            "app.modules.notifications.preferences.filter_push_enabled_user_ids",
+            new=AsyncMock(return_value=[]),
+        ) as filter_ids:
+            count = await sender.send_emergency(
+                user_ids=[user_id],
+                title="EldCare Emergency",
+                body="SOS",
+                emergency_id=uuid4(),
+            )
+
+    assert count == 0
+    filter_ids.assert_awaited_once()
+    token_repo.list_tokens_for_users.assert_not_awaited()

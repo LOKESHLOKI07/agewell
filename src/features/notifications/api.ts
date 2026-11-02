@@ -94,3 +94,44 @@ export async function unregisterDevicePushToken(token: string): Promise<void> {
     throw toApiError(error);
   }
 }
+
+export interface NotificationPreferences {
+  emailEnabled: boolean;
+  pushEnabled: boolean;
+  smsEnabled: boolean;
+}
+
+function toNotificationPreferences(data: unknown): NotificationPreferences {
+  const row = (data && typeof data === 'object' ? data : {}) as Record<string, unknown>;
+  return {
+    emailEnabled: row.email_enabled !== false,
+    pushEnabled: row.push_enabled !== false,
+    smsEnabled: row.sms_enabled === true,
+  };
+}
+
+export async function fetchNotificationPreferences(): Promise<NotificationPreferences> {
+  try {
+    const response = await apiClient.get('/notifications/preferences');
+    return toNotificationPreferences(response.data);
+  } catch (error) {
+    throw toApiError(error);
+  }
+}
+
+export async function updateNotificationPreferences(input: {
+  emailEnabled?: boolean;
+  pushEnabled?: boolean;
+  smsEnabled?: boolean;
+}): Promise<NotificationPreferences> {
+  try {
+    const body: Record<string, boolean> = {};
+    if (input.emailEnabled !== undefined) body.email_enabled = input.emailEnabled;
+    if (input.pushEnabled !== undefined) body.push_enabled = input.pushEnabled;
+    if (input.smsEnabled !== undefined) body.sms_enabled = input.smsEnabled;
+    const response = await apiClient.patch('/notifications/preferences', body);
+    return toNotificationPreferences(response.data);
+  } catch (error) {
+    throw toApiError(error);
+  }
+}

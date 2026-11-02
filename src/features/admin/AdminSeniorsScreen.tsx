@@ -21,6 +21,7 @@ import { AdminSearchPicker } from './components/AdminSearchPicker';
 import { deleteAdminSenior } from './api';
 import { useDeletePeopleRecords } from './hooks/useDeletePeopleRecords';
 import { useAdminSeniors, useAdminUsers, useCreateAdminSenior } from './hooks';
+import { showAdminRegisterSuccess } from './adminFeedback';
 import { adminSeniorDisplay, getAdminErrorMessage, getSectionState, humanizeStatus, seniorAgeYears } from './selectors';
 import type { AdminSenior, AdminSeniorSegment } from './types';
 import { ADMIN_PAGE_SIZE } from './types';
@@ -323,7 +324,11 @@ export function AdminSeniorCreateScreen() {
             },
             {
               onError: (error) => setFormError(getAdminErrorMessage(error)),
-              onSuccess: (senior) => router.replace(`/(admin)/seniors/${senior.id}` as Href),
+              onSuccess: (senior) => {
+                showAdminRegisterSuccess('Senior profile was created.', () =>
+                  router.replace(`/(admin)/seniors/${senior.id}` as Href),
+                );
+              },
             },
           );
         }}

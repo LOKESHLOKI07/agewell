@@ -19,6 +19,7 @@ from app.modules.families.invite_schemas import (
     FamilyInviteResponse,
 )
 from app.modules.families.models import FamilyMember
+from app.modules.notifications.preferences import ensure_notification_preferences
 from app.modules.seniors.models import Senior
 from app.modules.users.models import AccountStatus, RoleEnum, User
 
@@ -159,6 +160,7 @@ class FamilyInviteService:
             )
             self.session.add(user_row)
             await self.session.flush()
+            await ensure_notification_preferences(self.session, user_row.id)
             family = FamilyMember(
                 id=uuid4(),
                 user_id=user_row.id,

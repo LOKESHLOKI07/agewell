@@ -37,7 +37,12 @@ class ExpoPushSender:
         """Send high-priority SOS pushes. Returns number of device messages queued."""
         if not settings.EXPO_PUSH_ENABLED:
             return 0
-        tokens = await self.token_repo.list_tokens_for_users(user_ids)
+        from app.modules.notifications.preferences import filter_push_enabled_user_ids
+
+        allowed_ids = await filter_push_enabled_user_ids(self.token_repo.session, user_ids)
+        if not allowed_ids:
+            return 0
+        tokens = await self.token_repo.list_tokens_for_users(allowed_ids)
         if not tokens:
             return 0
 
