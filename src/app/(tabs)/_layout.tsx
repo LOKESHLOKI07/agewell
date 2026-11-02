@@ -55,11 +55,11 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="services"
+        name="credits"
         options={{
-          title: 'Services',
-          tabBarIcon: ({ color, size }) => <Icon name="grid-outline" color={color} size={size} />,
-          tabBarAccessibilityLabel: 'Services',
+          title: 'Credits',
+          tabBarIcon: ({ color, size }) => <Icon name="wallet-outline" color={color} size={size} />,
+          tabBarAccessibilityLabel: 'Credit Balance',
         }}
       />
       <Tabs.Screen
@@ -78,14 +78,6 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="credits"
-        options={{
-          title: 'Credits',
-          tabBarIcon: ({ color, size }) => <Icon name="wallet-outline" color={color} size={size} />,
-          tabBarAccessibilityLabel: 'Credit Balance',
-        }}
-      />
-      <Tabs.Screen
         name="orders"
         options={{
           title: 'Orders',
@@ -101,6 +93,7 @@ export default function TabsLayout() {
           tabBarAccessibilityLabel: 'Profile',
         }}
       />
+      <Tabs.Screen name="services" options={{ href: null }} />
       <Tabs.Screen name="health" options={{ href: null }} />
       <Tabs.Screen name="community" options={{ href: null }} />
     </Tabs>
