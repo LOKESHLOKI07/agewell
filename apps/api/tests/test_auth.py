@@ -1,16 +1,9 @@
 import pytest
-import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy import text
-import uuid
 
 from app.main import app
-from app.api.deps import get_db
 
-TEST_DB_URL = "postgresql+asyncpg://postgres:admin%4077@127.0.0.1:5432/agewell"
-test_engine = create_async_engine(TEST_DB_URL)
+# Auth smoke tests hit whatever DATABASE_URL conftest selects (agewell_test by default).
 
 @pytest.mark.asyncio
 async def test_auth_valid_login():

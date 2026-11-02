@@ -10,7 +10,7 @@ import { submitMembershipRequest } from './membershipApi';
 export function useMembershipSubmit(slug: string) {
   const [submitting, setSubmitting] = useState(false);
 
-  const submit = async (notes: string, successTitle = 'Request submitted') => {
+  const submit = async (notes: string, successTitle = 'Request submitted', listPhoto?: string) => {
     if (submitting) {
       return false;
     }
@@ -19,7 +19,11 @@ export function useMembershipSubmit(slug: string) {
     }
     setSubmitting(true);
     try {
-      const created = await submitMembershipRequest({ slug, notes: notes.trim() || undefined });
+      const created = await submitMembershipRequest({
+        slug,
+        notes: notes.trim() || undefined,
+        listPhoto,
+      });
       await queryClient.invalidateQueries({ queryKey: homeQueryKeys.serviceRequests });
       Alert.alert(
         successTitle,

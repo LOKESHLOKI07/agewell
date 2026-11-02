@@ -39,6 +39,7 @@ const user = {
   phone: '111',
   role: 'SENIOR' as const,
   accountStatus: 'ACTIVE' as const,
+  serviceCity: null,
   createdAt: '2026-08-20T00:00:00Z',
 };
 

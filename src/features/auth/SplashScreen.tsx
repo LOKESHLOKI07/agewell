@@ -9,7 +9,45 @@ const splashVideo = require('../../../assets/splash/EldCare_Splash_Screen_Animat
 const splashBackgroundColor = '#FEF8E8';
 const SPLASH_FALLBACK_MS = 12000;
 
-export function SplashScreen({
+export function SplashScreen(props: {
+  onReady?: () => void;
+  onFinished?: () => void;
+}) {
+  if (__DEV__) {
+    return <StaticSplash {...props} />;
+  }
+  return <VideoSplash {...props} />;
+}
+
+function StaticSplash({
+  onReady,
+  onFinished,
+}: {
+  onReady?: () => void;
+  onFinished?: () => void;
+}) {
+  const onReadyRef = useRef(onReady);
+  const onFinishedRef = useRef(onFinished);
+  onReadyRef.current = onReady;
+  onFinishedRef.current = onFinished;
+
+  useEffect(() => {
+    onReadyRef.current?.();
+    onFinishedRef.current?.();
+  }, []);
+
+  return (
+    <View
+      style={styles.screen}
+      accessibilityLabel="EldCare. Your Parents. Our Care."
+      onLayout={onReady}
+    >
+      <StatusBar style="dark" />
+    </View>
+  );
+}
+
+function VideoSplash({
   onReady,
   onFinished,
 }: {
@@ -82,6 +120,7 @@ export function SplashScreen({
 
 const styles = StyleSheet.create({
   screen: {
+    flex: 1,
     backgroundColor: splashBackgroundColor,
     overflow: 'hidden',
     alignItems: 'center',

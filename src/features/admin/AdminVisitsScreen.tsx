@@ -21,8 +21,39 @@ import {
   useCreateAdminVisit,
   useUpdateAdminVisit,
 } from './hooks';
-import { adminCareManagerDisplay, adminSeniorDisplay, getAdminErrorMessage, getSectionState, humanizeStatus } from './selectors';
+import { ProofPhotoField } from '@/features/care/ProofPhotoField';
+import { assignableCareAssociates } from '@/features/care/serviceCompanionServices';
+import { requiresProofPhoto, roleCanFinish, SERVICE_POLICY_OPTIONS } from '@/features/services/servicePolicy';
+import { isServiceCompanionKind } from '@/features/care/staffKind';
+import {
+  adminCareManagerDisplay,
+  adminSeniorDisplay,
+  adminStaffKindLabel,
+  adminStaffServiceLine,
+  getAdminErrorMessage,
+  getSectionState,
+  humanizeStatus,
+} from './selectors';
+import type { AdminCareManager } from './types';
 import { ADMIN_PAGE_SIZE } from './types';
+
+function visitStaffOptions(
+  staff: readonly AdminCareManager[],
+  serviceSlug?: string | null,
+  keepId?: string | null,
+) {
+  return assignableCareAssociates(staff, { serviceSlug, keepId }).map((item) => ({
+    id: item.id,
+    title: adminCareManagerDisplay(item),
+    subtitle: [
+      adminStaffKindLabel(item.staffKind),
+      item.employeeId,
+      isServiceCompanionKind(item.staffKind) ? adminStaffServiceLine(item) : null,
+    ]
+      .filter(Boolean)
+      .join(' · '),
+  }));
+}
 
 const VISIT_STATUSES: { value: VisitStatus; label: string }[] = [
   { value: 'SCHEDULED', label: 'Scheduled' },
@@ -123,6 +154,8 @@ export function AdminVisitDetailScreen() {
   const [scheduledDate, setScheduledDate] = useState('');
   const [scheduledTime, setScheduledTime] = useState('');
   const [careManagerId, setCareManagerId] = useState<string | null>(null);
+  const [serviceSlug, setServiceSlug] = useState<string | undefined>();
+  const [proofPhoto, setProofPhoto] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -130,6 +163,7 @@ export function AdminVisitDetailScreen() {
       setStatus(query.data.status);
       setNotes(query.data.notes ?? '');
       setCareManagerId(query.data.careManagerId ?? null);
+      setServiceSlug(query.data.serviceSlug ?? undefined);
       const parts = splitDateAndTime(query.data.scheduledAt);
       setScheduledDate(parts.date);
       setScheduledTime(parts.time);
@@ -137,15 +171,8 @@ export function AdminVisitDetailScreen() {
   }, [query.data]);
 
   const activeManagers = useMemo(
-    () =>
-      (managers.data ?? [])
-        .filter((item) => !item.status || item.status.toUpperCase() === 'ACTIVE')
-        .map((item) => ({
-          id: item.id,
-          title: adminCareManagerDisplay(item),
-          subtitle: item.employeeId ?? undefined,
-        })),
-    [managers.data],
+    () => visitStaffOptions(managers.data ?? [], serviceSlug, careManagerId),
+    [careManagerId, managers.data, serviceSlug],
   );
 
   const seniorLabel = useMemo(() => {
@@ -174,12 +201,18 @@ export function AdminVisitDetailScreen() {
             <Text style={styles.line}>Senior: {seniorLabel}</Text>
             <Text style={styles.line}>Employee ID: {query.data.employeeId ?? 'Not on file'}</Text>
             <AdminFilterChips label="Status" value={status} options={VISIT_STATUSES} onChange={(next) => next && setStatus(next)} allowAll={false} />
+            <AdminFilterChips
+              label="Service"
+              value={serviceSlug}
+              options={SERVICE_POLICY_OPTIONS}
+              onChange={setServiceSlug}
+            />
             <AdminSearchPicker
               label="Assign Care Associate"
               options={activeManagers}
               value={careManagerId}
               loading={managers.isPending}
-              emptyMessage="No ACTIVE care associates."
+              emptyMessage="No ACTIVE care associates match this service."
               onChange={setCareManagerId}
             />
             <TextField
@@ -197,11 +230,25 @@ export function AdminVisitDetailScreen() {
               autoCapitalize="none"
             />
             <TextField label="Notes" value={notes} onChangeText={setNotes} />
+            {status === 'COMPLETED' && requiresProofPhoto(serviceSlug) ? (
+              <ProofPhotoField value={proofPhoto} onChange={setProofPhoto} required />
+            ) : null}
             {formError ? <Text style={styles.error}>{formError}</Text> : null}
             <PrimaryButton
               label="Save visit"
               loading={update.isPending}
               onPress={() => {
+                if (
+                  (status === 'COMPLETED' || status === 'CHECKED_OUT') &&
+                  !roleCanFinish(serviceSlug, 'ADMIN')
+                ) {
+                  setFormError('Only the final finisher can close this service.');
+                  return;
+                }
+                if ((status === 'COMPLETED' || status === 'CHECKED_OUT') && requiresProofPhoto(serviceSlug) && !proofPhoto) {
+                  setFormError('A proof photo is required to complete this service.');
+                  return;
+                }
                 setFormError(null);
                 update.mutate(
                   {
@@ -209,6 +256,8 @@ export function AdminVisitDetailScreen() {
                     notes,
                     careManagerId: careManagerId ?? undefined,
                     scheduledAt: scheduledDate && scheduledTime ? combineDateAndTime(scheduledDate, scheduledTime) : undefined,
+                    serviceSlug,
+                    proofPhoto,
                   },
                   { onError: (error) => setFormError(getAdminErrorMessage(error)) },
                 );
@@ -242,6 +291,7 @@ export function AdminVisitCreateScreen() {
   const seniors = useAdminSeniors({ limit: 100, offset: 0 });
   const [seniorId, setSeniorId] = useState<string | null>(params.seniorId ?? null);
   const [careManagerId, setCareManagerId] = useState<string | null>(params.careManagerId ?? null);
+  const [serviceSlug, setServiceSlug] = useState<string | undefined>();
   const [status, setStatus] = useState<VisitStatus>('SCHEDULED');
   const [scheduledDate, setScheduledDate] = useState('');
   const [scheduledTime, setScheduledTime] = useState('');
@@ -258,15 +308,8 @@ export function AdminVisitCreateScreen() {
     [seniors.data?.items],
   );
   const activeManagers = useMemo(
-    () =>
-      (managers.data ?? [])
-        .filter((item) => !item.status || item.status.toUpperCase() === 'ACTIVE')
-        .map((item) => ({
-          id: item.id,
-          title: adminCareManagerDisplay(item),
-          subtitle: item.employeeId ?? undefined,
-        })),
-    [managers.data],
+    () => visitStaffOptions(managers.data ?? [], serviceSlug, careManagerId),
+    [careManagerId, managers.data, serviceSlug],
   );
 
   return (
@@ -279,12 +322,18 @@ export function AdminVisitCreateScreen() {
         emptyMessage="No senior profiles."
         onChange={setSeniorId}
       />
+      <AdminFilterChips
+        label="Service"
+        value={serviceSlug}
+        options={SERVICE_POLICY_OPTIONS}
+        onChange={setServiceSlug}
+      />
       <AdminSearchPicker
         label="Care Associate"
         options={activeManagers}
         value={careManagerId}
         loading={managers.isPending}
-        emptyMessage="No ACTIVE care associates."
+        emptyMessage="No ACTIVE care associates match this service."
         onChange={setCareManagerId}
       />
       <AdminFilterChips label="Status" value={status} options={VISIT_STATUSES} onChange={(next) => next && setStatus(next)} allowAll={false} />
@@ -308,6 +357,7 @@ export function AdminVisitCreateScreen() {
               status,
               scheduledAt: scheduledDate && scheduledTime ? combineDateAndTime(scheduledDate, scheduledTime) : undefined,
               notes,
+              serviceSlug,
             },
             {
               onError: (error) => setFormError(getAdminErrorMessage(error)),

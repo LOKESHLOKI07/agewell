@@ -38,7 +38,16 @@
       "output": "single"
     },
     "plugins": [
-      "expo-router",
+      [
+        "expo-router",
+        {
+          "asyncRoutes": {
+            "web": true,
+            "android": false,
+            "ios": false
+          }
+        }
+      ],
       [
         "expo-notifications",
         {

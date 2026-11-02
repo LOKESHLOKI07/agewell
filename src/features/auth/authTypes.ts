@@ -1,3 +1,6 @@
+import type { ServiceCity } from './serviceCities';
+import { isServiceCity } from './serviceCities';
+
 export type AuthStatus = 'INITIALIZING' | 'UNAUTHENTICATED' | 'AUTHENTICATED';
 
 export type AuthRole = 'SENIOR' | 'FAMILY' | 'CARE_MANAGER' | 'ADMIN' | 'OPERATIONS';
@@ -47,6 +50,7 @@ export interface AuthUser {
   phone: string;
   role: AuthRole;
   accountStatus: AccountStatus;
+  serviceCity: ServiceCity | null;
   createdAt: string;
 }
 
@@ -82,6 +86,7 @@ export function toAuthUser(payload: unknown): AuthUser {
 
   const accountStatus = data.account_status;
   const resolvedStatus: AccountStatus = isAccountStatus(accountStatus) ? accountStatus : 'ACTIVE';
+  const serviceCity = isServiceCity(data.service_city) ? data.service_city : null;
 
   return {
     id: String(data.id),
@@ -89,6 +94,7 @@ export function toAuthUser(payload: unknown): AuthUser {
     phone: data.phone,
     role: data.role,
     accountStatus: resolvedStatus,
+    serviceCity,
     createdAt,
   };
 }

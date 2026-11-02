@@ -1,4 +1,5 @@
 import type { ServiceRequest } from '@/features/home/types/home';
+import { tracksEmployeeLocation } from '@/features/services/servicePolicy';
 import type { MemberDelivery } from './types';
 
 const SLUG_BY_TITLE: Record<string, string> = {
@@ -25,7 +26,11 @@ export function deliverySlugFromTitle(title: string): string | null {
 }
 
 export function isDeliveryTrackable(delivery: MemberDelivery | null | undefined): boolean {
-  return delivery?.status === 'EN_ROUTE';
+  if (delivery?.status !== 'EN_ROUTE') {
+    return false;
+  }
+  const slug = delivery.serviceSlug ?? deliverySlugFromTitle(delivery.title);
+  return tracksEmployeeLocation(slug);
 }
 
 export function findDeliveryForRequest(

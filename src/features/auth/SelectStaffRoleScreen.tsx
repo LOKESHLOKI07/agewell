@@ -33,7 +33,7 @@ const OPTIONS: RoleCard[] = [
   },
   {
     kind: 'DELIVERY_EXECUTIVE',
-    description: 'Deliver orders & services',
+    description: 'Medicine, grocery, errands & banking',
     icon: 'bike',
     tint: '#FFF1E6',
     accent: '#C45C12',

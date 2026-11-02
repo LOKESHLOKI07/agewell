@@ -1,5 +1,6 @@
 import { ReactNode, useMemo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { router } from 'expo-router';
 import { ApiError } from '@/api/errors';
 import { AppHeader, ErrorState, LoadingState, Screen, SectionHeader } from '@/components';
 import { colors, radius, shadows, spacing, typography } from '@/constants/theme';
@@ -94,6 +95,24 @@ export function ParentProfileScreen() {
           <InfoRow label="Date of birth" value={toDisplayDate(senior.dateOfBirth) || '—'} />
           {age != null ? <InfoRow label="Age" value={`${age}`} /> : null}
           <InfoRow label="Address" value={senior.address || '—'} />
+          {senior.locationLat != null && senior.locationLng != null ? (
+            <InfoRow
+              label="Map pin"
+              value={`${senior.locationLat.toFixed(5)}, ${senior.locationLng.toFixed(5)}`}
+            />
+          ) : (
+            <InfoRow label="Map pin" value="Not set yet" />
+          )}
+          <Pressable
+            onPress={() => router.push('/account/home-address')}
+            accessibilityRole="button"
+            accessibilityLabel="Edit home address on map"
+            style={({ pressed }) => [styles.editLink, pressed ? styles.editLinkPressed : null]}
+          >
+            <Text style={styles.editLinkLabel}>
+              {senior.locationLat != null ? 'Edit pin on map' : 'Pin home on map'}
+            </Text>
+          </Pressable>
           {email ? <InfoRow label="Email" value={email} /> : null}
           {phone ? <InfoRow label="Mobile" value={phone} /> : null}
         </InfoCard>
@@ -178,5 +197,16 @@ const styles = StyleSheet.create({
   privacy: {
     ...typography.caption,
     color: colors.textSecondary,
+  },
+  editLink: {
+    alignSelf: 'flex-start',
+    paddingVertical: spacing.xs,
+  },
+  editLinkPressed: {
+    opacity: 0.8,
+  },
+  editLinkLabel: {
+    ...typography.captionStrong,
+    color: colors.primary,
   },
 });

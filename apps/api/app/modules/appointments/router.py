@@ -58,11 +58,14 @@ async def list_appointments(
         current_user, senior_id, allow_unscoped_staff=True
     )
     resolved_date = today_in_app_timezone() if today else on_date
+    from app.modules.cities.catalog import staff_city
+
     return await service.list_appointments(
         senior_id=scoped_senior_id,
         status=status,
         on_date=resolved_date,
         upcoming=upcoming,
+        service_city=staff_city(current_user),
         limit=limit,
         offset=offset,
     )

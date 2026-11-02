@@ -4,18 +4,39 @@ import { toListPage, toNotification } from '@/features/home/api/mappers';
 import type { ListPage, Notification } from '@/features/home/types/home';
 import type { AppVariant } from '@/config/appVariant';
 
-export async function fetchNotifications(): Promise<ListPage<Notification>> {
+/** Keep poll payloads small — badge/list never need the full inbox. */
+export const NOTIFICATION_LIST_LIMIT = 50;
+export const NOTIFICATION_UNREAD_LIMIT = 20;
+
+export async function fetchNotifications(params?: {
+  limit?: number;
+  offset?: number;
+}): Promise<ListPage<Notification>> {
   try {
-    const response = await apiClient.get('/notifications/');
+    const response = await apiClient.get('/notifications/', {
+      params: {
+        limit: params?.limit ?? NOTIFICATION_LIST_LIMIT,
+        offset: params?.offset ?? 0,
+      },
+    });
     return toListPage(response.data, toNotification, 'notifications');
   } catch (error) {
     throw toApiError(error);
   }
 }
 
-export async function fetchUnreadNotifications(): Promise<ListPage<Notification>> {
+export async function fetchUnreadNotifications(params?: {
+  limit?: number;
+  offset?: number;
+}): Promise<ListPage<Notification>> {
   try {
-    const response = await apiClient.get('/notifications/', { params: { unread_only: true } });
+    const response = await apiClient.get('/notifications/', {
+      params: {
+        unread_only: true,
+        limit: params?.limit ?? NOTIFICATION_UNREAD_LIMIT,
+        offset: params?.offset ?? 0,
+      },
+    });
     return toListPage(response.data, toNotification, 'notifications');
   } catch (error) {
     throw toApiError(error);

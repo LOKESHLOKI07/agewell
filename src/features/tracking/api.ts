@@ -139,6 +139,21 @@ export async function fetchCareAssociateLatest(visitId: string): Promise<Trackin
   }
 }
 
+export async function createDeliveryExecutivePoint(
+  deliveryId: string,
+  input: TrackingPointCreate,
+): Promise<TrackingPoint> {
+  try {
+    const response = await apiClient.post(
+      `/tracking/deliveries/${deliveryId}/executive/points`,
+      toTrackingPointCreateBody(input),
+    );
+    return toTrackingPoint(response.data);
+  } catch (error) {
+    throw toCareAssociateError(error);
+  }
+}
+
 export async function fetchDeliveryExecutiveLatest(deliveryId: string): Promise<TrackingPoint> {
   try {
     const response = await apiClient.get(`/tracking/deliveries/${deliveryId}/executive/latest`);

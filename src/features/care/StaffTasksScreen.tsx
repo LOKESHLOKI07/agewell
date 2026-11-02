@@ -5,10 +5,16 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PillTabs } from '@/components/ui';
 import { colors, spacing } from '@/constants/theme';
 import { getSectionState } from '@/features/home/selectors/homeViewModel';
+import { CareDispatchQueue } from './CareDispatchQueue';
 import { CareQueryView } from './components/CareQueryView';
 import { CareScreen } from './components/CareScreen';
 import { StaffScheduleSection } from './components/StaffScheduleSection';
-import { useCareManagerProfile, useCareManagerTodayVisits, useDeliveries } from './hooks';
+import {
+  useCareDispatchQueue,
+  useCareManagerProfile,
+  useCareManagerTodayVisits,
+  useDeliveries,
+} from './hooks';
 import {
   COMPLETED_DELIVERY_STATUSES,
   COMPLETED_VISIT_STATUSES,
@@ -22,6 +28,7 @@ import {
   asDeliveryList,
   asVisitList,
   deliveryToStaffScheduleItem,
+  dispatchRequestToStaffScheduleItem,
   visitToStaffScheduleItem,
 } from './staffHomeModel';
 import { staffHomeConfig } from './staffHomeConfig';
@@ -37,16 +44,31 @@ export function StaffTasksScreen() {
   const config = staffHomeConfig(staffKind);
   const visitsQuery = useCareManagerTodayVisits();
   const deliveriesQuery = useDeliveries();
+  const dispatchQueue = useCareDispatchQueue(!isDelivery);
 
   const visits = asVisitList(visitsQuery.data?.items);
   const deliveries = asDeliveryList(deliveriesQuery.data?.items);
+  const myId = profile.data?.id;
+  const awaiting = useMemo(() => {
+    if (isDelivery) return [];
+    return (dispatchQueue.data?.items ?? []).filter(
+      (item) => item.awaitingDispatch !== false && (!myId || !item.dispatcherId || item.dispatcherId === myId),
+    );
+  }, [dispatchQueue.data?.items, isDelivery, myId]);
+  const dispatchItems = useMemo(
+    () => awaiting.map(dispatchRequestToStaffScheduleItem),
+    [awaiting],
+  );
 
   const allItems = useMemo(() => {
     if (isDelivery) {
       return deliveries.map(deliveryToStaffScheduleItem);
     }
-    return visits.map((visit) => visitToStaffScheduleItem(visit, config.itemPrefix));
-  }, [config.itemPrefix, deliveries, isDelivery, visits]);
+    return [
+      ...dispatchItems,
+      ...visits.map((visit) => visitToStaffScheduleItem(visit, config.itemPrefix)),
+    ];
+  }, [config.itemPrefix, deliveries, dispatchItems, isDelivery, visits]);
 
   const pendingItems = useMemo(() => {
     if (isDelivery) {
@@ -54,10 +76,13 @@ export function StaffTasksScreen() {
         .filter((item) => PENDING_DELIVERY_STATUSES.has(item.status))
         .map(deliveryToStaffScheduleItem);
     }
-    return visits
-      .filter((visit) => PENDING_VISIT_STATUSES.has(visit.status))
-      .map((visit) => visitToStaffScheduleItem(visit, config.itemPrefix));
-  }, [config.itemPrefix, deliveries, isDelivery, visits]);
+    return [
+      ...dispatchItems,
+      ...visits
+        .filter((visit) => PENDING_VISIT_STATUSES.has(visit.status))
+        .map((visit) => visitToStaffScheduleItem(visit, config.itemPrefix)),
+    ];
+  }, [config.itemPrefix, deliveries, dispatchItems, isDelivery, visits]);
 
   const completedItems = useMemo(() => {
     if (isDelivery) {
@@ -75,7 +100,7 @@ export function StaffTasksScreen() {
 
   const query = isDelivery ? deliveriesQuery : visitsQuery;
   const state = getSectionState({
-    isPending: query.isPending,
+    isPending: query.isPending || (!isDelivery && dispatchQueue.isPending),
     isError: query.isError,
     isEmpty: filtered.length === 0,
   });
@@ -90,8 +115,13 @@ export function StaffTasksScreen() {
     <View style={[styles.safe, { paddingTop: insets.top }]}>
       <CareScreen
         title="My Tasks"
-        subtitle={isDelivery ? 'Deliveries assigned to you today.' : 'Visits assigned to you today.'}
+        subtitle={
+          isDelivery
+            ? 'Deliveries assigned to you today.'
+            : 'Visits and Service Companion handoffs assigned to you.'
+        }
       >
+        {!isDelivery ? <CareDispatchQueue /> : null}
         <View style={styles.tabs}>
           <PillTabs value={tab} options={options} onChange={setTab} accessibilityLabel="Task filters" />
         </View>
@@ -110,6 +140,9 @@ export function StaffTasksScreen() {
             title={tab === 'all' ? 'All tasks' : tab === 'pending' ? 'Pending' : 'Completed'}
             items={filtered}
             onPressItem={(item) => {
+              if (item.kind === 'dispatch') {
+                return;
+              }
               if (isDelivery) {
                 router.push(deliveryDetailHref(item.id) as unknown as Href);
               } else {

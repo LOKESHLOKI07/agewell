@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, DateTime, ForeignKey, UUID, Enum
+from sqlalchemy import Column, String, DateTime, ForeignKey, Text, UUID, Enum
 import uuid
 import enum
 from sqlalchemy.sql import func
@@ -23,4 +23,6 @@ class StaffDelivery(Base):
     location = Column(String, nullable=True)
     status = Column(Enum(DeliveryStatus), default=DeliveryStatus.PENDING, nullable=False)
     scheduled_at = Column(DateTime(timezone=True), nullable=True)
+    service_slug = Column(String, nullable=True)
+    proof_photo = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

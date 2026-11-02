@@ -113,6 +113,7 @@ export interface EmergencyReportUpdate {
   follow_up_date?: string | null;
   mark_resolved?: boolean;
   mark_closed?: boolean;
+  proof_photo?: string | null;
 }
 
 export interface EmergencyCase {

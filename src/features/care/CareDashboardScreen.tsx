@@ -6,14 +6,21 @@ import { queryClient } from '@/api/queryClient';
 import { getSectionState } from '@/features/home/selectors/homeViewModel';
 import { useUnreadNotifications } from '@/features/notifications/hooks';
 import { notificationQueryKeys } from '@/features/notifications/queryKeys';
+import { CareDispatchQueue } from './CareDispatchQueue';
 import { CareQueryView } from './components/CareQueryView';
 import { StaffDutyHomeLayout } from './components/StaffDutyHomeLayout';
 import { StaffScheduleSection } from './components/StaffScheduleSection';
-import { useAttendanceToday, useCareManagerProfile, useCareManagerTodayVisits } from './hooks';
+import {
+  useAttendanceToday,
+  useCareDispatchQueue,
+  useCareManagerProfile,
+  useCareManagerTodayVisits,
+} from './hooks';
 import { careQueryKeys } from './queryKeys';
 import {
   asVisitList,
   buildVisitStaffSummary,
+  dispatchRequestToStaffScheduleItem,
   dutySinceLabelFromAttendance,
   isAttendanceOnDuty,
   visitToStaffScheduleItem,
@@ -26,15 +33,23 @@ export function CareDashboardScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const profile = useCareManagerProfile();
   const today = useCareManagerTodayVisits();
+  const dispatchQueue = useCareDispatchQueue(true);
   const attendance = useAttendanceToday();
   const notifications = useUnreadNotifications();
   const visits = asVisitList(today.data?.items);
-  const stats = buildVisitStaffSummary(config, visits);
-  const items = visits.map((visit) => visitToStaffScheduleItem(visit, config.itemPrefix));
+  const myId = profile.data?.id;
+  const awaiting = (dispatchQueue.data?.items ?? []).filter(
+    (item) => item.awaitingDispatch !== false && (!myId || !item.dispatcherId || item.dispatcherId === myId),
+  );
+  const stats = buildVisitStaffSummary(config, visits, awaiting.length);
+  const items = [
+    ...awaiting.map(dispatchRequestToStaffScheduleItem),
+    ...visits.map((visit) => visitToStaffScheduleItem(visit, config.itemPrefix)),
+  ];
   const todayState = getSectionState({
-    isPending: today.isPending,
+    isPending: today.isPending || dispatchQueue.isPending,
     isError: today.isError,
-    isEmpty: visits.length === 0,
+    isEmpty: visits.length === 0 && awaiting.length === 0,
   });
   const onDuty = isAttendanceOnDuty(attendance.data);
   const dutySinceLabel = dutySinceLabelFromAttendance(attendance.data);
@@ -45,6 +60,7 @@ export function CareDashboardScreen() {
       await Promise.allSettled([
         queryClient.invalidateQueries({ queryKey: careQueryKeys.profile }),
         queryClient.invalidateQueries({ queryKey: careQueryKeys.visitsToday }),
+        queryClient.invalidateQueries({ queryKey: careQueryKeys.dispatchQueue }),
         queryClient.invalidateQueries({ queryKey: careQueryKeys.attendanceToday }),
         queryClient.invalidateQueries({ queryKey: notificationQueryKeys.all }),
       ]);
@@ -66,6 +82,7 @@ export function CareDashboardScreen() {
         <RefreshControl refreshing={refreshing} onRefresh={() => void onRefresh()} tintColor={colors.primary} />
       }
     >
+      <CareDispatchQueue />
       <CareQueryView
         state={todayState}
         error={today.error}
@@ -80,7 +97,12 @@ export function CareDashboardScreen() {
           viewAllLabel={config.viewAllLabel}
           onViewAll={config.viewAllHref ? () => router.push(config.viewAllHref as Href) : undefined}
           items={items}
-          onPressItem={(item) => router.push(visitDetailHref(item.id) as unknown as Href)}
+          onPressItem={(item) => {
+            if (item.kind === 'dispatch') {
+              return;
+            }
+            router.push(visitDetailHref(item.id) as unknown as Href);
+          }}
         />
       </CareQueryView>
     </StaffDutyHomeLayout>

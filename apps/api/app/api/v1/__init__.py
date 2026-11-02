@@ -26,6 +26,7 @@ from app.modules.attendance.router import router as attendance_router
 from app.modules.deliveries.router import router as deliveries_router
 from app.modules.training.router import router as training_router
 from app.modules.concierge.router import router as concierge_router
+from app.modules.credits.router import router as credits_router
 
 api_router = APIRouter()
 api_router.include_router(auth_router, prefix="/auth", tags=["auth"])
@@ -54,3 +55,4 @@ api_router.include_router(attendance_router, prefix='/attendance', tags=['attend
 api_router.include_router(deliveries_router, prefix='/deliveries', tags=['deliveries'])
 api_router.include_router(training_router, prefix='/training', tags=['training'])
 api_router.include_router(concierge_router, prefix='/concierge', tags=['concierge'])
+api_router.include_router(credits_router, prefix='/credits', tags=['credits'])

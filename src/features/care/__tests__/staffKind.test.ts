@@ -15,12 +15,13 @@ describe('staffKind', () => {
     expect(parseStaffKind('DRIVER')).toBe('CARE_MANAGER');
     expect(parseStaffKind('COMPANION')).toBe('COMPANION');
     expect(parseStaffKind('DELIVERY_EXECUTIVE')).toBe('DELIVERY_EXECUTIVE');
+    expect(parseStaffKind('SERVICE_COMPANION')).toBe('DELIVERY_EXECUTIVE');
   });
 
   it('labels the three Care app roles', () => {
     expect(STAFF_KIND_LABELS.CARE_MANAGER).toBe('Care Manager');
     expect(STAFF_KIND_LABELS.COMPANION).toBe('Companion');
-    expect(STAFF_KIND_LABELS.DELIVERY_EXECUTIVE).toBe('Delivery Executive');
+    expect(STAFF_KIND_LABELS.DELIVERY_EXECUTIVE).toBe('Service Companion');
   });
 
   it('uses the same staff tabs for every staff kind', () => {

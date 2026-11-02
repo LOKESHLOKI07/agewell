@@ -17,6 +17,8 @@ from app.core.security import (
 )
 from app.core.config import settings
 from .schemas import (
+    ChangePasswordRequest,
+    ChangePasswordResponse,
     EmailOtpRequest,
     EmailOtpVerifyRequest,
     EmailOtpVerifyResponse,
@@ -25,6 +27,10 @@ from .schemas import (
     PasswordResetRequest,
     PasswordResetResponse,
     PasswordResetVerifyResponse,
+    PhoneOtpRequest,
+    PhoneOtpSentResponse,
+    PhoneOtpVerifyRequest,
+    PhoneOtpVerifyResponse,
     TokenResponse,
     RefreshRequest,
     RegisterSeniorRequest,
@@ -41,6 +47,7 @@ from .otp_service import (
     store_otp,
     verify_stored_otp,
 )
+from .phone_otp import dispatch_phone_otp, phone_otp_key
 from .mailer import send_otp_email, smtp_configured
 from .google_oauth import google_profile_from_code, google_profile_from_id_token
 from .registration_service import RegistrationService
@@ -186,6 +193,59 @@ async def verify_email_otp(payload: EmailOtpVerifyRequest, db: AsyncSession = De
     )
 
 
+@router.post("/otp/phone/request", response_model=PhoneOtpSentResponse)
+async def request_phone_otp(payload: PhoneOtpRequest, db: AsyncSession = Depends(get_db)):
+    """Send a WhatsApp OTP for mobile sign-in (existing accounts only)."""
+    user = await _find_login_user(db, payload.phone)
+    # Same outward message whether or not the account exists (avoid phone fishing).
+    if not user:
+        return PhoneOtpSentResponse(
+            message="If that mobile is on an EldCare account, a WhatsApp code is on its way.",
+            channel="none",
+            contact=payload.phone,
+            debug_code=None,
+        )
+    care = (
+        await db.execute(select(CareManager).where(CareManager.user_id == user.id))
+    ).scalar_one_or_none()
+    try:
+        _assert_login_allowed(user, care)
+    except HTTPException:
+        return PhoneOtpSentResponse(
+            message="If that mobile is on an EldCare account, a WhatsApp code is on its way.",
+            channel="none",
+            contact=payload.phone,
+            debug_code=None,
+        )
+    result = await dispatch_phone_otp(payload.phone)
+    return PhoneOtpSentResponse(
+        message=result["message"],
+        channel=result["channel"],
+        contact=result["contact"],
+        debug_code=result.get("debug_code"),
+    )
+
+
+@router.post("/otp/phone/verify", response_model=PhoneOtpVerifyResponse)
+async def verify_phone_otp(payload: PhoneOtpVerifyRequest, db: AsyncSession = Depends(get_db)):
+    verify_stored_otp(phone_otp_key(payload.phone), payload.code)
+    user = await _find_login_user(db, payload.phone)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No EldCare account uses this mobile yet. Create an account or use a family invite.",
+        )
+    care = (
+        await db.execute(select(CareManager).where(CareManager.user_id == user.id))
+    ).scalar_one_or_none()
+    _assert_login_allowed(user, care)
+    return PhoneOtpVerifyResponse(
+        phone=payload.phone,
+        access_token=create_access_token(subject=str(user.id)),
+        refresh_token=create_refresh_token(subject=str(user.id)),
+    )
+
+
 @router.post("/password/forgot")
 async def forgot_password(payload: EmailOtpRequest, db: AsyncSession = Depends(get_db)):
     user = await _find_login_user(db, payload.email)
@@ -241,6 +301,24 @@ async def reset_password(payload: PasswordResetRequest, db: AsyncSession = Depen
     user.hashed_password = get_password_hash(payload.password)
     await db.commit()
     return PasswordResetResponse(message="Password updated. Sign in with your new password.")
+
+
+@router.post("/change-password", response_model=ChangePasswordResponse)
+async def change_password(
+    payload: ChangePasswordRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if not current_user.hashed_password or not verify_password(
+        payload.current_password, current_user.hashed_password
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect.",
+        )
+    current_user.hashed_password = get_password_hash(payload.new_password)
+    await db.commit()
+    return ChangePasswordResponse(message="Password updated.")
 
 
 @router.post("/register/senior", response_model=RegistrationResponse)

@@ -1,8 +1,15 @@
-export type CareManagerPageVariant = 'loading' | 'non_serviceable' | 'unassigned' | 'assigned';
+export type CareManagerPageVariant =
+  | 'loading'
+  | 'non_serviceable'
+  | 'no_membership'
+  | 'unassigned'
+  | 'assigned';
 
 export function resolveCareManagerPageVariant(input: {
   inServiceArea: boolean;
   areaReady: boolean;
+  membershipReady: boolean;
+  hasMembership: boolean;
   assignedReady: boolean;
   assigned: boolean;
 }): CareManagerPageVariant {
@@ -11,6 +18,12 @@ export function resolveCareManagerPageVariant(input: {
   }
   if (!input.inServiceArea) {
     return 'non_serviceable';
+  }
+  if (!input.membershipReady) {
+    return 'loading';
+  }
+  if (!input.hasMembership) {
+    return 'no_membership';
   }
   if (!input.assignedReady) {
     return 'loading';

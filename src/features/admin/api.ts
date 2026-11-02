@@ -129,8 +129,14 @@ export function fetchAdminSeniors(params: {
   limit: number;
   offset: number;
   segment?: string;
+  serviceCity?: string;
 }): Promise<ListPage<AdminSenior>> {
-  return getMapped('/seniors/', toAdminSeniorPage, params);
+  return getMapped('/seniors/', toAdminSeniorPage, {
+    limit: params.limit,
+    offset: params.offset,
+    ...(params.segment ? { segment: params.segment } : {}),
+    ...(params.serviceCity ? { service_city: params.serviceCity } : {}),
+  });
 }
 
 export function fetchAdminSenior(id: string): Promise<AdminSenior> {
@@ -222,6 +228,7 @@ export function createAdminCareManager(input: AdminCareManagerCreate): Promise<A
     availability: input.availability,
     status: input.status,
     staff_kind: input.staffKind,
+    companion_service_slugs: input.companionServiceSlugs ?? [],
   });
 }
 
@@ -234,6 +241,7 @@ export function provisionAdminStaff(input: AdminStaffProvision): Promise<AdminCa
     last_name: input.lastName.trim(),
     employee_id: input.employeeId.trim(),
     staff_kind: input.staffKind,
+    companion_service_slugs: input.companionServiceSlugs ?? [],
     skills: input.skills ?? null,
     experience: input.experience ?? null,
     languages: input.languages ?? null,
@@ -253,6 +261,7 @@ export function updateAdminCareManager(id: string, input: AdminCareManagerUpdate
   if (input.languages !== undefined) body.languages = input.languages;
   if (input.availability !== undefined) body.availability = input.availability;
   if (input.staffKind !== undefined) body.staff_kind = input.staffKind;
+  if (input.companionServiceSlugs !== undefined) body.companion_service_slugs = input.companionServiceSlugs;
   return sendMapped('patch', `/care/${id}`, toAdminCareManager, body);
 }
 
@@ -314,17 +323,55 @@ export function fetchAdminServiceRequests(params: {
   offset: number;
   status?: ServiceRequestStatus;
   seniorId?: string;
+  serviceSlug?: string;
 }): Promise<ListPage<ServiceRequest>> {
   return getMapped('/services/requests', (data) => toListPage(data, toServiceRequest, 'service requests'), {
     limit: params.limit,
     offset: params.offset,
     ...(params.status ? { status: params.status } : {}),
     ...(params.seniorId ? { senior_id: params.seniorId } : {}),
+    ...(params.serviceSlug ? { service_slug: params.serviceSlug } : {}),
   });
 }
 
-export function updateAdminServiceRequest(id: string, status: ServiceRequestStatus): Promise<ServiceRequest> {
-  return sendMapped('patch', `/services/requests/${id}`, toServiceRequest, { status });
+export function fetchAdminUnassignedServiceRequestCounts(): Promise<Record<string, number>> {
+  return getMapped('/services/requests/unassigned-counts', (data) => {
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+      return {};
+    }
+    const counts: Record<string, number> = {};
+    for (const [slug, value] of Object.entries(data as Record<string, unknown>)) {
+      if (typeof value === 'number' && value > 0) {
+        counts[slug] = value;
+      }
+    }
+    return counts;
+  });
+}
+
+export function assignAdminServiceRequest(
+  id: string,
+  careManagerIds: string | readonly string[],
+): Promise<ServiceRequest> {
+  const ids = (Array.isArray(careManagerIds) ? careManagerIds : [careManagerIds]).filter(Boolean);
+  return sendMapped('post', `/services/requests/${id}/assign`, toServiceRequest, {
+    care_manager_ids: ids,
+  });
+}
+
+export function autoAssignAdminServiceRequest(id: string): Promise<ServiceRequest> {
+  return sendMapped('post', `/services/requests/${id}/auto-assign`, toServiceRequest);
+}
+
+export function updateAdminServiceRequest(
+  id: string,
+  status: ServiceRequestStatus,
+  proofPhoto?: string | null,
+): Promise<ServiceRequest> {
+  return sendMapped('patch', `/services/requests/${id}`, toServiceRequest, {
+    status,
+    ...(proofPhoto ? { proof_photo: proofPhoto } : {}),
+  });
 }
 
 export function fetchAdminVisits(params: {
@@ -353,6 +400,7 @@ export function createAdminVisit(input: {
   status?: VisitStatus;
   scheduledAt?: string;
   notes?: string;
+  serviceSlug?: string;
 }): Promise<Visit> {
   return sendMapped('post', '/visits/', toVisit, {
     senior_id: input.seniorId,
@@ -360,6 +408,7 @@ export function createAdminVisit(input: {
     status: input.status,
     scheduled_at: input.scheduledAt,
     notes: input.notes,
+    service_slug: input.serviceSlug,
   });
 }
 
@@ -370,6 +419,8 @@ export function updateAdminVisit(
     status?: VisitStatus;
     scheduledAt?: string;
     notes?: string;
+    serviceSlug?: string;
+    proofPhoto?: string | null;
   },
 ): Promise<Visit> {
   const body: Record<string, unknown> = {};
@@ -377,6 +428,8 @@ export function updateAdminVisit(
   if (input.status !== undefined) body.status = input.status;
   if (input.scheduledAt !== undefined) body.scheduled_at = input.scheduledAt;
   if (input.notes !== undefined) body.notes = input.notes;
+  if (input.serviceSlug !== undefined) body.service_slug = input.serviceSlug;
+  if (input.proofPhoto) body.proof_photo = input.proofPhoto;
   return sendMapped('patch', `/visits/${id}`, toVisit, body);
 }
 

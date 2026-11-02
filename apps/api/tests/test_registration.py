@@ -336,6 +336,48 @@ async def test_admin_provisions_staff_with_login_and_role(client):
 
 
 @pytest.mark.asyncio
+async def test_admin_provisions_service_companion_with_services(client):
+    admin = await login(client, "admin@example.com")
+    email = unique_email("service-companion")
+    employee_id = f"SC-{uuid.uuid4().hex[:6].upper()}"
+    missing = await client.post(
+        "/api/v1/care/provision",
+        headers=auth_header(admin),
+        json={
+            "email": unique_email("service-companion-missing"),
+            "phone": unique_phone(),
+            "password": PASSWORD,
+            "first_name": "Arjun",
+            "last_name": "Singh",
+            "employee_id": f"SC-{uuid.uuid4().hex[:6].upper()}",
+            "staff_kind": "SERVICE_COMPANION",
+            "status": "ACTIVE",
+        },
+    )
+    assert missing.status_code == 400, missing.text
+
+    response = await client.post(
+        "/api/v1/care/provision",
+        headers=auth_header(admin),
+        json={
+            "email": email,
+            "phone": unique_phone(),
+            "password": PASSWORD,
+            "first_name": "Arjun",
+            "last_name": "Singh",
+            "employee_id": employee_id,
+            "staff_kind": "SERVICE_COMPANION",
+            "companion_service_slugs": ["grocery", "medicine"],
+            "status": "ACTIVE",
+        },
+    )
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["staff_kind"] == "DELIVERY_EXECUTIVE"
+    assert body["companion_service_slugs"] == ["grocery", "medicine"]
+
+
+@pytest.mark.asyncio
 async def test_staff_user_create_still_allows_admin_role(client):
     admin = await login(client, "admin@example.com")
     email = unique_email("ops")

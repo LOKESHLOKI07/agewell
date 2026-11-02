@@ -15,6 +15,7 @@ from app.modules.deliveries.repository import DeliveryRepository
 from app.modules.deliveries.schemas import DeliveryResponse, DeliveryStatusUpdate, MemberDeliveryResponse
 from app.modules.deliveries.service import DeliveryService
 from app.modules.seniors.repository import SeniorRepository
+from app.modules.services.models import ServiceRequest
 from app.modules.users.models import RoleEnum, User
 
 router = APIRouter()
@@ -34,6 +35,32 @@ async def _care_manager(db: AsyncSession, user_id: UUID) -> CareManager:
     if not row:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Care profile not found")
     return row
+
+
+def _to_delivery_response(row: StaffDelivery, request: ServiceRequest | None = None) -> DeliveryResponse:
+    return DeliveryResponse(
+        id=row.id,
+        care_manager_id=row.care_manager_id,
+        senior_id=row.senior_id,
+        service_request_id=row.service_request_id,
+        title=row.title,
+        customer_name=row.customer_name,
+        location=row.location,
+        status=row.status,
+        scheduled_at=row.scheduled_at,
+        service_slug=getattr(row, "service_slug", None),
+        proof_photo=getattr(row, "proof_photo", None),
+        request_notes=request.notes if request else None,
+        list_photo=getattr(request, "list_photo", None) if request else None,
+    )
+
+
+async def _requests_by_id(db: AsyncSession, request_ids: list[UUID]) -> dict[UUID, ServiceRequest]:
+    ids = [item for item in request_ids if item]
+    if not ids:
+        return {}
+    result = await db.execute(select(ServiceRequest).where(ServiceRequest.id.in_(ids)))
+    return {row.id: row for row in result.scalars().all()}
 
 
 def _require_member_role(user: User) -> None:
@@ -87,8 +114,9 @@ async def list_deliveries(
         stmt.order_by(StaffDelivery.scheduled_at.asc().nulls_last()).offset(offset).limit(limit)
     )
     rows = list(result.scalars().all())
+    requests = await _requests_by_id(db, [row.service_request_id for row in rows])
     return ListPage(
-        items=[DeliveryResponse.model_validate(row) for row in rows],
+        items=[_to_delivery_response(row, requests.get(row.service_request_id)) for row in rows],
         total=int(total),
         limit=limit,
         offset=offset,
@@ -107,7 +135,8 @@ async def get_delivery(
     if not row:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Delivery not found")
     await access.ensure_delivery_access(current_user, row)
-    return DeliveryResponse.model_validate(row)
+    requests = await _requests_by_id(db, [row.service_request_id])
+    return _to_delivery_response(row, requests.get(row.service_request_id))
 
 
 @router.patch("/{delivery_id}", response_model=DeliveryResponse)
@@ -123,7 +152,26 @@ async def update_delivery(
     if not row:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Delivery not found")
     await access.ensure_delivery_access(current_user, row)
+    from app.modules.care.repository import CareManagerRepository
+    from app.modules.services.service_policy import (
+        ensure_can_finish,
+        ensure_proof_photo,
+        infer_delivery_slug,
+        policy_role_for_user,
+    )
+
+    slug = infer_delivery_slug(row.title, payload.service_slug or row.service_slug)
+    if payload.service_slug:
+        row.service_slug = payload.service_slug
+    if payload.status == DeliveryStatus.COMPLETED:
+        care = await CareManagerRepository(db).get_by_user_id(current_user.id)
+        ensure_can_finish(slug, policy_role_for_user(current_user, care.staff_kind if care else None))
+        photo = payload.proof_photo or row.proof_photo
+        ensure_proof_photo(slug, photo)
+        if payload.proof_photo:
+            row.proof_photo = payload.proof_photo
     row.status = payload.status
     await db.commit()
     await db.refresh(row)
-    return DeliveryResponse.model_validate(row)
+    requests = await _requests_by_id(db, [row.service_request_id])
+    return _to_delivery_response(row, requests.get(row.service_request_id))

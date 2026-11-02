@@ -30,28 +30,36 @@ async def list_users(
     email: Optional[str] = None,
     limit: int = Query(50, ge=1, le=100),
     offset: int = Query(0, ge=0),
-    _staff: User = Depends(require_staff),
+    current_user: User = Depends(require_staff),
     service: UserService = Depends(get_user_service),
 ):
-    return await service.list_users(role=role, email=email, limit=limit, offset=offset)
+    from app.modules.cities.catalog import staff_city
+
+    return await service.list_users(
+        role=role,
+        email=email,
+        service_city=staff_city(current_user),
+        limit=limit,
+        offset=offset,
+    )
 
 
 @router.post("/", response_model=UserResponse)
 async def create_user(
     user_in: UserCreate,
-    _staff: User = Depends(require_staff),
+    current_user: User = Depends(require_staff),
     service: UserService = Depends(get_user_service),
 ):
-    return await service.create_user(user_in)
+    return await service.create_user(user_in, actor=current_user)
 
 
 @router.get("/{user_id}", response_model=UserResponse)
 async def get_user(
     user_id: UUID,
-    _staff: User = Depends(require_staff),
+    current_user: User = Depends(require_staff),
     service: UserService = Depends(get_user_service),
 ):
-    user = await service.get_user(user_id)
+    user = await service.get_user(user_id, actor=current_user)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user
@@ -61,10 +69,10 @@ async def get_user(
 async def update_user(
     user_id: UUID,
     payload: UserUpdate,
-    _staff: User = Depends(require_staff),
+    current_user: User = Depends(require_staff),
     service: UserService = Depends(get_user_service),
 ):
-    return await service.update_user(user_id, payload)
+    return await service.update_user(user_id, payload, actor=current_user)
 
 
 @router.delete("/{user_id}", response_model=UserResponse)
@@ -73,4 +81,4 @@ async def delete_user(
     current_user: User = Depends(require_staff),
     service: UserService = Depends(get_user_service),
 ):
-    return await service.delete_user(user_id, actor_user_id=current_user.id)
+    return await service.delete_user(user_id, actor_user_id=current_user.id, actor=current_user)

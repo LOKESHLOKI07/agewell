@@ -57,6 +57,7 @@ export function toMemberDelivery(payload: unknown): MemberDelivery {
     status: asDeliveryStatus(data.status),
     scheduledAt: asOptionalString(data.scheduled_at),
     executiveName: asOptionalString(data.executive_name),
+    serviceSlug: asOptionalString(data.service_slug),
   };
 }
 

@@ -18,6 +18,10 @@ class DeliveryResponse(BaseModel):
     location: Optional[str] = None
     status: DeliveryStatus
     scheduled_at: Optional[datetime] = None
+    service_slug: Optional[str] = None
+    proof_photo: Optional[str] = None
+    request_notes: Optional[str] = None
+    list_photo: Optional[str] = None
 
 
 class MemberDeliveryResponse(DeliveryResponse):
@@ -26,3 +30,5 @@ class MemberDeliveryResponse(DeliveryResponse):
 
 class DeliveryStatusUpdate(BaseModel):
     status: DeliveryStatus
+    proof_photo: Optional[str] = None
+    service_slug: Optional[str] = None

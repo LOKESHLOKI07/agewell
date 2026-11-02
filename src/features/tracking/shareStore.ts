@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export type TrackingShareKind = 'senior' | 'care-associate';
+export type TrackingShareKind = 'senior' | 'care-associate' | 'delivery';
 
 const STORAGE_KEY = 'agewell.trackingShare';
 
@@ -28,7 +28,8 @@ function readPersistedShare(): PersistedShare {
       return {
         isSharing: true,
         sessionId: parsed.sessionId,
-        kind: parsed.kind === 'care-associate' ? 'care-associate' : 'senior',
+        kind:
+          parsed.kind === 'care-associate' ? 'care-associate' : parsed.kind === 'delivery' ? 'delivery' : 'senior',
         stoppedSessionId: null,
       };
     }

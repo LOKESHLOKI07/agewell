@@ -13,7 +13,7 @@ import { safeGoBack } from '@/utils/navigation';
 import { FollowChip } from './components/FollowChip';
 import { LiveMapView } from './components/LiveMapView';
 import { TrackingBottomCard } from './components/TrackingBottomCard';
-import { useDeliveryExecutiveLatestLocation, useStartCareAssociateLocation } from './hooks';
+import { useDeliveryExecutiveLatestLocation, useStartDeliveryExecutiveLocation } from './hooks';
 import {
   DELIVERY_SHARE_CONFIRM_MESSAGE,
   DELIVERY_SHARE_CONFIRM_TITLE,
@@ -50,7 +50,7 @@ export function DeliveryExecutiveShareScreen({ deliveryId }: DeliveryExecutiveSh
   const [mapReady, setMapReady] = useState(false);
   const deliveryQuery = useDeliveryDetail(deliveryId);
   const latest = useDeliveryExecutiveLatestLocation(deliveryId, { focused });
-  const startShare = useStartCareAssociateLocation();
+  const startShare = useStartDeliveryExecutiveLocation(deliveryId);
   const isSharing = useTrackingShareStore((state) => state.isSharing);
   const stopShare = useTrackingShareStore((state) => state.stop);
 

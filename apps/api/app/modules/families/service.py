@@ -36,8 +36,10 @@ class FamilyService:
         seniors = await self.repo.list_authorized_seniors(family.id)
         return [to_senior_response(senior) for senior in seniors]
 
-    async def list_families(self, *, limit: int = 50, offset: int = 0) -> ListPage[FamilyMemberResponse]:
-        rows, total = await self.repo.list_families(limit=limit, offset=offset)
+    async def list_families(
+        self, *, service_city: str | None = None, limit: int = 50, offset: int = 0
+    ) -> ListPage[FamilyMemberResponse]:
+        rows, total = await self.repo.list_families(service_city=service_city, limit=limit, offset=offset)
         return ListPage(
             items=[FamilyMemberResponse.model_validate(row) for row in rows],
             total=total,

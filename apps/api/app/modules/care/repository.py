@@ -23,8 +23,18 @@ class CareManagerRepository:
         result = await self.session.execute(select(CareManager).where(CareManager.user_id == user_id))
         return result.scalars().first()
 
-    async def list_all(self) -> list[CareManager]:
-        result = await self.session.execute(select(CareManager).order_by(CareManager.employee_id.asc().nulls_last()))
+    async def list_all(self, *, service_city: Optional[str] = None) -> list[CareManager]:
+        stmt = select(CareManager)
+        if service_city:
+            # Include unscoped staff (null/blank city) so assign pickers still list SCs in demos.
+            stmt = stmt.join(User, CareManager.user_id == User.id).where(
+                or_(
+                    User.service_city == service_city,
+                    User.service_city.is_(None),
+                    User.service_city == "",
+                )
+            )
+        result = await self.session.execute(stmt.order_by(CareManager.employee_id.asc().nulls_last()))
         return list(result.scalars().all())
 
     async def list_associated_with_senior(self, senior_id: UUID) -> list[CareManager]:
@@ -180,6 +190,7 @@ class CareManagerRepository:
             availability=getattr(payload, "availability", None),
             status=payload.status,
             staff_kind=getattr(payload, "staff_kind", None) or "CARE_MANAGER",
+            companion_service_slugs=getattr(payload, "companion_service_slugs", None) or None,
         )
         self.session.add(row)
         await self.session.commit()

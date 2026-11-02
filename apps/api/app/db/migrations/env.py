@@ -6,11 +6,13 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
+from app.core.config import settings
 from app.db.base import Base
 
 import app.modules.users.models
 import app.modules.seniors.models
 import app.modules.families.models
+import app.modules.families.invite_models
 import app.modules.access.models
 import app.modules.care.models
 import app.modules.services.models
@@ -31,8 +33,12 @@ import app.modules.catalog.models
 import app.modules.attendance.models
 import app.modules.deliveries.models
 import app.modules.training.models
+import app.modules.credits.models
 
 config = context.config
+# Prefer runtime DATABASE_URL (e.g. agewell_test under pytest) over alembic.ini.
+# ConfigParser treats % as interpolation — escape for passwords like admin%40…
+config.set_main_option("sqlalchemy.url", settings.DATABASE_URL.replace("%", "%%"))
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)

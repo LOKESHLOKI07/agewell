@@ -4,7 +4,14 @@ import { router, useLocalSearchParams, type Href } from 'expo-router';
 import { ConfirmDialog, PrimaryButton, StatusPill, TextField, statusToneFromLabel } from '@/components';
 import { Avatar, Icon } from '@/components/ui';
 import { colors, radius, shadows, spacing, typography } from '@/constants/theme';
+import { useAuthStore } from '@/features/auth/authStore';
 import { onboardingLanguageLabel } from '@/features/auth/onboardingProfile';
+import {
+  SERVICE_CITY_OPTIONS,
+  isSuperStaff,
+  serviceCityLabel,
+  type ServiceCity,
+} from '@/features/auth/serviceCities';
 import { AdminFilterChips } from './components/AdminFilterChips';
 import { AdminSelectCheckbox, AdminSelectionToolbar } from './components/AdminListActions';
 import { AdminPagination } from './components/AdminPagination';
@@ -25,12 +32,20 @@ const SENIOR_SEGMENTS: { value: AdminSeniorSegment; label: string }[] = [
   { value: 'in_area_no_membership', label: 'In area · no membership' },
 ];
 
+const CITY_FILTER_OPTIONS = SERVICE_CITY_OPTIONS.map((item) => ({
+  value: item.value,
+  label: item.label,
+}));
+
 export function AdminSeniorsScreen() {
   const params = useLocalSearchParams<{ q?: string }>();
+  const currentUser = useAuthStore((state) => state.user);
+  const superStaff = isSuperStaff(currentUser);
   const { isDesktop } = useAdminLayout();
   const [offset, setOffset] = useState(0);
   const [search, setSearch] = useState(typeof params.q === 'string' ? params.q : '');
   const [segment, setSegment] = useState<AdminSeniorSegment | undefined>(undefined);
+  const [city, setCity] = useState<ServiceCity | undefined>(undefined);
 
   useEffect(() => {
     if (typeof params.q === 'string') {
@@ -41,6 +56,7 @@ export function AdminSeniorsScreen() {
     limit: ADMIN_PAGE_SIZE,
     offset,
     ...(segment ? { segment } : {}),
+    ...(superStaff && city ? { serviceCity: city } : {}),
   });
   const items = useMemo(() => {
     const needle = search.trim().toLowerCase();
@@ -53,7 +69,10 @@ export function AdminSeniorsScreen() {
     );
   }, [query.data?.items, search]);
 
-  const selection = useDeletePeopleRecords(`${offset}|${search}|${segment ?? 'all'}`, deleteAdminSenior);
+  const selection = useDeletePeopleRecords(
+    `${offset}|${search}|${segment ?? 'all'}|${city ?? 'all'}`,
+    deleteAdminSenior,
+  );
   const pageIds = items.map((item) => item.id);
   const allSelected = pageIds.length > 0 && pageIds.every((id) => selection.selectedIds.includes(id));
 
@@ -73,6 +92,17 @@ export function AdminSeniorsScreen() {
       }
     >
       <View style={styles.toolbarCard}>
+        {superStaff ? (
+          <AdminFilterChips
+            label="City"
+            value={city}
+            options={CITY_FILTER_OPTIONS}
+            onChange={(next) => {
+              setCity(next);
+              setOffset(0);
+            }}
+          />
+        ) : null}
         <AdminFilterChips
           label="Segment"
           value={segment}
@@ -184,7 +214,13 @@ function SeniorListCard({
               />
             </View>
             <Text style={styles.personMeta}>
-              {[age != null ? `${age} years` : null, senior.address || null].filter(Boolean).join(' · ')}
+              {[
+                age != null ? `${age} years` : null,
+                senior.address || null,
+                senior.serviceCity ? serviceCityLabel(senior.serviceCity) : null,
+              ]
+                .filter(Boolean)
+                .join(' · ')}
             </Text>
           </View>
         </Pressable>

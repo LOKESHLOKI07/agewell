@@ -25,6 +25,9 @@ from app.modules.visits.schemas import (
     VisitTaskUpdate,
     VisitUpdate,
 )
+from app.modules.services.schemas import ServiceRequestAssignServiceCompanion, ServiceRequestRead
+from app.modules.services.service import ServiceManager
+from app.modules.services.repository import ServiceRepository
 from app.modules.visits.service import VisitService
 
 router = APIRouter()
@@ -37,6 +40,10 @@ def get_visit_service(db: AsyncSession = Depends(get_db)):
         CareManagerRepository(db),
         AuditRepository(db),
     )
+
+
+def get_service_manager(db: AsyncSession = Depends(get_db)):
+    return ServiceManager(ServiceRepository(db), AuditRepository(db))
 
 
 def get_access_service(db: AsyncSession = Depends(get_db)):
@@ -64,12 +71,15 @@ async def list_visits(
     effective_care_manager_id = scope.care_manager_id
     if current_user.role in (RoleEnum.ADMIN, RoleEnum.OPERATIONS) and care_manager_id is not None:
         effective_care_manager_id = care_manager_id
+    from app.modules.cities.catalog import staff_city
+
     return await service.list_visits(
         senior_id=scope.senior_id,
         care_manager_id=effective_care_manager_id,
         status=status,
         on_date=resolved_date,
         upcoming=upcoming,
+        service_city=staff_city(current_user),
         limit=limit,
         offset=offset,
     )
@@ -78,10 +88,10 @@ async def list_visits(
 @router.post("/", response_model=VisitResponse)
 async def create_visit(
     payload: VisitCreate,
-    _staff: User = Depends(require_staff),
+    current_user: User = Depends(require_staff),
     service: VisitService = Depends(get_visit_service),
 ):
-    return await service.create_visit(payload)
+    return await service.create_visit(payload, actor=current_user)
 
 
 @router.get("/{visit_id}/tasks", response_model=list[VisitTaskResponse])
@@ -147,6 +157,27 @@ async def get_visit(
     return payload
 
 
+@router.post(
+    "/{visit_id}/assign-service-companion",
+    response_model=ServiceRequestRead,
+)
+async def assign_visit_service_companion(
+    visit_id: UUID,
+    payload: ServiceRequestAssignServiceCompanion,
+    current_user: User = Depends(require_care_or_staff),
+    access: AccessService = Depends(get_access_service),
+    visit_service: VisitService = Depends(get_visit_service),
+    manager: ServiceManager = Depends(get_service_manager),
+):
+    visit, _ = await visit_service.get_visit(visit_id)
+    await access.ensure_visit_access(current_user, visit)
+    return await manager.assign_service_companion_for_visit(
+        visit_id,
+        payload.care_manager_id,
+        actor=current_user,
+    )
+
+
 @router.patch("/{visit_id}", response_model=VisitResponse)
 async def update_visit(
     visit_id: UUID,
@@ -164,5 +195,6 @@ async def update_visit(
             notes=payload.notes,
             started_at=payload.started_at,
             completed_at=payload.completed_at,
+            proof_photo=payload.proof_photo,
         )
-    return await service.update_visit(visit_id, payload)
+    return await service.update_visit(visit_id, payload, actor=current_user)

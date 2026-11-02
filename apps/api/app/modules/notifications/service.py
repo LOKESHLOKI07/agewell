@@ -71,8 +71,12 @@ class NotificationService:
         rows, total = await self.repo.list_admin(
             user_id=user_id, priority=priority, is_read=is_read, limit=limit, offset=offset
         )
+        items: list[AdminNotificationResponse] = []
+        for notification, user_email in rows:
+            payload = AdminNotificationResponse.model_validate(notification)
+            items.append(payload.model_copy(update={"user_email": user_email}))
         return ListPage(
-            items=[AdminNotificationResponse.model_validate(row) for row in rows],
+            items=items,
             total=total,
             limit=limit,
             offset=offset,

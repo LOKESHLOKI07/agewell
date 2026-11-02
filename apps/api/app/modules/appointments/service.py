@@ -42,6 +42,7 @@ class AppointmentService:
         status: Optional[AppointmentStatus] = None,
         on_date: Optional[date] = None,
         upcoming: bool = False,
+        service_city: Optional[str] = None,
         limit: int = 50,
         offset: int = 0,
     ) -> ListPage[AppointmentResponse]:
@@ -50,6 +51,7 @@ class AppointmentService:
             status=status,
             on_date=on_date,
             upcoming=upcoming,
+            service_city=service_city,
             limit=limit,
             offset=offset,
         )

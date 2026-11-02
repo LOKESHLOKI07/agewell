@@ -28,6 +28,7 @@ export const registerCareSchema = registerAccountSchema.extend({
   languages: z.string().trim().max(200).optional().or(z.literal('')),
   availability: z.string().trim().max(200).optional().or(z.literal('')),
   staffKind: z.enum(['CARE_MANAGER', 'COMPANION', 'DELIVERY_EXECUTIVE']).optional(),
+  companionServiceSlugs: z.array(z.string()).optional(),
 });
 
 export type RegisterSeniorValues = z.infer<typeof registerSeniorSchema>;

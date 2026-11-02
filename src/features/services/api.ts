@@ -9,11 +9,12 @@ export async function createServiceRequest(input: {
   seniorId: string;
   serviceId: string;
   notes?: string;
+  listPhoto?: string;
 }): Promise<CreatedServiceRequest> {
   try {
     const response = await apiClient.post(
       '/services/requests',
-      toServiceRequestCreateBody(input.seniorId, input.serviceId, input.notes),
+      toServiceRequestCreateBody(input.seniorId, input.serviceId, input.notes, input.listPhoto),
     );
     return toCreatedServiceRequest(response.data);
   } catch (error) {

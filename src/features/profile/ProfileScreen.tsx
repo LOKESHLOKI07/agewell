@@ -131,13 +131,34 @@ export function ProfileScreen() {
             })
           }
         />
+        <MenuRow
+          icon="location"
+          title="Home address"
+          subtitle={
+            seniorQuery.data?.address?.trim()
+              ? seniorQuery.data.locationLat != null
+                ? 'Pinned on map — tap to edit'
+                : seniorQuery.data.address
+              : 'Pin your exact door for deliveries'
+          }
+          onPress={() => router.push('/account/home-address')}
+        />
         <MenuRow icon="medkit-outline" title="Health Info" onPress={() => router.push('/(tabs)/health')} />
         <MenuRow
           icon="call-outline"
           title="Emergency Contacts"
           onPress={() => router.push('/health/emergency-info')}
         />
+        {user?.role === 'SENIOR' ? (
+          <MenuRow
+            icon="people-outline"
+            title="Family members"
+            subtitle="Invite by email or mobile · OTP join"
+            onPress={() => router.push('/account/family-members')}
+          />
+        ) : null}
         <MenuRow icon="ribbon-outline" title="Membership" onPress={() => router.push('/account/membership')} />
+        <MenuRow icon="card-outline" title="Credit Balance" onPress={() => router.push('/(tabs)/credits')} />
         <MenuRow
           icon="settings-outline"
           title="Settings"

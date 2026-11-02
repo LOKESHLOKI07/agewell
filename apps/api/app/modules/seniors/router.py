@@ -34,7 +34,8 @@ async def get_my_senior_profile(
     current_user: User = Depends(get_current_user),
     access: AccessService = Depends(get_access_service),
 ):
-    senior = await access.get_senior_for_user(current_user)
+    # FAMILY reads the linked senior (premium / service-area context).
+    senior = await access.get_care_context_senior(current_user)
     return to_senior_response(senior)
 
 
@@ -53,6 +54,8 @@ async def update_my_senior_profile(
         senior,
         set_photo="photo" in fields,
         photo=fields.get("photo"),
+        set_address="address" in fields,
+        address=fields.get("address"),
         set_in_service_area="in_service_area" in fields,
         in_service_area=fields.get("in_service_area"),
         set_location=set_location,
@@ -71,28 +74,39 @@ async def list_seniors(
         None,
         description="membership | outside_area | in_area_no_membership",
     ),
-    _staff: User = Depends(require_staff),
+    service_city: str | None = Query(
+        None,
+        description="mumbai | chandrapur — super staff only; city staff stay scoped to their city",
+    ),
+    current_user: User = Depends(require_staff),
     service: SeniorService = Depends(get_senior_service),
 ):
-    return await service.list_seniors(limit=limit, offset=offset, segment=segment)
+    from app.modules.cities.catalog import normalize_city, staff_city
+
+    scoped = staff_city(current_user)
+    city = scoped if scoped else normalize_city(service_city)
+
+    return await service.list_seniors(
+        limit=limit, offset=offset, segment=segment, service_city=city
+    )
 
 
 @router.get("/by-user/{user_id}", response_model=SeniorDirectoryItem)
 async def get_senior_by_user(
     user_id: str,
-    _staff: User = Depends(require_staff),
+    current_user: User = Depends(require_staff),
     service: SeniorService = Depends(get_senior_service),
 ):
-    return await service.get_senior_detail_by_user_id(user_id)
+    return await service.get_senior_detail_by_user_id(user_id, actor=current_user)
 
 
 @router.post("/", response_model=SeniorDirectoryItem)
 async def create_senior(
     senior_in: SeniorCreate,
-    _staff: User = Depends(require_staff),
+    current_user: User = Depends(require_staff),
     service: SeniorService = Depends(get_senior_service),
 ):
-    return await service.create_senior(senior_in)
+    return await service.create_senior(senior_in, actor=current_user)
 
 
 @router.get("/{senior_id}", response_model=SeniorDirectoryItem)
@@ -110,16 +124,16 @@ async def get_senior(
 async def update_senior(
     senior_id: str,
     payload: SeniorUpdate,
-    _staff: User = Depends(require_staff),
+    current_user: User = Depends(require_staff),
     service: SeniorService = Depends(get_senior_service),
 ):
-    return await service.update_senior(senior_id, payload)
+    return await service.update_senior(senior_id, payload, actor=current_user)
 
 
 @router.delete("/{senior_id}", response_model=SeniorDirectoryItem)
 async def delete_senior(
     senior_id: str,
-    _staff: User = Depends(require_staff),
+    current_user: User = Depends(require_staff),
     service: SeniorService = Depends(get_senior_service),
 ):
-    return await service.delete_senior(senior_id)
+    return await service.delete_senior(senior_id, actor=current_user)

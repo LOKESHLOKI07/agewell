@@ -15,7 +15,9 @@ import {
   fetchAdminMembershipRequests,
   fetchAdminNotifications,
   fetchAdminSeniors,
+  assignAdminServiceRequest,
   fetchAdminServiceRequests,
+  fetchAdminUnassignedServiceRequestCounts,
   fetchAdminServices,
   fetchAdminUsers,
   fetchAdminVisits,
@@ -154,6 +156,7 @@ describe('admin APIs', () => {
       phone: userPayload.phone,
       role: 'ADMIN',
       accountStatus: 'ACTIVE',
+      serviceCity: null,
       createdAt: userPayload.created_at,
       updatedAt: userPayload.updated_at,
     });
@@ -185,14 +188,19 @@ describe('admin APIs', () => {
 
   it('lists seniors from paginated APIs', async () => {
     jsonGet({ items: [seniorPayload], total: 2, limit: 20, offset: 0 });
-    const seniors = await fetchAdminSeniors({ limit: 20, offset: 0, segment: 'in_area_no_membership' });
+    const seniors = await fetchAdminSeniors({
+      limit: 20,
+      offset: 0,
+      segment: 'in_area_no_membership',
+      serviceCity: 'mumbai',
+    });
     expect(adminSeniorDisplay(seniors.items[0])).toBe('John Doe');
     expect(seniors.items[0].email).toBe('senior@example.com');
     expect(seniors.items[0].inServiceArea).toBe(true);
     expect(seniors.items[0].hasMembership).toBe(false);
     expect(adminSeniorLocationLabel(seniors.items[0])).toBe('GPS 19.20500, 72.85200');
     expect(mockedGet).toHaveBeenCalledWith('/seniors/', {
-      params: { limit: 20, offset: 0, segment: 'in_area_no_membership' },
+      params: { limit: 20, offset: 0, segment: 'in_area_no_membership', service_city: 'mumbai' },
     });
   });
 
@@ -230,7 +238,12 @@ describe('admin APIs', () => {
         first_name: 'Asha',
         last_name: 'Khan',
         skills: 'Nursing',
+        experience: undefined,
+        languages: undefined,
+        availability: undefined,
         status: 'ACTIVE',
+        staff_kind: undefined,
+        companion_service_slugs: [],
       },
     });
   });
@@ -266,6 +279,7 @@ describe('admin APIs', () => {
         last_name: 'Singh',
         employee_id: 'DE-001',
         staff_kind: 'DELIVERY_EXECUTIVE',
+        companion_service_slugs: [],
         skills: null,
         experience: null,
         languages: null,
@@ -304,6 +318,24 @@ describe('admin APIs', () => {
     });
     const updated = await updateAdminServiceRequest('req-1', 'CONFIRMED');
     expect(updated.status).toBe('CONFIRMED');
+
+    jsonRequest({
+      id: 'req-1',
+      senior_id: seniorPayload.id,
+      service_id: 'svc-1',
+      service_name: 'Grocery Delivery',
+      service_slug: 'grocery',
+      senior_name: 'John Doe',
+      status: 'ASSIGNED',
+    });
+    const assigned = await assignAdminServiceRequest('req-1', 'cm-sc');
+    expect(assigned.status).toBe('ASSIGNED');
+    expect(assigned.seniorName).toBe('John Doe');
+
+    jsonGet({ grocery: 2, medicine: 1, 'personalised-diet-plan': 4 });
+    const counts = await fetchAdminUnassignedServiceRequestCounts();
+    expect(counts).toEqual({ grocery: 2, medicine: 1, 'personalised-diet-plan': 4 });
+    expect(mockedGet).toHaveBeenCalledWith('/services/requests/unassigned-counts', { params: undefined });
   });
 
   it('creates visits and reassigns care managers', async () => {
@@ -454,10 +486,12 @@ describe('admin APIs', () => {
         {
           id: 'n-1',
           user_id: 'user-1',
+          user_email: 'ops@example.com',
           title: 'Hello',
           message: 'World',
           priority: 'INFO',
           is_read: false,
+          action_ref: 'expense:11111111-1111-1111-1111-111111111111',
           created_at: '2026-08-20T10:00:00.000Z',
         },
       ],
@@ -467,6 +501,8 @@ describe('admin APIs', () => {
     });
     const notes = await fetchAdminNotifications({ limit: 20, offset: 0, isRead: false });
     expect(notes.items[0].userId).toBe('user-1');
+    expect(notes.items[0].userEmail).toBe('ops@example.com');
+    expect(notes.items[0].actionRef).toBe('expense:11111111-1111-1111-1111-111111111111');
     expect(notes.items[0].isRead).toBe(false);
 
     jsonGet({

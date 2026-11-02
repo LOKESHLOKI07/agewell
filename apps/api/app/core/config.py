@@ -13,6 +13,13 @@ class Settings(BaseSettings):
     SMTP_USER: str = ""
     SMTP_PASS: str = ""
     SMTP_FROM: str = "EldCare <mountainexplorersindia@gmail.com>"
+    # Meta WhatsApp Cloud API (optional). When empty, phone OTPs use demo/debug delivery.
+    WHATSAPP_TOKEN: str = ""
+    WHATSAPP_PHONE_NUMBER_ID: str = ""
+    WHATSAPP_OTP_TEMPLATE: str = ""
+    WHATSAPP_OTP_TEMPLATE_LANG: str = "en"
+    WHATSAPP_API_VERSION: str = "v21.0"
+    WHATSAPP_DEFAULT_COUNTRY_CODE: str = "91"
     GOOGLE_CLIENT_ID: str = ""
     GOOGLE_CLIENT_SECRET: str = ""
     # Seconds after SOS before Care Manager / Support are notified if Family+Companion have not acknowledged.

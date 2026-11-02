@@ -85,6 +85,15 @@ describe('service area matching', () => {
       serviceAreaDeliveryLabel(
         resolveServiceAreaFromSenior({
           inServiceArea: true,
+          locationQuery: 'Kandivali & Borivali, Mumbai',
+          address: 'Borivali West',
+        }),
+      ),
+    ).toBe('Borivali, Mumbai');
+    expect(
+      serviceAreaDeliveryLabel(
+        resolveServiceAreaFromSenior({
+          inServiceArea: true,
           locationQuery: 'Warora',
         }),
       ),
@@ -97,5 +106,14 @@ describe('service area matching', () => {
         }),
       ),
     ).toBe('Wani, Chandrapur');
+    // Marketing cluster copy alone must not list every Mumbai neighborhood.
+    expect(
+      serviceAreaDeliveryLabel(
+        resolveServiceAreaFromSenior({
+          inServiceArea: true,
+          locationQuery: 'Kandivali & Borivali, Mumbai',
+        }),
+      ),
+    ).toBe('Mumbai');
   });
 });

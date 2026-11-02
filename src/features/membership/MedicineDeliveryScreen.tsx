@@ -8,7 +8,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
+import { pickProofPhoto } from '@/features/care/proofPhoto';
 import { router, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView, LoadingState, PrimaryButton, SecondaryButton } from '@/components';
@@ -120,37 +120,19 @@ export function MedicineDeliveryScreen() {
   const ordersError = requestsQuery.isError;
 
   const pickAndSubmit = async (fromCamera: boolean) => {
-    if (fromCamera) {
-      const cam = await ImagePicker.requestCameraPermissionsAsync();
-      if (!cam.granted) {
-        Alert.alert('Permission needed', 'Allow camera access to photograph a prescription.');
+    try {
+      const photo = await pickProofPhoto(fromCamera ? 'camera' : 'library');
+      if (!photo) {
         return;
       }
-      const result = await ImagePicker.launchCameraAsync({ quality: 0.7 });
-      if (result.canceled || !result.assets[0]) {
-        return;
-      }
-      await createOrder(result.assets[0].fileName ?? 'Prescription photo');
-      return;
+      await createOrder(fromCamera ? 'Prescription photo' : 'Prescription from gallery', photo);
+    } catch (error) {
+      Alert.alert('Photo failed', error instanceof Error ? error.message : 'Could not attach that prescription photo.');
     }
-
-    const library = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!library.granted) {
-      Alert.alert('Permission needed', 'Allow photo access to upload a prescription.');
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      quality: 0.7,
-    });
-    if (result.canceled || !result.assets[0]) {
-      return;
-    }
-    await createOrder(result.assets[0].fileName ?? 'Prescription from gallery');
   };
 
-  const createOrder = async (prescriptionName: string) => {
-    const ok = await submit(`Prescription upload: ${prescriptionName}`, 'Medicine order created');
+  const createOrder = async (prescriptionName: string, listPhoto?: string) => {
+    const ok = await submit(`Prescription upload: ${prescriptionName}`, 'Medicine order created', listPhoto);
     if (!ok) {
       return;
     }

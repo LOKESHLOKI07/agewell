@@ -242,7 +242,15 @@ async def test_notifications_openapi(client):
     assert "get" in paths["/api/v1/notifications/{notification_id}"]
     assert "post" in paths["/api/v1/notifications/{notification_id}/read"]
     schema = spec["components"]["schemas"]["NotificationResponse"]["properties"]
-    assert set(schema.keys()) == {"id", "title", "message", "priority", "is_read", "created_at"}
+    assert set(schema.keys()) == {
+        "id",
+        "title",
+        "message",
+        "priority",
+        "is_read",
+        "action_ref",
+        "created_at",
+    }
     assert "user_id" not in schema
     assert "emergency_case_id" not in schema
     token_schema = spec["components"]["schemas"]["DevicePushTokenRegister"]["properties"]

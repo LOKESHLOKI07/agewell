@@ -1,19 +1,35 @@
 import { useMutation, useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query';
+import { LIVE_POLL_MS, liveQueryOptions } from '@/api/liveQuery';
 import { useAuthStore } from '@/features/auth/authStore';
-import type { Appointment, ListPage, Visit, VisitStatus } from '@/features/home/types/home';
+import type {
+  Appointment,
+  ListPage,
+  ServiceRequest,
+  ServiceRequestStatus,
+  Visit,
+  VisitStatus,
+} from '@/features/home/types/home';
 import type { EmergencyCase } from '@/features/emergency/types/emergency';
 import { emergencyQueryKeys } from '@/features/emergency/queryKeys';
 import { acknowledgeEmergency } from '@/features/emergency/api/emergencyApi';
 import {
+  assignCareServiceCompanion,
+  assignCareServiceRequest,
+  assignVisitServiceCompanion,
+  autoAssignCareServiceRequest,
   checkIn,
   checkOut,
   createVisitReport,
+  fetchAssignableCareStaff,
   fetchAttendanceToday,
+  fetchCareDispatchQueue,
   fetchCareManagerAppointments,
   fetchCareManagerProfile,
   fetchCareManagerTodayVisits,
   fetchCareManagerUpcomingVisits,
   fetchCareManagerVisits,
+  fetchCareServiceRequests,
+  fetchCareUnassignedServiceRequestCounts,
   fetchDeliveries,
   fetchDeliveryDetail,
   fetchStaffEmergencies,
@@ -21,6 +37,7 @@ import {
   fetchVisitDetail,
   fetchVisitReports,
   fetchVisitTasks,
+  takeCareServiceRequest,
   updateDeliveryStatus,
   updateVisitStatus,
   updateVisitTask,
@@ -40,14 +57,14 @@ function useAuthedQuery<T>(
   queryKey: readonly unknown[],
   queryFn: () => Promise<T>,
   enabled = true,
-  refetchInterval: number | false = false,
+  pollMs: number | false = false,
 ): UseQueryResult<T> {
   const isAuthenticated = useAuthStore((state) => state.status === 'AUTHENTICATED');
   return useQuery({
     queryKey,
     queryFn,
     enabled: isAuthenticated && enabled,
-    refetchInterval,
+    ...(pollMs ? liveQueryOptions(pollMs) : null),
   });
 }
 
@@ -56,7 +73,12 @@ export function useCareManagerProfile() {
 }
 
 export function useCareManagerTodayVisits() {
-  return useAuthedQuery<ListPage<Visit>>(careQueryKeys.visitsToday, fetchCareManagerTodayVisits);
+  return useAuthedQuery<ListPage<Visit>>(
+    careQueryKeys.visitsToday,
+    fetchCareManagerTodayVisits,
+    true,
+    LIVE_POLL_MS.relaxed,
+  );
 }
 
 export function useCareManagerVisits() {
@@ -100,7 +122,12 @@ export function useAttendanceToday() {
 }
 
 export function useDeliveries() {
-  return useAuthedQuery<ListPage<Delivery>>(careQueryKeys.deliveries, () => fetchDeliveries());
+  return useAuthedQuery<ListPage<Delivery>>(
+    careQueryKeys.deliveries,
+    () => fetchDeliveries(),
+    true,
+    LIVE_POLL_MS.relaxed,
+  );
 }
 
 export function useDeliveryDetail(deliveryId: string | undefined) {
@@ -116,7 +143,12 @@ export function useTrainingHome() {
 }
 
 export function useStaffEmergencies() {
-  return useAuthedQuery<EmergencyCase[]>(careQueryKeys.staffEmergencies, () => fetchStaffEmergencies(), true, 4000);
+  return useAuthedQuery<EmergencyCase[]>(
+    careQueryKeys.staffEmergencies,
+    () => fetchStaffEmergencies(),
+    true,
+    LIVE_POLL_MS.urgent,
+  );
 }
 
 function invalidateVisitQueries(queryClient: ReturnType<typeof useQueryClient>, visitId?: string) {
@@ -132,8 +164,17 @@ function invalidateVisitQueries(queryClient: ReturnType<typeof useQueryClient>, 
 export function useUpdateVisitStatus() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ visitId, status, notes }: { visitId: string; status: VisitStatus; notes?: string | null }) =>
-      updateVisitStatus(visitId, status, notes),
+    mutationFn: ({
+      visitId,
+      status,
+      notes,
+      proofPhoto,
+    }: {
+      visitId: string;
+      status: VisitStatus;
+      notes?: string | null;
+      proofPhoto?: string | null;
+    }) => updateVisitStatus(visitId, status, notes, proofPhoto),
     onSuccess: (_data, variables) => {
       invalidateVisitQueries(queryClient, variables.visitId);
     },
@@ -165,11 +206,13 @@ export function useCreateVisitReport() {
       visitId,
       summary,
       issuesNoted,
+      proofPhoto,
     }: {
       visitId: string;
       summary?: string | null;
       issuesNoted?: string | null;
-    }) => createVisitReport(visitId, { summary, issuesNoted }),
+      proofPhoto?: string | null;
+    }) => createVisitReport(visitId, { summary, issuesNoted, proofPhoto }),
     onSuccess: (_data, variables) => {
       invalidateVisitQueries(queryClient, variables.visitId);
     },
@@ -199,8 +242,15 @@ export function useCheckOut() {
 export function useUpdateDeliveryStatus() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ deliveryId, status }: { deliveryId: string; status: DeliveryStatus }) =>
-      updateDeliveryStatus(deliveryId, status),
+    mutationFn: ({
+      deliveryId,
+      status,
+      proofPhoto,
+    }: {
+      deliveryId: string;
+      status: DeliveryStatus;
+      proofPhoto?: string | null;
+    }) => updateDeliveryStatus(deliveryId, status, { proofPhoto }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: careQueryKeys.deliveries });
     },
@@ -215,6 +265,127 @@ export function useRespondEmergency() {
       void queryClient.invalidateQueries({ queryKey: careQueryKeys.staffEmergencies });
       void queryClient.invalidateQueries({ queryKey: emergencyQueryKeys.list });
       void queryClient.invalidateQueries({ queryKey: emergencyQueryKeys.detail(variables.emergencyId) });
+    },
+  });
+}
+
+export function useAssignableCareStaff(enabled = true) {
+  return useAuthedQuery<CareManagerProfile[]>(
+    careQueryKeys.assignableStaff,
+    fetchAssignableCareStaff,
+    enabled,
+  );
+}
+
+export function useCareServiceRequests(
+  params: {
+    limit?: number;
+    offset?: number;
+    status?: ServiceRequestStatus;
+    serviceSlug?: string;
+  } = {},
+  enabled = true,
+) {
+  const query = {
+    limit: params.limit ?? 50,
+    offset: params.offset ?? 0,
+    status: params.status,
+    serviceSlug: params.serviceSlug,
+  };
+  return useAuthedQuery<ListPage<ServiceRequest>>(
+    careQueryKeys.serviceRequests(query),
+    () => fetchCareServiceRequests(query),
+    enabled,
+    LIVE_POLL_MS.standard,
+  );
+}
+
+export function useCareUnassignedServiceRequestCounts(enabled = true) {
+  return useAuthedQuery<Record<string, number>>(
+    careQueryKeys.serviceRequestUnassignedCounts,
+    fetchCareUnassignedServiceRequestCounts,
+    enabled,
+    LIVE_POLL_MS.standard,
+  );
+}
+
+export function useAssignCareServiceRequest() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { id: string; careManagerIds: string[] }) =>
+      assignCareServiceRequest(input.id, input.careManagerIds),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['care', 'serviceRequests'] });
+      await queryClient.invalidateQueries({ queryKey: careQueryKeys.serviceRequestUnassignedCounts });
+      await queryClient.invalidateQueries({ queryKey: careQueryKeys.dispatchQueue });
+      await queryClient.invalidateQueries({ queryKey: careQueryKeys.visitsAll });
+      await queryClient.invalidateQueries({ queryKey: careQueryKeys.visitsToday });
+      await queryClient.invalidateQueries({ queryKey: careQueryKeys.deliveries });
+    },
+  });
+}
+
+export function useAutoAssignCareServiceRequest() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => autoAssignCareServiceRequest(id),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['care', 'serviceRequests'] });
+      await queryClient.invalidateQueries({ queryKey: careQueryKeys.serviceRequestUnassignedCounts });
+      await queryClient.invalidateQueries({ queryKey: careQueryKeys.dispatchQueue });
+      await queryClient.invalidateQueries({ queryKey: careQueryKeys.visitsAll });
+      await queryClient.invalidateQueries({ queryKey: careQueryKeys.visitsToday });
+      await queryClient.invalidateQueries({ queryKey: careQueryKeys.deliveries });
+    },
+  });
+}
+
+export function useCareDispatchQueue(enabled = true) {
+  return useAuthedQuery<ListPage<ServiceRequest>>(
+    careQueryKeys.dispatchQueue,
+    fetchCareDispatchQueue,
+    enabled,
+    LIVE_POLL_MS.standard,
+  );
+}
+
+export function useTakeCareServiceRequest() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => takeCareServiceRequest(id),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: careQueryKeys.dispatchQueue });
+      await queryClient.invalidateQueries({ queryKey: careQueryKeys.visitsToday });
+      await queryClient.invalidateQueries({ queryKey: careQueryKeys.visitsAll });
+      await queryClient.invalidateQueries({ queryKey: careQueryKeys.deliveries });
+    },
+  });
+}
+
+export function useAssignCareServiceCompanion() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { id: string; serviceCompanionId: string }) =>
+      assignCareServiceCompanion(input.id, input.serviceCompanionId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: careQueryKeys.dispatchQueue });
+      await queryClient.invalidateQueries({ queryKey: careQueryKeys.deliveries });
+      await queryClient.invalidateQueries({ queryKey: careQueryKeys.visitsToday });
+      await queryClient.invalidateQueries({ queryKey: careQueryKeys.visitsAll });
+    },
+  });
+}
+
+export function useAssignVisitServiceCompanion() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { visitId: string; serviceCompanionId: string }) =>
+      assignVisitServiceCompanion(input.visitId, input.serviceCompanionId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: careQueryKeys.dispatchQueue });
+      await queryClient.invalidateQueries({ queryKey: careQueryKeys.deliveries });
+      await queryClient.invalidateQueries({ queryKey: careQueryKeys.visitsToday });
+      await queryClient.invalidateQueries({ queryKey: careQueryKeys.visitsAll });
     },
   });
 }

@@ -78,6 +78,14 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="credits"
+        options={{
+          title: 'Credits',
+          tabBarIcon: ({ color, size }) => <Icon name="wallet-outline" color={color} size={size} />,
+          tabBarAccessibilityLabel: 'Credit Balance',
+        }}
+      />
+      <Tabs.Screen
         name="orders"
         options={{
           title: 'Orders',

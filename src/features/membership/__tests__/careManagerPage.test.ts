@@ -9,17 +9,34 @@ describe('resolveCareManagerPageVariant', () => {
       resolveCareManagerPageVariant({
         inServiceArea: false,
         areaReady: true,
+        membershipReady: true,
+        hasMembership: true,
         assignedReady: true,
         assigned: true,
       }),
     ).toBe('non_serviceable');
   });
 
-  it('shows unassigned when in area without a Care Manager', () => {
+  it('shows membership purchase only when the senior has no membership', () => {
     expect(
       resolveCareManagerPageVariant({
         inServiceArea: true,
         areaReady: true,
+        membershipReady: true,
+        hasMembership: false,
+        assignedReady: true,
+        assigned: false,
+      }),
+    ).toBe('no_membership');
+  });
+
+  it('shows unassigned when a member is in area without a Care Manager', () => {
+    expect(
+      resolveCareManagerPageVariant({
+        inServiceArea: true,
+        areaReady: true,
+        membershipReady: true,
+        hasMembership: true,
         assignedReady: true,
         assigned: false,
       }),
@@ -31,6 +48,8 @@ describe('resolveCareManagerPageVariant', () => {
       resolveCareManagerPageVariant({
         inServiceArea: true,
         areaReady: true,
+        membershipReady: true,
+        hasMembership: true,
         assignedReady: true,
         assigned: true,
       }),

@@ -6,8 +6,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AgeWellLogo } from '@/components/AgeWellLogo';
 import { Icon, type IconName } from '@/components/ui';
 import { colors, minTouchSize, radius, spacing, typography } from '@/constants/theme';
-import { AUTH_ROLE_LABELS } from '@/features/auth/authTypes';
 import { useAuthStore } from '@/features/auth/authStore';
+import { isSuperStaff, staffScopeLabel } from '@/features/auth/serviceCities';
 import { resolveAdminSearchTarget } from '../dashboardModel';
 import { useAdminEmergencies, useAdminNotifications } from '../hooks';
 import { ADMIN_NAV, ADMIN_NAV_GROUPS, adminMobileTabs, isAdminPathActive } from '../selectors';
@@ -24,6 +24,8 @@ export function AdminShell({ children }: AdminShellProps) {
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
   const user = useAuthStore((state) => state.user);
+  const navCatalog = isSuperStaff(user) ? ADMIN_NAV : ADMIN_NAV.filter((item) => item.key !== 'audit');
+  const scopeLabel = staffScopeLabel(user);
   const openEmergencies = useAdminEmergencies({ limit: 1, offset: 0, status: 'OPEN' });
   const unreadNotifications = useAdminNotifications({ limit: 1, offset: 0, isRead: false });
   const badges: Record<string, number> = {
@@ -43,7 +45,7 @@ export function AdminShell({ children }: AdminShellProps) {
           <ScrollView contentContainerStyle={styles.sidebarList} showsVerticalScrollIndicator={false}>
             {ADMIN_NAV_GROUPS.map((group) => {
               const items = group.keys
-                .map((key) => ADMIN_NAV.find((item) => item.key === key))
+                .map((key) => navCatalog.find((item) => item.key === key))
                 .filter((item): item is (typeof ADMIN_NAV)[number] => Boolean(item));
               if (!items.length) return null;
               return (
@@ -71,7 +73,7 @@ export function AdminShell({ children }: AdminShellProps) {
         <View style={styles.desktopMain}>
           <AdminTopBar
             email={user?.email ?? null}
-            role={user?.role ? AUTH_ROLE_LABELS[user.role] : 'Staff'}
+            role={scopeLabel}
             notificationCount={badges.notifications}
             showSearch={!isAdminPathActive(pathname, '/(admin)')}
           />
@@ -86,7 +88,7 @@ export function AdminShell({ children }: AdminShellProps) {
       <AdminTopBar
         compact
         email={user?.email ?? null}
-        role={user?.role ? AUTH_ROLE_LABELS[user.role] : 'Staff'}
+        role={scopeLabel}
         notificationCount={badges.notifications}
         showSearch={false}
       />
@@ -146,9 +148,9 @@ function AdminTopBar({
   showSearch?: boolean;
 }) {
   const [query, setQuery] = useState('');
-  const displayName = email?.split('@')[0] || 'Admin';
-  const initial = displayName.charAt(0).toUpperCase();
-  const roleLabel = role === 'Admin' ? 'Administrator' : role;
+  const displayName = role || email?.split('@')[0] || 'Admin';
+  const initial = (email?.split('@')[0] || displayName).charAt(0).toUpperCase();
+  const roleLabel = role;
 
   const submitSearch = () => {
     const target = resolveAdminSearchTarget(query);

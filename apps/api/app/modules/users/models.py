@@ -28,5 +28,7 @@ class User(Base):
     hashed_password = Column(String)
     role = Column(Enum(RoleEnum), default=RoleEnum.FAMILY)
     account_status = Column(Enum(AccountStatus), default=AccountStatus.ACTIVE, nullable=False)
+    # mumbai | chandrapur | None (None on staff = super admin / all cities)
+    service_city = Column(String, nullable=True, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

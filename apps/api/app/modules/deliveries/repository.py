@@ -35,6 +35,13 @@ class DeliveryRepository:
         )
         return list(result.scalars().all()), int(total)
 
+    async def create(self, **kwargs) -> StaffDelivery:
+        row = StaffDelivery(**kwargs)
+        self.session.add(row)
+        await self.session.commit()
+        await self.session.refresh(row)
+        return row
+
     async def get_care_manager(self, care_manager_id: UUID) -> Optional[CareManager]:
         result = await self.session.execute(select(CareManager).where(CareManager.id == care_manager_id))
         return result.scalars().first()

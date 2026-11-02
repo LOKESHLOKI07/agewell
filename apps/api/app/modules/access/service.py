@@ -47,13 +47,42 @@ class AccessService:
         self.access_repo = access_repo
         self.senior_repo = senior_repo
 
+    async def _linked_family_senior_ids(self, user: User) -> list:
+        family = await self.access_repo.get_family_member_by_user_id(user.id)
+        if not family:
+            return []
+        return await self.access_repo.list_family_senior_ids(family.id)
+
     async def get_senior_for_user(self, user: User):
+        """Own senior profile only (mutations / account ownership)."""
         if user.role != RoleEnum.SENIOR:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=FORBIDDEN)
         senior = await self.senior_repo.get_by_user_id(user.id)
         if not senior:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Senior profile not found")
         return senior
+
+    async def get_care_context_senior(self, user: User):
+        """Senior used for home / membership UX.
+
+        FAMILY inherits the linked senior so premium membership follows that senior.
+        """
+        if user.role == RoleEnum.SENIOR:
+            return await self.get_senior_for_user(user)
+
+        if user.role == RoleEnum.FAMILY:
+            senior_ids = await self._linked_family_senior_ids(user)
+            if not senior_ids:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="No linked senior yet. Ask the senior to add you as family.",
+                )
+            senior = await self.senior_repo.get_by_id(senior_ids[0])
+            if not senior:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Senior profile not found")
+            return senior
+
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=FORBIDDEN)
 
     async def resolve_senior_id(
         self,
@@ -69,6 +98,9 @@ class AccessService:
         CARE_MANAGER is not resolved here. Care associates may only reach a
         senior through an assigned visit — see resolve_visit_list_scope and
         ensure_visit_access.
+
+        FAMILY may omit senior_id: the first linked senior is used so membership
+        and services follow that senior's premium status.
         """
         requested_senior_id = as_uuid(requested_senior_id)
 
@@ -81,10 +113,13 @@ class AccessService:
             return senior.id
 
         if user.role in (RoleEnum.ADMIN, RoleEnum.OPERATIONS):
+            from app.modules.cities.catalog import ensure_staff_city_for_senior
+
             if requested_senior_id:
                 senior = await self.senior_repo.get_by_id(requested_senior_id)
                 if not senior:
                     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Senior not found")
+                ensure_staff_city_for_senior(user, senior)
                 return requested_senior_id
             if allow_unscoped_staff:
                 return None
@@ -95,12 +130,20 @@ class AccessService:
 
         if user.role == RoleEnum.FAMILY:
             family = await self.access_repo.get_family_member_by_user_id(user.id)
-            if not family or not requested_senior_id:
+            if not family:
                 raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=FORBIDDEN)
-            allowed = await self.access_repo.has_family_senior_access(family.id, requested_senior_id)
-            if not allowed:
-                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=FORBIDDEN)
-            return requested_senior_id
+            if requested_senior_id:
+                allowed = await self.access_repo.has_family_senior_access(family.id, requested_senior_id)
+                if not allowed:
+                    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=FORBIDDEN)
+                return requested_senior_id
+            senior_ids = await self.access_repo.list_family_senior_ids(family.id)
+            if not senior_ids:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="No linked senior yet. Ask the senior to add you as family.",
+                )
+            return senior_ids[0]
 
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=FORBIDDEN)
 
@@ -248,6 +291,12 @@ class AccessService:
 
     async def ensure_emergency_access(self, user: User, senior_id: Optional[UUID]) -> None:
         if user.role in (RoleEnum.ADMIN, RoleEnum.OPERATIONS):
+            if senior_id is None:
+                return
+            from app.modules.cities.catalog import ensure_staff_city_for_senior
+
+            senior = await self.senior_repo.get_by_id(senior_id)
+            ensure_staff_city_for_senior(user, senior)
             return
         if senior_id is None:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=FORBIDDEN)

@@ -30,6 +30,7 @@ class UserRepository:
         *,
         role: Optional[RoleEnum] = None,
         email: Optional[str] = None,
+        service_city: Optional[str] = None,
         limit: int = 50,
         offset: int = 0,
     ):
@@ -42,6 +43,9 @@ class UserRepository:
             pattern = f"%{email.strip()}%"
             stmt = stmt.where(User.email.ilike(pattern))
             count_stmt = count_stmt.where(User.email.ilike(pattern))
+        if service_city:
+            stmt = stmt.where(User.service_city == service_city)
+            count_stmt = count_stmt.where(User.service_city == service_city)
         total = (await self.session.execute(count_stmt)).scalar_one()
         result = await self.session.execute(
             stmt.order_by(User.created_at.desc().nulls_last()).offset(offset).limit(limit)
@@ -57,6 +61,7 @@ class UserRepository:
             role=user.role,
             hashed_password=user.password,
             account_status=user.account_status or AccountStatus.ACTIVE,
+            service_city=user.service_city,
         )
         self.session.add(db_user)
         await self.session.commit()

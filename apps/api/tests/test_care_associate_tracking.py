@@ -361,6 +361,8 @@ async def test_openapi_care_associate_contracts(client):
     assert "get" in paths["/api/v1/tracking/visits/{visit_id}/care-associate"]
     assert "get" in paths["/api/v1/tracking/visits/{visit_id}/care-associate/latest"]
     assert "get" in paths["/api/v1/tracking/visits/{visit_id}/care-associate/points"]
+    assert "post" in paths["/api/v1/tracking/deliveries/{delivery_id}/executive/points"]
+    assert "get" in paths["/api/v1/tracking/deliveries/{delivery_id}/executive/latest"]
     assert "get" in paths["/api/v1/tracking/"]
     assert "post" in paths["/api/v1/tracking/"]
     for name in (

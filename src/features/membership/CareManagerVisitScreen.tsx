@@ -9,7 +9,6 @@ import {
   Text,
   View,
 } from 'react-native';
-import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView, LoadingState, PrimaryButton, TextField } from '@/components';
 import { Avatar, Icon, type IconName } from '@/components/ui';
@@ -43,7 +42,6 @@ import {
 import type { AssignedCareManager, CareActivity } from './careManagerTypes';
 import { resolveCareManagerPageVariant } from './careManagerVariant';
 import { MembershipNoMembershipPreview } from './MembershipNoMembershipPreview';
-import { membershipPurchaseHref } from './planCatalog';
 import { SERVICE_HERO_IMAGES } from './serviceHeroes'
 import { servicePageType } from './servicePageType';
 import { useHasActiveMembership } from './useHasActiveMembership';
@@ -116,6 +114,7 @@ export function CareManagerVisitScreen() {
   const insets = useSafeAreaInsets();
   const bottomPad = useTabScreenBottomPad(spacing.xxl);
   const membership = useHasActiveMembership();
+  const locality = useServiceLocality();
   const assignedQuery = useAssignedCareManager();
   const activitiesQuery = useCareActivities(assignedQuery.data?.assigned === true);
   const callMutation = useCreateCareCall();
@@ -128,12 +127,15 @@ export function CareManagerVisitScreen() {
   const variant = resolveCareManagerPageVariant({
     inServiceArea: assigned?.inServiceArea ?? false,
     areaReady: assignedQuery.isFetched || assignedQuery.isError,
+    membershipReady: !membership.isPending,
+    hasMembership: membership.hasMembership,
     assignedReady: assignedQuery.isFetched || assignedQuery.isError,
     assigned: Boolean(assigned?.assigned && assigned.careManager),
   });
   const activities = activitiesQuery.data?.items ?? [];
   const visibleActivities = showAll ? activities : activities.slice(0, 3);
   const validTill = membershipValidLabel(membership.query.data?.endDate);
+  const areaLabel = serviceAreaDeliveryLabel(locality);
 
   const onCall = async (manager: AssignedCareManager) => {
     if (!isCareManagerCallOpen()) {
@@ -190,7 +192,7 @@ export function CareManagerVisitScreen() {
             />
             <Text style={styles.title}>Care Manager</Text>
           </View>
-          {variant === 'assigned' && validTill ? (
+          {(variant === 'assigned' || variant === 'unassigned') && validTill ? (
             <View style={styles.memberBadge}>
               <Icon name="checkmark-circle-outline" size={14} color={familyHome.green} />
               <Text style={styles.memberBadgeTitle}>{validTill}</Text>
@@ -200,7 +202,8 @@ export function CareManagerVisitScreen() {
 
         {variant === 'loading' ? <LoadingState message="Loading Care Manager..." /> : null}
         {variant === 'non_serviceable' ? <ComingSoonBody /> : null}
-        {variant === 'unassigned' ? <MembershipNoMembershipPreview slug="care-manager" /> : null}
+        {variant === 'no_membership' ? <MembershipNoMembershipPreview slug="care-manager" /> : null}
+        {variant === 'unassigned' ? <UnassignedBody areaLabel={areaLabel} /> : null}
         {variant === 'assigned' && assigned?.careManager ? (
           <AssignedBody
             manager={assigned.careManager}
@@ -263,54 +266,46 @@ function ComingSoonBody() {
   );
 }
 
-export function UnassignedBody() {
+export function UnassignedBody({ areaLabel }: { areaLabel: string }) {
   return (
     <View style={styles.stack}>
       <VideoCard />
       <ExplainerCopy />
       <BenefitGrid />
-      <View style={styles.memberBanner}>
-        <Icon name="ribbon-outline" size={18} color={familyHome.greenDark} />
+      <View style={styles.pendingCard}>
+        <Icon name="people" size={20} color={familyHome.blue} />
         <View style={styles.bannerCopy}>
-          <Text style={styles.availableTitle}>Become a Member Today</Text>
-          <Text style={styles.availableBody}>
-            Get a dedicated Care Manager, regular visits, service coordination and personalised support with our membership plans.
+          <Text style={styles.pendingTitle}>Care Manager assignment pending</Text>
+          <Text style={styles.pendingBody}>
+            Your membership is active. EldCare will assign a Care Manager shortly. Once assigned, you can call,
+            message, and schedule visits here.
           </Text>
         </View>
-        <Pressable
-          onPress={() => router.push(membershipPurchaseHref())}
-          accessibilityRole="button"
-          accessibilityLabel="View plans"
-          style={styles.viewPlans}
-        >
-          <Text style={styles.viewPlansLabel}>View Plans</Text>
-          <Icon name="chevron-forward" size={14} color={familyHome.white} />
-        </Pressable>
       </View>
       <View style={styles.availableBanner}>
         <Icon name="location" size={18} color={familyHome.greenDark} />
         <View style={styles.bannerCopy}>
-          <Text style={styles.availableTitle}>Good news! Our services are available in your area</Text>
-          <Text style={styles.availableBody}>({SERVICE_AREA_LINE}).</Text>
+          <Text style={styles.availableTitle}>You are in our serviceable area</Text>
+          <Text style={styles.availableBody}>Delivering care in {areaLabel}.</Text>
         </View>
       </View>
       <Pressable
         onPress={() =>
           Alert.alert(
-            'Talk to Expert',
-            'EldCare will assign a Care Manager and reach you during service hours (10:00 AM–6:00 PM).',
+            'Assignment in progress',
+            'EldCare is assigning your Care Manager. You will be able to call and schedule visits as soon as they are linked to your account.',
           )
         }
         accessibilityRole="button"
-        accessibilityLabel="Talk to Expert"
+        accessibilityLabel="Care Manager assignment status"
         style={styles.infoBanner}
       >
         <Icon name="help-circle-outline" size={18} color={familyHome.blue} />
         <View style={styles.bannerCopy}>
-          <Text style={styles.infoTitle}>Need help or have questions?</Text>
-          <Text style={styles.infoBody}>Talk to our team and we will guide you on the best plan for you.</Text>
+          <Text style={styles.infoTitle}>Need support now?</Text>
+          <Text style={styles.infoBody}>Use SOS for emergencies, or wait for your Care Manager assignment.</Text>
         </View>
-        <Text style={styles.talkLabel}>Talk to Expert</Text>
+        <Text style={styles.talkLabel}>Got it</Text>
       </Pressable>
     </View>
   );
@@ -667,24 +662,18 @@ const styles = StyleSheet.create({
   },
   availableTitle: { ...typography.bodyStrong, color: familyHome.greenDark, fontSize: 14, lineHeight: 18 },
   availableBody: { ...typography.caption, color: familyHome.text, marginTop: 4, lineHeight: 18 },
-  memberBanner: {
+  pendingCard: {
     flexDirection: 'row',
     gap: spacing.md,
-    backgroundColor: familyHome.greenSoft,
+    backgroundColor: familyHome.blueSoft,
     borderRadius: 16,
     padding: spacing.lg,
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    borderWidth: 1,
+    borderColor: '#C9DBF5',
   },
-  viewPlans: {
-    backgroundColor: familyHome.green,
-    borderRadius: 20,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  viewPlansLabel: { ...typography.captionStrong, color: familyHome.white },
+  pendingTitle: { ...typography.bodyStrong, color: familyHome.blueDark, fontSize: 14, lineHeight: 18 },
+  pendingBody: { ...typography.caption, color: familyHome.text, marginTop: 4, lineHeight: 18 },
   talkLabel: { ...typography.captionStrong, color: familyHome.blue },
   bannerCopy: { flex: 1 },
   videoCard: {

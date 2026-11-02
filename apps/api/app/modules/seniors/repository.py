@@ -67,7 +67,14 @@ class SeniorRepository:
             return stmt.where(in_area, ~has_membership)
         return stmt
 
-    async def list_seniors(self, *, limit: int = 50, offset: int = 0, segment: str | None = None):
+    async def list_seniors(
+        self,
+        *,
+        limit: int = 50,
+        offset: int = 0,
+        segment: str | None = None,
+        service_city: str | None = None,
+    ):
         has_membership = self._membership_exists()
         base = (
             select(
@@ -80,6 +87,8 @@ class SeniorRepository:
             .outerjoin(User, Senior.user_id == User.id)
         )
         base = self._apply_segment(base, segment)
+        if service_city:
+            base = base.where(Senior.service_city == service_city)
 
         count_stmt = select(func.count()).select_from(base.order_by(None).subquery())
         total = (await self.session.execute(count_stmt)).scalar_one()

@@ -60,9 +60,19 @@ class MembershipRepository:
         result = await self.session.execute(stmt.offset(offset).limit(limit))
         return list(result.scalars().all()), int(total)
 
-    async def list_memberships(self, *, senior_id: Optional[UUID] = None, limit: int = 50, offset: int = 0):
+    async def list_memberships(
+        self,
+        *,
+        senior_id: Optional[UUID] = None,
+        service_city: Optional[str] = None,
+        limit: int = 50,
+        offset: int = 0,
+    ):
+        from app.modules.cities.catalog import apply_city_fk
+
         stmt = select(Membership, MembershipPlan).join(MembershipPlan, Membership.plan_id == MembershipPlan.id)
         count_stmt = select(func.count()).select_from(Membership)
+        stmt, count_stmt = apply_city_fk(stmt, count_stmt, Membership.senior_id, service_city)
         if senior_id is not None:
             stmt = stmt.where(Membership.senior_id == senior_id)
             count_stmt = count_stmt.where(Membership.senior_id == senior_id)
@@ -156,6 +166,7 @@ class MembershipRepository:
         *,
         senior_id: Optional[UUID] = None,
         status: Optional[str] = None,
+        service_city: Optional[str] = None,
         limit: int = 50,
         offset: int = 0,
     ):
@@ -165,6 +176,11 @@ class MembershipRepository:
             .join(MembershipPlan, MembershipRequest.plan_id == MembershipPlan.id)
         )
         count_stmt = select(func.count()).select_from(MembershipRequest)
+        if service_city:
+            stmt = stmt.where(Senior.service_city == service_city)
+            count_stmt = count_stmt.where(
+                MembershipRequest.senior_id.in_(select(Senior.id).where(Senior.service_city == service_city))
+            )
         if senior_id is not None:
             stmt = stmt.where(MembershipRequest.senior_id == senior_id)
             count_stmt = count_stmt.where(MembershipRequest.senior_id == senior_id)

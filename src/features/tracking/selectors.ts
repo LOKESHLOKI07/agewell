@@ -40,6 +40,19 @@ export function canShareCareAssociateLocation(role: AuthRole | null | undefined)
   return role === 'CARE_MANAGER';
 }
 
+export function canWatchSharedLocation(
+  role: AuthRole | null | undefined,
+  kind: string | null | undefined,
+): boolean {
+  if (kind === 'senior') {
+    return role === 'SENIOR';
+  }
+  if (kind === 'care-associate' || kind === 'delivery') {
+    return role === 'CARE_MANAGER';
+  }
+  return false;
+}
+
 export function trackingHref() {
   return '/tracking' as const;
 }

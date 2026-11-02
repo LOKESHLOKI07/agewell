@@ -8,7 +8,9 @@ import { AgeWellHeader } from '@/features/home/components/AgeWellHeader';
 import { colors, spacing, typography } from '@/constants/theme';
 import { getApiErrorMessage } from '@/api/errors';
 import { isCareApp } from '@/config/appVariant';
-import { STAFF_KIND_LABELS } from '@/features/care/staffKind';
+import { ServiceCompanionServicePicker } from '@/features/care/ServiceCompanionServicePicker';
+import { isServiceCompanionKind, STAFF_KIND_LABELS } from '@/features/care/staffKind';
+import type { ServiceCompanionSlug } from '@/features/care/serviceCompanionServices';
 import { getSelectedStaffKind } from './staffKindPreference';
 import { useAuthStore } from './authStore';
 import { registerCareAssociate } from './registrationApi';
@@ -19,6 +21,7 @@ export function RegisterCareScreen() {
   const completeRegistration = useAuthStore((state) => state.completeRegistration);
   const staffKind = getSelectedStaffKind();
   const [formError, setFormError] = useState<string | null>(null);
+  const [companionServiceSlugs, setCompanionServiceSlugs] = useState<ServiceCompanionSlug[]>([]);
 
   useEffect(() => {
     if (isCareApp()) {
@@ -53,9 +56,17 @@ export function RegisterCareScreen() {
       router.replace('/(auth)/select-role' as Href);
       return;
     }
+    if (isServiceCompanionKind(staffKind) && companionServiceSlugs.length === 0) {
+      setFormError('Select at least one service for a Service Companion.');
+      return;
+    }
     setFormError(null);
     try {
-      const result = await registerCareAssociate({ ...values, staffKind: staffKind ?? 'CARE_MANAGER' });
+      const result = await registerCareAssociate({
+        ...values,
+        staffKind: staffKind ?? 'CARE_MANAGER',
+        companionServiceSlugs: isServiceCompanionKind(staffKind) ? companionServiceSlugs : [],
+      });
       completeRegistration(result.user, result.careStatus);
       router.replace(
         registrationSuccessHref({
@@ -88,6 +99,9 @@ export function RegisterCareScreen() {
       <Field control={control} name="experience" label="Experience" error={errors.experience?.message} />
       <Field control={control} name="languages" label="Languages" error={errors.languages?.message} />
       <Field control={control} name="availability" label="Availability" placeholder="Weekdays mornings…" error={errors.availability?.message} />
+      {isServiceCompanionKind(staffKind) ? (
+        <ServiceCompanionServicePicker values={companionServiceSlugs} onChange={setCompanionServiceSlugs} />
+      ) : null}
       {formError ? (
         <Text style={styles.error} accessibilityRole="alert" accessibilityLiveRegion="polite">
           {formError}

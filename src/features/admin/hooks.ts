@@ -1,10 +1,13 @@
 import { useMutation, useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query';
+import { LIVE_POLL_MS, liveQueryOptions } from '@/api/liveQuery';
 import { useAuthStore } from '@/features/auth/authStore';
 import type { AuthRole } from '@/features/auth/authTypes';
 import type { EmergencyStatus } from '@/features/emergency/types/emergency';
 import type { AppointmentStatus, NotificationPriority, ServiceRequestStatus, VisitStatus } from '@/features/home/types/home';
 import type { MembershipRequestStatus } from '@/features/membership/membershipTypes';
 import {
+  assignAdminServiceRequest,
+  autoAssignAdminServiceRequest,
   approveAdminCareManager,
   createAdminCareManager,
   provisionAdminStaff,
@@ -34,6 +37,7 @@ import {
   fetchAdminSeniorByUserId,
   fetchAdminSeniors,
   fetchAdminServiceRequests,
+  fetchAdminUnassignedServiceRequestCounts,
   fetchAdminServices,
   fetchAdminUser,
   fetchAdminUsers,
@@ -58,12 +62,18 @@ import { adminQueryKeys } from './queryKeys';
 import type { AdminCareManagerCreate, AdminCareManagerUpdate, AdminSeniorCreate, AdminSeniorUpdate, AdminStaffProvision, AdminUserCreate, AdminUserUpdate } from './types';
 import { ADMIN_PAGE_SIZE } from './types';
 
-function useStaffQuery<T>(queryKey: readonly unknown[], queryFn: () => Promise<T>, enabled = true): UseQueryResult<T> {
+function useStaffQuery<T>(
+  queryKey: readonly unknown[],
+  queryFn: () => Promise<T>,
+  enabled = true,
+  pollMs: number | false = false,
+): UseQueryResult<T> {
   const isAuthenticated = useAuthStore((state) => state.status === 'AUTHENTICATED');
   return useQuery({
     queryKey,
     queryFn,
     enabled: isAuthenticated && enabled,
+    ...(pollMs ? liveQueryOptions(pollMs) : null),
   });
 }
 
@@ -117,11 +127,17 @@ export function useUpdateAdminUser(id: string) {
   });
 }
 
-export function useAdminSeniors(params: { limit?: number; offset?: number; segment?: string }) {
+export function useAdminSeniors(params: {
+  limit?: number;
+  offset?: number;
+  segment?: string;
+  serviceCity?: string;
+}) {
   const query = {
     limit: params.limit ?? ADMIN_PAGE_SIZE,
     offset: params.offset ?? 0,
     ...(params.segment ? { segment: params.segment } : {}),
+    ...(params.serviceCity ? { serviceCity: params.serviceCity } : {}),
   };
   return useStaffQuery(adminQueryKeys.seniors(query), () => fetchAdminSeniors(query));
 }
@@ -266,22 +282,74 @@ export function useAdminServiceRequests(params: {
   offset?: number;
   status?: ServiceRequestStatus;
   seniorId?: string;
+  serviceSlug?: string;
 }) {
   const query = {
     limit: params.limit ?? ADMIN_PAGE_SIZE,
     offset: params.offset ?? 0,
     status: params.status,
     seniorId: params.seniorId,
+    serviceSlug: params.serviceSlug,
   };
-  return useStaffQuery(adminQueryKeys.serviceRequests(query), () => fetchAdminServiceRequests(query));
+  return useStaffQuery(
+    adminQueryKeys.serviceRequests(query),
+    () => fetchAdminServiceRequests(query),
+    true,
+    LIVE_POLL_MS.standard,
+  );
+}
+
+export function useAdminUnassignedServiceRequestCounts() {
+  return useStaffQuery(
+    adminQueryKeys.serviceRequestUnassignedCounts,
+    fetchAdminUnassignedServiceRequestCounts,
+    true,
+    LIVE_POLL_MS.standard,
+  );
 }
 
 export function useUpdateAdminServiceRequest() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: { id: string; status: ServiceRequestStatus }) => updateAdminServiceRequest(input.id, input.status),
+    mutationFn: (input: { id: string; status: ServiceRequestStatus; proofPhoto?: string | null }) =>
+      updateAdminServiceRequest(input.id, input.status, input.proofPhoto),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['admin', 'serviceRequests'] });
+      await queryClient.invalidateQueries({ queryKey: adminQueryKeys.serviceRequestUnassignedCounts });
+    },
+  });
+}
+
+export function useAssignAdminServiceRequest() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { id: string; careManagerIds: string[] }) =>
+      assignAdminServiceRequest(input.id, input.careManagerIds),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'serviceRequests'] });
+      await queryClient.invalidateQueries({ queryKey: adminQueryKeys.serviceRequestUnassignedCounts });
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'visits'] });
+      await queryClient.invalidateQueries({ queryKey: ['care', 'deliveries'] });
+      await queryClient.invalidateQueries({ queryKey: ['deliveries'] });
+      await queryClient.invalidateQueries({ queryKey: ['care', 'serviceRequests'] });
+    },
+  });
+}
+
+export function useAutoAssignAdminServiceRequest() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => autoAssignAdminServiceRequest(id),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'serviceRequests'] });
+      await queryClient.invalidateQueries({ queryKey: adminQueryKeys.serviceRequestUnassignedCounts });
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'visits'] });
+      await queryClient.invalidateQueries({ queryKey: ['care', 'deliveries'] });
+      await queryClient.invalidateQueries({ queryKey: ['deliveries'] });
+      await queryClient.invalidateQueries({ queryKey: ['care', 'serviceRequests'] });
+      await queryClient.invalidateQueries({ queryKey: ['care', 'dispatchQueue'] });
+      await queryClient.invalidateQueries({ queryKey: ['care', 'visitsToday'] });
+      await queryClient.invalidateQueries({ queryKey: ['care', 'visitsAll'] });
     },
   });
 }
@@ -457,7 +525,12 @@ export function useAdminEmergencies(params: { limit?: number; offset?: number; s
     status: params.status,
     seniorId: params.seniorId,
   };
-  return useStaffQuery(adminQueryKeys.emergencies(query), () => fetchAdminEmergencies(query));
+  return useStaffQuery(
+    adminQueryKeys.emergencies(query),
+    () => fetchAdminEmergencies(query),
+    true,
+    LIVE_POLL_MS.urgent,
+  );
 }
 
 export function useAdminEmergency(id: string | undefined) {
@@ -494,7 +567,12 @@ export function useAdminNotifications(params: {
     priority: params.priority,
     isRead: params.isRead,
   };
-  return useStaffQuery(adminQueryKeys.notifications(query), () => fetchAdminNotifications(query));
+  return useStaffQuery(
+    adminQueryKeys.notifications(query),
+    () => fetchAdminNotifications(query),
+    true,
+    LIVE_POLL_MS.standard,
+  );
 }
 
 export function useAdminAuditLogs(params: { limit?: number; offset?: number }) {

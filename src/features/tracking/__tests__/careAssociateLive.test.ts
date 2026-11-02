@@ -3,6 +3,7 @@ import { ApiError } from '@/api/errors';
 import {
   createCareAssociatePoint,
   createCareAssociateSession,
+  createDeliveryExecutivePoint,
   fetchCareAssociateLatest,
   fetchCareAssociateSession,
 } from '../api';
@@ -15,6 +16,7 @@ import {
   LOCATION_PERMISSION_MESSAGE,
   canPostTrackingPoints,
   canShareCareAssociateLocation,
+  canWatchSharedLocation,
   careAssociateShareHref,
   seniorAssociateTrackHref,
 } from '../selectors';
@@ -85,6 +87,7 @@ const visit: Visit = {
   status: 'SCHEDULED',
   scheduledAt: '2026-08-21T12:00:00Z',
   notes: null,
+  serviceSlug: 'local-transport',
 };
 
 describe('care associate tracking API', () => {
@@ -114,6 +117,22 @@ describe('care associate tracking API', () => {
     expect(mockedPost).toHaveBeenCalledWith(`/tracking/care-associate/${sessionPayload.id}/points`, {
       latitude: '12.9720',
       longitude: '77.5950',
+      timestamp: '2026-08-21T12:06:00.000Z',
+    });
+  });
+
+  it('writes grocery delivery points to the delivery executive path', async () => {
+    mockedPost.mockResolvedValueOnce({
+      data: { ...pointPayload, latitude: '19.2100', longitude: '72.8500' },
+    } as never);
+    await createDeliveryExecutivePoint('delivery-1', {
+      latitude: '19.2100',
+      longitude: '72.8500',
+      timestamp: '2026-08-21T12:06:00.000Z',
+    });
+    expect(mockedPost).toHaveBeenCalledWith('/tracking/deliveries/delivery-1/executive/points', {
+      latitude: '19.2100',
+      longitude: '72.8500',
       timestamp: '2026-08-21T12:06:00.000Z',
     });
   });
@@ -168,6 +187,8 @@ describe('care associate sharing', () => {
     expect(canShareCareAssociateLocation('SENIOR')).toBe(false);
     expect(canShareCareAssociateLocation('FAMILY')).toBe(false);
     expect(canPostTrackingPoints('CARE_MANAGER')).toBe(false);
+    expect(canWatchSharedLocation('CARE_MANAGER', 'care-associate')).toBe(true);
+    expect(canWatchSharedLocation('ADMIN', 'delivery')).toBe(false);
   });
 
   it('starts sharing through care-associate session and point functions', async () => {

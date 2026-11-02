@@ -38,6 +38,7 @@ def to_visit_response(visit: Visit, care_manager: Optional[CareManager]) -> Visi
         started_at=getattr(visit, "started_at", None),
         completed_at=getattr(visit, "completed_at", None),
         notes=visit.notes,
+        service_slug=getattr(visit, "service_slug", None),
     )
 
 
@@ -62,6 +63,7 @@ class VisitService:
         status: Optional[VisitStatus] = None,
         on_date: Optional[date] = None,
         upcoming: bool = False,
+        service_city: Optional[str] = None,
         limit: int = 50,
         offset: int = 0,
     ) -> ListPage[VisitResponse]:
@@ -71,6 +73,7 @@ class VisitService:
             status=status,
             on_date=on_date,
             upcoming=upcoming,
+            service_city=service_city,
             limit=limit,
             offset=offset,
         )
@@ -110,19 +113,25 @@ class VisitService:
             )
         return row
 
-    async def create_visit(self, payload: VisitCreate) -> VisitResponse:
+    async def create_visit(self, payload: VisitCreate, *, actor=None) -> VisitResponse:
+        from app.modules.cities.catalog import ensure_staff_city_for_senior
+
         if not self.senior_repo:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Senior repository missing")
         senior = await self.senior_repo.get_by_id(payload.senior_id)
         if not senior:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Senior not found")
+        if actor is not None:
+            ensure_staff_city_for_senior(actor, senior)
         care_manager = await self._load_care_manager(payload.care_manager_id)
+        await self._ensure_assignment_allowed(payload.service_slug, care_manager)
         visit = await self.repo.create(
             senior_id=payload.senior_id,
             care_manager_id=payload.care_manager_id,
             status=payload.status or VisitStatus.SCHEDULED,
             scheduled_at=payload.scheduled_at,
             notes=payload.notes,
+            service_slug=payload.service_slug,
         )
         if self.audit_repo:
             await self.audit_repo.record(
@@ -134,15 +143,19 @@ class VisitService:
             await self.repo.session.commit()
         return to_visit_response(visit, care_manager)
 
-    async def update_visit(self, visit_id: UUID, payload: VisitUpdate) -> VisitResponse:
+    async def update_visit(self, visit_id: UUID, payload: VisitUpdate, *, actor=None) -> VisitResponse:
         row = await self.repo.get_by_id(visit_id)
         if not row:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Visit not found")
         visit, _existing_cm = row
         data = payload.model_dump(exclude_unset=True)
+        proof_photo = data.pop("proof_photo", None)
         if "care_manager_id" in data and data["care_manager_id"] is not None:
-            await self._load_care_manager(data["care_manager_id"])
+            assignee = await self._load_care_manager(data["care_manager_id"])
+            await self._ensure_assignment_allowed(data.get("service_slug", visit.service_slug), assignee)
         new_status = data.get("status")
+        if new_status in (VisitStatus.COMPLETED, VisitStatus.CHECKED_OUT):
+            await self._ensure_can_complete(visit, actor, proof_photo)
         if new_status in (VisitStatus.CHECKED_IN, VisitStatus.IN_PROGRESS) and not data.get("started_at") and not visit.started_at:
             from datetime import datetime, timezone
 
@@ -180,6 +193,7 @@ class VisitService:
             visit_id=visit_id,
             summary=payload.summary,
             issues_noted=payload.issues_noted,
+            proof_photo=payload.proof_photo,
         )
         if self.audit_repo:
             await self.audit_repo.record(
@@ -190,3 +204,28 @@ class VisitService:
             )
             await self.repo.session.commit()
         return VisitReportResponse.model_validate(report)
+
+    async def _ensure_assignment_allowed(self, service_slug, care_manager) -> None:
+        from app.modules.services.service_policy import ensure_can_assign, policy_role_for_staff_kind
+
+        if care_manager is None:
+            return
+        ensure_can_assign(
+            service_slug,
+            policy_role_for_staff_kind(care_manager.staff_kind),
+            companion_service_slugs=getattr(care_manager, "companion_service_slugs", None),
+        )
+
+    async def _ensure_can_complete(self, visit, actor, proof_photo: str | None) -> None:
+        from app.modules.services.service_policy import ensure_can_finish, ensure_proof_photo, policy_role_for_user
+
+        staff_kind = None
+        if actor is not None and self.care_repo and getattr(actor, "id", None):
+            profile = await self.care_repo.get_by_user_id(actor.id)
+            staff_kind = profile.staff_kind if profile else None
+        ensure_can_finish(getattr(visit, "service_slug", None), policy_role_for_user(actor, staff_kind))
+        photo = proof_photo
+        if not photo:
+            reports = await self.repo.list_reports(visit.id)
+            photo = next((row.proof_photo for row in reports if getattr(row, "proof_photo", None)), None)
+        ensure_proof_photo(getattr(visit, "service_slug", None), photo)

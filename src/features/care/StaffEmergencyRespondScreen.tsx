@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { Alert, Linking, StyleSheet, Switch, Text, View } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams, type Href } from 'expo-router';
+import { ProofPhotoField } from './ProofPhotoField';
+import { isServiceCompanionKind, parseStaffKind } from './staffKind';
+import { useCareManagerProfile } from './hooks';
 import { PrimaryButton, SecondaryButton, StatusBadge, TextField } from '@/components';
 import { cardSurface, colors, spacing, tones, typography } from '@/constants/theme';
 import { getSectionState } from '@/features/home/selectors/homeViewModel';
@@ -11,6 +14,7 @@ import {
   triggerSourceLabel,
 } from '@/features/emergency/selectors';
 import { useAcknowledgeEmergency, useEmergencyCase, useUpdateEmergencyReport } from '@/features/emergency/hooks';
+import { ExpenseSubmitForm } from '@/features/credits/ExpenseSubmitForm';
 import { CareQueryView } from './components/CareQueryView';
 import { CareSubScreen } from './components/CareSubScreen';
 
@@ -19,7 +23,10 @@ export function StaffEmergencyRespondScreen() {
   const caseQuery = useEmergencyCase(id);
   const acknowledge = useAcknowledgeEmergency();
   const report = useUpdateEmergencyReport();
+  const profile = useCareManagerProfile();
   const emergency = caseQuery.data;
+  const staffKind = parseStaffKind(profile.data?.staffKind);
+  const canResolve = staffKind !== 'COMPANION' && !isServiceCompanionKind(staffKind);
   const state = getSectionState({
     isPending: caseQuery.isPending,
     isError: caseQuery.isError,
@@ -33,6 +40,7 @@ export function StaffEmergencyRespondScreen() {
   const [familyCommunication, setFamilyCommunication] = useState('');
   const [notes, setNotes] = useState('');
   const [followUp, setFollowUp] = useState(false);
+  const [proofPhoto, setProofPhoto] = useState<string | null>(null);
 
   const onRespond = async () => {
     if (!emergency) {
@@ -50,6 +58,10 @@ export function StaffEmergencyRespondScreen() {
     if (!emergency) {
       return;
     }
+    if (resolve && !proofPhoto) {
+      Alert.alert('Photo required', 'Attach a proof photo before resolving this emergency.');
+      return;
+    }
     try {
       await report.mutateAsync({
         id: emergency.id,
@@ -62,6 +74,7 @@ export function StaffEmergencyRespondScreen() {
           notes: notes.trim() || null,
           follow_up_required: followUp,
           mark_resolved: resolve,
+          proof_photo: proofPhoto,
         },
       });
       Alert.alert(resolve ? 'Emergency resolved' : 'Details saved', 'The emergency record is updated for everyone.');
@@ -130,6 +143,10 @@ export function StaffEmergencyRespondScreen() {
                   )
                 }
               />
+              <SecondaryButton
+                label="Share Live Location"
+                onPress={() => router.push('/(care)/map' as Href)}
+              />
             </View>
 
             <Text style={styles.section}>Emergency handling</Text>
@@ -178,16 +195,22 @@ export function StaffEmergencyRespondScreen() {
               <Text style={styles.switchLabel}>Follow-up required</Text>
               <Switch value={followUp} onValueChange={setFollowUp} />
             </View>
+            <ProofPhotoField value={proofPhoto} onChange={setProofPhoto} required />
             <PrimaryButton
               label={report.isPending ? 'Saving…' : 'Save handling details'}
               onPress={() => void onSaveReport(false)}
               loading={report.isPending}
             />
+            {canResolve ? (
             <SecondaryButton
               label="Mark resolved"
               onPress={() => void onSaveReport(true)}
               disabled={report.isPending || emergency.status === 'RESOLVED'}
             />
+            ) : (
+              <Text style={styles.recipientLine}>A Care Manager or Admin must close this emergency.</Text>
+            )}
+            <ExpenseSubmitForm emergencyCaseId={emergency.id} title="Emergency expense" />
           </View>
         ) : null}
       </CareQueryView>

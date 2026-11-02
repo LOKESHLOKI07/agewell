@@ -51,13 +51,17 @@ class AppointmentRepository:
         status: Optional[AppointmentStatus] = None,
         on_date: Optional[date] = None,
         upcoming: bool = False,
+        service_city: Optional[str] = None,
         limit: int = 50,
         offset: int = 0,
     ):
+        from app.modules.cities.catalog import apply_city_fk
+
         stmt = select(Appointment, HealthcareProvider.name).outerjoin(
             HealthcareProvider, Appointment.doctor_id == HealthcareProvider.id
         )
         count_stmt = select(func.count()).select_from(Appointment)
+        stmt, count_stmt = apply_city_fk(stmt, count_stmt, Appointment.senior_id, service_city)
 
         if senior_id is not None:
             stmt = stmt.where(Appointment.senior_id == senior_id)

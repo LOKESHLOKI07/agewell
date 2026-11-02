@@ -5,6 +5,7 @@ import { markReturnToSignIn, hydrateReturnToSignIn } from './authEntryPreference
 import { fetchCurrentUser, loginWithPassword, loginWithTokens, logoutAndClearLocal } from './authService';
 import type { AuthStatus, AuthUser } from './authTypes';
 import { clearTokens, loadTokens } from './tokenStorage';
+import { useTrackingShareStore } from '@/features/tracking/shareStore';
 import { hydrateMembershipKind } from './membershipPlanPreference';
 import { hydrateServiceAreaAvailable } from './serviceAreaPreference';
 
@@ -24,6 +25,7 @@ interface AuthState {
 function resetClientSession(): void {
   queryClient.removeQueries({ queryKey: currentUserQueryKey });
   queryClient.clear();
+  useTrackingShareStore.getState().stop();
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({

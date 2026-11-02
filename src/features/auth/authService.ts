@@ -57,6 +57,17 @@ export async function fetchCurrentUser(): Promise<AuthUser> {
   }
 }
 
+export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
+  try {
+    await apiClient.post('/auth/change-password', {
+      current_password: currentPassword,
+      new_password: newPassword,
+    });
+  } catch (error) {
+    throw toApiError(error, 'login');
+  }
+}
+
 export async function logoutRemote(): Promise<void> {
   try {
     await apiClient.post('/auth/logout');

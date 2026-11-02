@@ -87,6 +87,7 @@ export default function MembershipScreen() {
           onPress={() => router.push('/account/application-status' as Href)}
         />
       ) : null}
+      <PrimaryButton label="View credit balance" onPress={() => router.push('/(tabs)/credits' as Href)} />
       <PrimaryButton label="View payment history" onPress={() => router.push('/payments')} />
     </SimpleInfoScreen>
   );

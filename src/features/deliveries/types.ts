@@ -11,6 +11,7 @@ export interface MemberDeliveryResponse {
   status: DeliveryStatus;
   scheduled_at: string | null;
   executive_name: string | null;
+  service_slug?: string | null;
 }
 
 export interface MemberDelivery {
@@ -24,4 +25,5 @@ export interface MemberDelivery {
   status: DeliveryStatus;
   scheduledAt: string | null;
   executiveName: string | null;
+  serviceSlug?: string | null;
 }

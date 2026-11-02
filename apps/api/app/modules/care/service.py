@@ -5,6 +5,12 @@ from uuid import UUID
 from fastapi import HTTPException, status
 
 from app.modules.audit.repository import AuditRepository
+from app.modules.care.companion_services import (
+    canonicalize_staff_kind,
+    companion_service_slugs_for,
+    is_service_companion_kind,
+    normalize_companion_service_slugs,
+)
 from app.modules.care.models import (
     CARE_STAFF_KIND_CARE_MANAGER,
     CARE_STAFF_KINDS,
@@ -41,13 +47,14 @@ def to_care_manager_response(row: CareManager) -> CareManagerResponse:
         availability=row.availability,
         status=row.status,
         staff_kind=row.staff_kind or CARE_STAFF_KIND_CARE_MANAGER,
+        companion_service_slugs=companion_service_slugs_for(row.staff_kind, row.companion_service_slugs),
     )
 
 
 def normalize_staff_kind(value: Optional[str], *, default: str = CARE_STAFF_KIND_CARE_MANAGER) -> str:
     if value is None or not str(value).strip():
         return default
-    kind = str(value).strip().upper()
+    kind = canonicalize_staff_kind(str(value))
     if kind not in CARE_STAFF_KINDS:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -83,17 +90,32 @@ class CareManagerService:
         row = await self.repo.get_by_user_id(user_id)
         return to_care_manager_response(row) if row else None
 
-    async def get_by_id(self, care_manager_id: UUID) -> CareManagerResponse:
+    async def get_by_id(self, care_manager_id: UUID, *, actor=None) -> CareManagerResponse:
         row = await self.repo.get_by_id(care_manager_id)
         if not row:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Care manager not found")
+        await self._ensure_care_visible(row, actor)
         return to_care_manager_response(row)
 
+    async def _ensure_care_visible(self, row: CareManager, actor) -> None:
+        from app.modules.cities.catalog import ensure_staff_can_see_user, staff_city
+
+        if actor is None or not staff_city(actor):
+            return
+        if not row.user_id or not self.user_repo:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Care manager not found")
+        user = await self.user_repo.get_by_id(row.user_id)
+        ensure_staff_can_see_user(actor, user)
+
     async def list_care_managers(
-        self, *, senior_id: Optional[UUID] = None, status_filter: Optional[str] = None
+        self,
+        *,
+        senior_id: Optional[UUID] = None,
+        status_filter: Optional[str] = None,
+        service_city: Optional[str] = None,
     ) -> list[CareManagerResponse]:
         rows = (
-            await self.repo.list_all()
+            await self.repo.list_all(service_city=service_city)
             if senior_id is None
             else await self.repo.list_associated_with_senior(senior_id)
         )
@@ -116,6 +138,10 @@ class CareManagerService:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="employee_id already exists")
         status_value = normalize_care_status(payload.status, default=CARE_STATUS_ACTIVE)
         staff_kind = normalize_staff_kind(payload.staff_kind)
+        slugs = normalize_companion_service_slugs(
+            payload.companion_service_slugs,
+            required=is_service_companion_kind(staff_kind),
+        )
         create_payload = CareManagerCreate(
             user_id=payload.user_id,
             employee_id=payload.employee_id,
@@ -127,6 +153,7 @@ class CareManagerService:
             availability=payload.availability,
             status=status_value,
             staff_kind=staff_kind,
+            companion_service_slugs=slugs if is_service_companion_kind(staff_kind) else [],
         )
         row = await self.repo.create(create_payload)
         if self.audit_repo:
@@ -152,6 +179,13 @@ class CareManagerService:
             data["status"] = normalize_care_status(data["status"])
         if "staff_kind" in data:
             data["staff_kind"] = normalize_staff_kind(data["staff_kind"])
+        next_kind = data.get("staff_kind", row.staff_kind)
+        if "companion_service_slugs" in data or "staff_kind" in data:
+            slugs = normalize_companion_service_slugs(
+                data.get("companion_service_slugs", row.companion_service_slugs),
+                required=is_service_companion_kind(next_kind),
+            )
+            data["companion_service_slugs"] = slugs if is_service_companion_kind(next_kind) else []
         row = await self.repo.update(row, data)
         if self.audit_repo:
             await self.audit_repo.record(
@@ -181,7 +215,7 @@ class CareManagerService:
         await commit_people_delete(self.repo.session)
         return response
 
-    async def provision_staff(self, payload: StaffProvisionRequest) -> CareManagerResponse:
+    async def provision_staff(self, payload: StaffProvisionRequest, *, actor=None) -> CareManagerResponse:
         if not self.user_repo:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="User repository missing")
         from app.modules.users.models import AccountStatus
@@ -199,10 +233,16 @@ class CareManagerService:
                 password=payload.password,
                 role=RoleEnum.CARE_MANAGER,
                 account_status=AccountStatus.ACTIVE,
-            )
+                service_city=getattr(payload, "service_city", None),
+            ),
+            actor=actor,
         )
         status_value = normalize_care_status(payload.status, default=CARE_STATUS_ACTIVE)
         staff_kind = normalize_staff_kind(payload.staff_kind)
+        slugs = normalize_companion_service_slugs(
+            payload.companion_service_slugs,
+            required=is_service_companion_kind(staff_kind),
+        )
         create_payload = CareManagerCreate(
             user_id=user.id,
             employee_id=payload.employee_id,
@@ -214,6 +254,7 @@ class CareManagerService:
             availability=payload.availability,
             status=status_value,
             staff_kind=staff_kind,
+            companion_service_slugs=slugs if is_service_companion_kind(staff_kind) else [],
         )
         return await self.create_care_manager(create_payload)
 

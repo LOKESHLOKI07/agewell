@@ -8,6 +8,7 @@ export const adminQueryKeys = {
   careManager: (id: string) => ['admin', 'careManagers', id] as const,
   services: ['admin', 'services'] as const,
   serviceRequests: (params?: Record<string, unknown>) => ['admin', 'serviceRequests', params ?? {}] as const,
+  serviceRequestUnassignedCounts: ['admin', 'serviceRequests', 'unassignedCounts'] as const,
   visits: (params?: Record<string, unknown>) => ['admin', 'visits', params ?? {}] as const,
   visit: (id: string) => ['admin', 'visits', id] as const,
   visitTasks: (id: string) => ['admin', 'visits', id, 'tasks'] as const,

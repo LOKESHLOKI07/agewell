@@ -36,7 +36,7 @@ export default function RootLayout() {
     Poppins_600SemiBold,
     Poppins_700Bold,
   });
-  const [splashVideoDone, setSplashVideoDone] = useState(Platform.OS === 'web');
+  const [splashVideoDone, setSplashVideoDone] = useState(__DEV__ || Platform.OS === 'web');
   useBlurFocusedOnWebNavigate();
 
   useEffect(() => {

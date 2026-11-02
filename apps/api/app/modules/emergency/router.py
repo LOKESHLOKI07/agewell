@@ -53,12 +53,15 @@ async def list_emergency_cases(
     access: AccessService = Depends(get_access_service),
     service: EmergencyService = Depends(get_emergency_service),
 ):
+    from app.modules.cities.catalog import staff_city
+
     scope = await access.resolve_emergency_list_scope(current_user, senior_id)
     return await service.list_cases(
         senior_id=scope.senior_id,
         assigned_senior_ids=scope.assigned_senior_ids,
         status=status,
         emergency_type=emergency_type,
+        service_city=staff_city(current_user),
         limit=limit,
         offset=offset,
     )

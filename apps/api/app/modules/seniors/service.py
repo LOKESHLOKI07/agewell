@@ -51,6 +51,7 @@ def to_senior_response(senior) -> SeniorResponse:
         location_lng=getattr(senior, "location_lng", None),
         location_query=getattr(senior, "location_query", None),
         location_source=getattr(senior, "location_source", None),
+        service_city=getattr(senior, "service_city", None),
     )
 
 
@@ -88,6 +89,7 @@ def to_senior_directory_item(
         location_lng=getattr(senior, "location_lng", None),
         location_query=getattr(senior, "location_query", None),
         location_source=getattr(senior, "location_source", None),
+        service_city=getattr(senior, "service_city", None),
         has_membership=bool(has_membership),
     )
 
@@ -125,7 +127,28 @@ class SeniorService:
         self.user_repo = user_repo
         self.audit_repo = audit_repo
 
-    async def create_senior(self, senior_in: SeniorCreate):
+    def _resolved_senior_city(self, payload: dict, *, actor=None) -> str | None:
+        from app.modules.cities.catalog import normalize_city, resolve_service_city, staff_city
+
+        requested = normalize_city(payload.get("service_city"))
+        derived = resolve_service_city(
+            address=payload.get("address"),
+            location_query=payload.get("location_query"),
+            location_lat=payload.get("location_lat"),
+            location_lng=payload.get("location_lng"),
+        )
+        city = requested or derived
+        actor_city = staff_city(actor) if actor is not None else None
+        if actor_city:
+            if city and city != actor_city:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="This address is not in your city.",
+                )
+            return actor_city
+        return city
+
+    async def create_senior(self, senior_in: SeniorCreate, *, actor=None):
         if self.user_repo:
             user = await self.user_repo.get_by_id(senior_in.user_id)
             if not user:
@@ -133,7 +156,14 @@ class SeniorService:
         existing = await self.repo.get_by_user_id(senior_in.user_id)
         if existing:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Senior profile already exists for this user")
-        senior = await self.repo.create(senior_in)
+        data = senior_in.model_dump()
+        data["service_city"] = self._resolved_senior_city(data, actor=actor)
+        senior = await self.repo.create(SeniorCreate(**data))
+        if self.user_repo and data["service_city"]:
+            user = await self.user_repo.get_by_id(senior_in.user_id)
+            if user and not getattr(user, "service_city", None):
+                user.service_city = data["service_city"]
+                await self.user_repo.save(user)
         if self.audit_repo:
             await self.audit_repo.record(
                 entity_name="seniors",
@@ -147,10 +177,14 @@ class SeniorService:
     async def get_senior(self, senior_id):
         return await self.repo.get_by_id(senior_id)
 
-    async def get_senior_detail(self, senior_id) -> SeniorDirectoryItem:
+    async def get_senior_detail(self, senior_id, *, actor=None) -> SeniorDirectoryItem:
+        from app.modules.cities.catalog import ensure_staff_city_for_senior
+
         row = await self.repo.get_with_user(senior_id)
         if not row:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Senior not found")
+        if actor is not None:
+            ensure_staff_city_for_senior(actor, row[0])
         senior, user = row
         has_membership = await self.repo.senior_has_membership(senior.id)
         return to_senior_directory_item(
@@ -164,18 +198,33 @@ class SeniorService:
     async def get_by_user_id(self, user_id):
         return await self.repo.get_by_user_id(user_id)
 
-    async def get_senior_detail_by_user_id(self, user_id) -> SeniorDirectoryItem:
+    async def get_senior_detail_by_user_id(self, user_id, *, actor=None) -> SeniorDirectoryItem:
         senior = await self.repo.get_by_user_id(user_id)
         if not senior:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Senior not found")
-        return await self.get_senior_detail(senior.id)
+        return await self.get_senior_detail(senior.id, actor=actor)
 
-    async def update_senior(self, senior_id, payload: SeniorUpdate) -> SeniorDirectoryItem:
+    async def update_senior(self, senior_id, payload: SeniorUpdate, *, actor=None) -> SeniorDirectoryItem:
+        from app.modules.cities.catalog import ensure_staff_city_for_senior, is_super_staff
+
         row = await self.repo.get_with_user(senior_id)
         if not row:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Senior not found")
         senior, user = row
+        if actor is not None:
+            ensure_staff_city_for_senior(actor, senior)
         data = payload.model_dump(exclude_unset=True)
+        if "service_city" in data and actor is not None and not is_super_staff(actor):
+            data.pop("service_city")
+        if any(key in data for key in ("address", "location_query", "location_lat", "location_lng", "service_city")):
+            merged = {
+                "address": data.get("address", senior.address),
+                "location_query": data.get("location_query", senior.location_query),
+                "location_lat": data.get("location_lat", senior.location_lat),
+                "location_lng": data.get("location_lng", senior.location_lng),
+                "service_city": data.get("service_city"),
+            }
+            data["service_city"] = self._resolved_senior_city(merged, actor=actor)
         email = data.pop("email", None)
         phone = data.pop("phone", None)
         if "care_manager_id" in data:
@@ -213,14 +262,16 @@ class SeniorService:
         if "photo" in data:
             data["photo"] = _validated_photo(data["photo"])
         profile_changes = {}
+        user_changes = {}
         for field, value in data.items():
             if isinstance(value, str) and field != "photo":
                 value = value.strip()
             profile_changes[field] = value
         if profile_changes:
             senior = await self.repo.update(senior, profile_changes)
-
-        user_changes = {}
+            if "service_city" in profile_changes and self.user_repo and user and profile_changes["service_city"]:
+                user.service_city = profile_changes["service_city"]
+                user_changes["service_city"] = profile_changes["service_city"]
         if email is not None and self.user_repo and user:
             normalized = email.strip().lower()
             if normalized != user.email:
@@ -257,6 +308,8 @@ class SeniorService:
         *,
         set_photo: bool = False,
         photo: Optional[str] = None,
+        set_address: bool = False,
+        address: Optional[str] = None,
         set_in_service_area: bool = False,
         in_service_area: Optional[bool] = None,
         set_location: bool = False,
@@ -268,6 +321,14 @@ class SeniorService:
         data: dict = {}
         if set_photo:
             data["photo"] = _validated_photo(photo)
+        if set_address:
+            cleaned = (address or "").strip()
+            if not cleaned:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail="Address is required.",
+                )
+            data["address"] = cleaned
         if set_in_service_area:
             data["in_service_area"] = None if in_service_area is None else bool(in_service_area)
         if set_location:
@@ -278,7 +339,8 @@ class SeniorService:
             if source == "gps":
                 data["location_lat"] = location_lat
                 data["location_lng"] = location_lng
-                data["location_query"] = None
+                # Keep a readable place label when the senior pins home on the map.
+                data["location_query"] = (location_query or "").strip() or None
             elif source == "manual":
                 data["location_lat"] = None
                 data["location_lng"] = None
@@ -287,6 +349,16 @@ class SeniorService:
                 data["location_lat"] = location_lat
                 data["location_lng"] = location_lng
                 data["location_query"] = (location_query or "").strip() or None
+        if set_location or set_in_service_area or set_address:
+            merged = {
+                "address": data.get("address", senior.address),
+                "location_query": data.get("location_query", senior.location_query),
+                "location_lat": data.get("location_lat", senior.location_lat),
+                "location_lng": data.get("location_lng", senior.location_lng),
+            }
+            city = self._resolved_senior_city(merged)
+            if city:
+                data["service_city"] = city
         if not data:
             return to_senior_response(senior)
         senior = await self.repo.update(senior, data)
@@ -294,6 +366,8 @@ class SeniorService:
             audited: dict = {}
             if "photo" in data:
                 audited["photo"] = "cleared" if not data["photo"] else "updated"
+            if "address" in data:
+                audited["address"] = data["address"]
             if "in_service_area" in data:
                 audited["in_service_area"] = data["in_service_area"]
             for key in ("location_lat", "location_lng", "location_query", "location_source"):
@@ -311,10 +385,10 @@ class SeniorService:
     async def update_photo(self, senior, photo: Optional[str]) -> SeniorResponse:
         return await self.update_me(senior, set_photo=True, photo=photo)
 
-    async def delete_senior(self, senior_id) -> SeniorDirectoryItem:
+    async def delete_senior(self, senior_id, *, actor=None) -> SeniorDirectoryItem:
         from app.modules.people.deletion import commit_people_delete, delete_senior_record
 
-        detail = await self.get_senior_detail(senior_id)
+        detail = await self.get_senior_detail(senior_id, actor=actor)
         await delete_senior_record(self.repo.session, senior_id, also_user=True)
         if self.audit_repo:
             await self.audit_repo.record(
@@ -327,9 +401,11 @@ class SeniorService:
         return detail
 
     async def list_seniors(
-        self, *, limit: int = 50, offset: int = 0, segment: str | None = None
+        self, *, limit: int = 50, offset: int = 0, segment: str | None = None, service_city: str | None = None
     ) -> ListPage[SeniorDirectoryItem]:
-        rows, total = await self.repo.list_seniors(limit=limit, offset=offset, segment=segment)
+        rows, total = await self.repo.list_seniors(
+            limit=limit, offset=offset, segment=segment, service_city=service_city
+        )
         items = [
             to_senior_directory_item(
                 senior,

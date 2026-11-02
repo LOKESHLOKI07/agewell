@@ -1,4 +1,5 @@
 import type { AuthRole } from '@/features/auth/authTypes';
+import type { ServiceCity } from '@/features/auth/serviceCities';
 import type { NotificationPriority } from '@/features/home/types/home';
 
 export const ADMIN_PAGE_SIZE = 20;
@@ -10,6 +11,7 @@ export interface AdminUser {
   phone: string;
   role: AuthRole;
   accountStatus: string;
+  serviceCity: ServiceCity | null;
   createdAt: string | null;
   updatedAt: string | null;
 }
@@ -19,6 +21,7 @@ export interface AdminUserCreate {
   phone: string;
   role: AuthRole;
   password: string;
+  serviceCity?: ServiceCity | null;
 }
 
 export interface AdminUserUpdate {
@@ -51,6 +54,7 @@ export interface AdminSenior {
   locationLng: number | null;
   locationQuery: string | null;
   locationSource: 'gps' | 'manual' | null;
+  serviceCity: ServiceCity | null;
   hasMembership: boolean;
   careManagerId: string | null;
   companionId: string | null;
@@ -100,6 +104,7 @@ export interface AdminCareManager {
   availability: string | null;
   status: string | null;
   staffKind: string | null;
+  companionServiceSlugs: string[];
 }
 
 export interface AdminCareManagerCreate {
@@ -113,6 +118,7 @@ export interface AdminCareManagerCreate {
   availability?: string;
   status?: string;
   staffKind?: string;
+  companionServiceSlugs?: string[];
 }
 
 export interface AdminStaffProvision {
@@ -128,6 +134,7 @@ export interface AdminStaffProvision {
   languages?: string;
   availability?: string;
   status?: string;
+  companionServiceSlugs?: string[];
 }
 
 export interface AdminCareManagerUpdate {
@@ -140,6 +147,7 @@ export interface AdminCareManagerUpdate {
   availability?: string;
   status?: string;
   staffKind?: string;
+  companionServiceSlugs?: string[];
 }
 
 export interface AdminService {
@@ -179,10 +187,12 @@ export interface AdminMembershipRecord {
 export interface AdminNotification {
   id: string;
   userId: string | null;
+  userEmail: string | null;
   title: string | null;
   message: string | null;
   priority: NotificationPriority;
   isRead: boolean;
+  actionRef: string | null;
   createdAt: string | null;
 }
 

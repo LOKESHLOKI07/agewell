@@ -50,6 +50,7 @@ export interface VisitResponse {
   started_at?: string | null;
   completed_at?: string | null;
   notes: string | null;
+  service_slug?: string | null;
 }
 
 export type AppointmentStatus = 'REQUESTED' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
@@ -156,6 +157,7 @@ export interface ServiceRequestCreate {
   senior_id: string;
   service_id: string;
   notes?: string | null;
+  list_photo?: string | null;
 }
 
 /** Matches FastAPI ServiceRequestResponse. */
@@ -251,6 +253,7 @@ export interface Visit {
   startedAt?: string | null;
   completedAt?: string | null;
   notes: string | null;
+  serviceSlug?: string | null;
 }
 
 export interface Appointment {
@@ -308,15 +311,22 @@ export interface HealthcareProvider {
   specialty: string | null;
 }
 
+export type ServiceRequestDispatchMode = 'none' | 'assign_sc_only' | 'take_or_assign';
+
 export interface ServiceRequest {
   id: string;
   seniorId: string;
   serviceId: string;
   serviceName: string;
   serviceSlug: string | null;
+  seniorName?: string | null;
   status: ServiceRequestStatus;
   notes: string | null;
   createdAt?: string | null;
+  dispatcherId?: string | null;
+  executorId?: string | null;
+  dispatchMode?: ServiceRequestDispatchMode | null;
+  awaitingDispatch?: boolean;
 }
 
 export interface CreatedServiceRequest {

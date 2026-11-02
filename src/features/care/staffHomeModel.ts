@@ -1,5 +1,5 @@
 import type { ColorTone } from '@/constants/theme';
-import type { Visit } from '@/features/home/types/home';
+import type { ServiceRequest, Visit } from '@/features/home/types/home';
 import { formatTime } from '@/utils/date';
 import type { StaffHomeConfig } from './staffHomeConfig';
 import { summarizeCareToday, visitSeniorLabel } from './selectors';
@@ -12,7 +12,7 @@ export type StaffScheduleItem = {
   location: string | null;
   statusLabel: string;
   statusTone: ColorTone;
-  kind?: 'visit' | 'delivery';
+  kind?: 'visit' | 'delivery' | 'dispatch';
 };
 
 export type StaffSummaryStat = {
@@ -91,11 +91,30 @@ export function deliveryToStaffScheduleItem(delivery: Delivery): StaffScheduleIt
   };
 }
 
-export function buildVisitStaffSummary(config: StaffHomeConfig, visits: Visit[]): StaffSummaryStat[] {
+/** Soft-dispatch / auto-assign handoff tickets (grocery, banking, errands, etc.). */
+export function dispatchRequestToStaffScheduleItem(request: ServiceRequest): StaffScheduleItem {
+  const senior = request.seniorName?.trim() || 'Senior';
+  return {
+    id: request.id,
+    timeLabel: request.createdAt ? formatTime(request.createdAt) : 'Now',
+    title: `${request.serviceName} - ${senior}`,
+    location: request.notes?.trim() || null,
+    statusLabel: 'Action needed',
+    statusTone: 'warning',
+    kind: 'dispatch',
+  };
+}
+
+export function buildVisitStaffSummary(
+  config: StaffHomeConfig,
+  visits: Visit[],
+  awaitingDispatchCount = 0,
+): StaffSummaryStat[] {
   const list = Array.isArray(visits) ? visits : [];
   const summary = summarizeCareToday(list);
+  const awaiting = Math.max(0, awaitingDispatchCount);
   return [
-    { value: summary.total, label: config.summary.primary, tone: 'info' },
+    { value: summary.total + awaiting, label: config.summary.primary, tone: 'info' },
     { value: summary.completed, label: config.summary.completed, tone: 'safe' },
     { value: summary.inProgress, label: config.summary.third, tone: config.summary.thirdTone },
     { value: summary.emergency, label: config.summary.fourth, tone: config.summary.fourthTone },

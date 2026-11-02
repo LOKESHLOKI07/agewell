@@ -93,14 +93,18 @@ class EmergencyRepository:
         assigned_senior_ids: Optional[Sequence[UUID]] = None,
         status: Optional[EmergencyStatus] = None,
         emergency_type: Optional[EmergencyType] = None,
+        service_city: Optional[str] = None,
         limit: int = 50,
         offset: int = 0,
     ):
+        from app.modules.cities.catalog import apply_city_fk
+
         if assigned_senior_ids is not None and len(assigned_senior_ids) == 0:
             return [], 0
 
         stmt = select(EmergencyCase).options(*self._case_options())
         count_stmt = select(func.count()).select_from(EmergencyCase)
+        stmt, count_stmt = apply_city_fk(stmt, count_stmt, EmergencyCase.senior_id, service_city)
 
         if senior_id is not None:
             stmt = stmt.where(EmergencyCase.senior_id == senior_id)

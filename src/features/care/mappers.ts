@@ -19,6 +19,7 @@ import type {
   VisitTaskResponse,
 } from './types';
 import { DELIVERY_STATUSES, TRAINING_STATUSES } from './types';
+import { normalizeCompanionServiceSlugs } from './serviceCompanionServices';
 import { parseStaffKind } from './staffKind';
 
 function asRecord(payload: unknown, label: string): Record<string, unknown> {
@@ -60,15 +61,17 @@ function asString(value: unknown, label: string): string {
 }
 
 export function toCareManagerProfile(payload: unknown): CareManagerProfile {
-  const data = asRecord(payload, 'care manager') as unknown as CareManagerResponse;
+  const data = asRecord(payload, 'care manager');
+  const raw = data as unknown as CareManagerResponse & { companion_service_slugs?: unknown };
   return {
     id: asId(data.id, 'care_manager.id'),
-    userId: asOptionalString(data.user_id),
-    employeeId: asOptionalString(data.employee_id),
-    name: asOptionalString(data.name),
-    skills: asOptionalString(data.skills),
-    status: asOptionalString(data.status),
-    staffKind: parseStaffKind(data.staff_kind),
+    userId: asOptionalString(raw.user_id),
+    employeeId: asOptionalString(raw.employee_id),
+    name: asOptionalString(raw.name),
+    skills: asOptionalString(raw.skills),
+    status: asOptionalString(raw.status),
+    staffKind: parseStaffKind(raw.staff_kind),
+    companionServiceSlugs: normalizeCompanionServiceSlugs(data.companion_service_slugs),
   };
 }
 
@@ -151,6 +154,9 @@ export function toDelivery(payload: unknown): Delivery {
     location: asOptionalString(data.location),
     status: asDeliveryStatus(data.status),
     scheduledAt: asOptionalString(data.scheduled_at),
+    serviceSlug: asOptionalString(data.service_slug),
+    requestNotes: asOptionalString((data as { request_notes?: unknown }).request_notes),
+    listPhoto: asOptionalString((data as { list_photo?: unknown }).list_photo),
   };
 }
 

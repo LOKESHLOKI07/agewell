@@ -12,6 +12,7 @@ from app.modules.auth.schemas import (
     RegisterSeniorRequest,
     RegistrationResponse,
 )
+from app.modules.care.companion_services import is_service_companion_kind, normalize_companion_service_slugs
 from app.modules.care.models import CARE_STAFF_KIND_CARE_MANAGER, CARE_STATUS_PENDING, CareManager
 from app.modules.families.models import FamilyMember
 from app.modules.seniors.models import Senior
@@ -85,6 +86,22 @@ class RegistrationService:
         if existing:
             return self._issue_tokens(existing, "Welcome back. You're signed in.")
 
+        from app.modules.cities.catalog import resolve_service_city
+
+        location_source = (payload.location_source or "").strip() or None
+        location_lat = payload.location_lat if (location_source or "").lower() == "gps" else None
+        location_lng = payload.location_lng if (location_source or "").lower() == "gps" else None
+        location_query = (
+            (payload.location_query or "").strip() or None
+            if (location_source or "").lower() == "manual"
+            else None
+        )
+        service_city = resolve_service_city(
+            address=payload.address,
+            location_query=location_query,
+            location_lat=location_lat,
+            location_lng=location_lng,
+        )
         user = User(
             id=uuid4(),
             email=str(payload.email).lower().strip(),
@@ -92,6 +109,7 @@ class RegistrationService:
             hashed_password=get_password_hash(payload.password),
             role=RoleEnum.SENIOR,
             account_status=AccountStatus.ACTIVE,
+            service_city=service_city,
         )
         self.session.add(user)
         await self.session.flush()
@@ -106,14 +124,11 @@ class RegistrationService:
             preferred_language=(payload.preferred_language or "").strip() or None,
             membership_kind=(payload.membership_kind or "").strip() or None,
             in_service_area=payload.in_service_area,
-            location_lat=payload.location_lat if (payload.location_source or "").strip().lower() == "gps" else None,
-            location_lng=payload.location_lng if (payload.location_source or "").strip().lower() == "gps" else None,
-            location_query=(
-                (payload.location_query or "").strip() or None
-                if (payload.location_source or "").strip().lower() == "manual"
-                else None
-            ),
-            location_source=(payload.location_source or "").strip() or None,
+            location_lat=location_lat,
+            location_lng=location_lng,
+            location_query=location_query,
+            location_source=location_source,
+            service_city=service_city,
         )
         self.session.add(senior)
         await self.session.commit()
@@ -185,6 +200,11 @@ class RegistrationService:
             availability=(payload.availability or "").strip() or None,
             status=CARE_STATUS_PENDING,
             staff_kind=payload.staff_kind or CARE_STAFF_KIND_CARE_MANAGER,
+            companion_service_slugs=normalize_companion_service_slugs(
+                payload.companion_service_slugs,
+                required=is_service_companion_kind(payload.staff_kind),
+            )
+            or None,
         )
         self.session.add(care)
         await self.session.commit()

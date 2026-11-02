@@ -12,7 +12,7 @@ import { CareQueryView } from './components/CareQueryView';
 import { CareScreen } from './components/CareScreen';
 import { useCareManagerProfile } from './hooks';
 
-const MENU: { id: string; label: string; icon: IconName; href: Href }[] = [
+const BASE_MENU: { id: string; label: string; icon: IconName; href: Href }[] = [
   { id: 'attendance', label: 'Attendance', icon: 'time-outline', href: '/care/attendance' as Href },
   { id: 'history', label: 'Service History', icon: 'clipboard-outline', href: '/care/history' as Href },
   { id: 'training', label: 'Training & Documents', icon: 'document-outline', href: '/care/training' as Href },
@@ -31,6 +31,19 @@ export function CareProfileScreen() {
     isEmpty: query.isSuccess && !query.data,
   });
   const profile = query.data;
+  const staffKind = parseStaffKind(profile?.staffKind);
+  const menu =
+    staffKind === 'CARE_MANAGER'
+      ? [
+          {
+            id: 'assign',
+            label: 'Assign requests',
+            icon: 'people-outline' as IconName,
+            href: '/care/assign' as Href,
+          },
+          ...BASE_MENU,
+        ]
+      : BASE_MENU;
 
   const onLogout = async () => {
     setConfirmVisible(false);
@@ -66,7 +79,7 @@ export function CareProfileScreen() {
         </CareQueryView>
 
         <View style={styles.menu}>
-          {MENU.map((item) => (
+          {menu.map((item) => (
             <Pressable
               key={item.id}
               onPress={() => router.push(item.href)}

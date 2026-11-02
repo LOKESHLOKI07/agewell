@@ -369,6 +369,7 @@ async def test_staff_can_file_emergency_report(client):
             "action_taken": "Care Manager attended and coordinated support",
             "hospital_required": False,
             "mark_resolved": True,
+            "proof_photo": "data:image/jpeg;base64,AAAA",
         },
     )
     assert reported.status_code == 200

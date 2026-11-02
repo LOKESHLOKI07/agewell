@@ -8,6 +8,7 @@ from fastapi import HTTPException, status
 from app.api.schemas import ListPage
 from app.core.timezone import APP_TIMEZONE
 from app.modules.audit.repository import AuditRepository
+from app.modules.care.companion_services import companion_service_slugs_for
 from app.modules.care.booking import (
     CALL_HOURS_MESSAGE,
     is_care_manager_call_open,
@@ -206,6 +207,7 @@ class CareActivityService:
                 availability=care.availability,
                 status=care.status,
                 staff_kind=care.staff_kind,
+                companion_service_slugs=companion_service_slugs_for(care.staff_kind, care.companion_service_slugs),
             ),
         )
 

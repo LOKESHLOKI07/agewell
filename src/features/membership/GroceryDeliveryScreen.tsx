@@ -9,7 +9,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
+import { pickProofPhoto } from '@/features/care/proofPhoto';
 import { router, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView, LoadingState, PrimaryButton, SecondaryButton } from '@/components';
@@ -120,8 +120,8 @@ export function GroceryDeliveryScreen() {
 
   const refresh = () => void Promise.all([requestsQuery.refetch(), deliveriesQuery.refetch()]);
 
-  const placeOrder = async (notes: string) => {
-    const ok = await submit(notes, 'Grocery order placed');
+  const placeOrder = async (notes: string, listPhoto?: string) => {
+    const ok = await submit(notes, 'Grocery order placed', listPhoto);
     if (!ok) {
       return;
     }
@@ -139,18 +139,15 @@ export function GroceryDeliveryScreen() {
         text: 'Camera',
         onPress: () => {
           void (async () => {
-            const cam = await ImagePicker.requestCameraPermissionsAsync();
-            if (!cam.granted) {
-              Alert.alert('Permission needed', 'Allow camera access to photograph your list.');
-              return;
+            try {
+              const photo = await pickProofPhoto('camera');
+              if (!photo) {
+                return;
+              }
+              await placeOrder('Handwritten grocery list photo', photo);
+            } catch (error) {
+              Alert.alert('Photo failed', error instanceof Error ? error.message : 'Could not attach that list photo.');
             }
-            const result = await ImagePicker.launchCameraAsync({ quality: 0.7 });
-            if (result.canceled || !result.assets[0]) {
-              return;
-            }
-            await placeOrder(
-              `Handwritten grocery list photo: ${result.assets[0].fileName ?? 'camera photo'}`,
-            );
           })();
         },
       },
@@ -158,21 +155,15 @@ export function GroceryDeliveryScreen() {
         text: 'Gallery',
         onPress: () => {
           void (async () => {
-            const library = await ImagePicker.requestMediaLibraryPermissionsAsync();
-            if (!library.granted) {
-              Alert.alert('Permission needed', 'Allow photo access to upload your list.');
-              return;
+            try {
+              const photo = await pickProofPhoto('library');
+              if (!photo) {
+                return;
+              }
+              await placeOrder('Handwritten grocery list photo', photo);
+            } catch (error) {
+              Alert.alert('Photo failed', error instanceof Error ? error.message : 'Could not attach that list photo.');
             }
-            const result = await ImagePicker.launchImageLibraryAsync({
-              mediaTypes: ['images'],
-              quality: 0.7,
-            });
-            if (result.canceled || !result.assets[0]) {
-              return;
-            }
-            await placeOrder(
-              `Handwritten grocery list photo: ${result.assets[0].fileName ?? 'gallery photo'}`,
-            );
           })();
         },
       },

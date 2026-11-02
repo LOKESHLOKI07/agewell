@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, DateTime, ForeignKey, UUID, Enum
+from sqlalchemy import Column, String, DateTime, ForeignKey, Text, UUID, Enum
 import uuid
 import enum
 from sqlalchemy.sql import func
@@ -23,6 +23,7 @@ class Visit(Base):
     started_at = Column(DateTime(timezone=True), nullable=True)
     completed_at = Column(DateTime(timezone=True), nullable=True)
     notes = Column(String)
+    service_slug = Column(String, nullable=True)
 
 from sqlalchemy import Boolean
 class VisitTask(Base):
@@ -38,3 +39,4 @@ class VisitReport(Base):
     visit_id = Column(UUID(as_uuid=True), ForeignKey("visits.id"))
     summary = Column(String)
     issues_noted = Column(String)
+    proof_photo = Column(Text, nullable=True)

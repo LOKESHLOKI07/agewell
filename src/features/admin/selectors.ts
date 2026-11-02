@@ -3,6 +3,7 @@ import { ApiError, getApiErrorMessage } from '@/api/errors';
 import { AUTH_ROLE_LABELS, type AuthRole } from '@/features/auth/authTypes';
 import { isStaffRole } from '@/features/auth/roleRouting';
 import { getSectionState, humanizeStatus } from '@/features/home/selectors/homeViewModel';
+import { companionServiceLabels } from '@/features/care/serviceCompanionServices';
 import { STAFF_KIND_LABELS, parseStaffKind } from '@/features/care/staffKind';
 import type { AdminCareManager, AdminDashboardMetric, AdminSenior, AdminUser } from './types';
 import { ADMIN_DESKTOP_MIN_WIDTH, ADMIN_PAGE_SIZE } from './types';
@@ -34,6 +35,7 @@ export const ADMIN_NAV: readonly AdminNavItem[] = [
   { key: 'appointments', href: '/(admin)/appointments', label: 'Appointments', icon: 'time-outline' },
   { key: 'community', href: '/(admin)/community', label: 'Community', icon: 'people-outline' },
   { key: 'memberships', href: '/(admin)/memberships', label: 'Memberships', icon: 'card-outline' },
+  { key: 'credits', href: '/(admin)/credit-expenses', label: 'Credits', icon: 'hand-heart' },
   { key: 'emergencies', href: '/(admin)/emergencies', label: 'Emergencies', icon: 'warning-outline', mobileTab: true },
   { key: 'notifications', href: '/(admin)/notifications', label: 'Notifications', icon: 'notifications-outline' },
   { key: 'audit', href: '/(admin)/audit', label: 'Audit Logs', icon: 'document-text-outline' },
@@ -44,7 +46,7 @@ export const ADMIN_NAV_GROUPS: { title: string; keys: string[] }[] = [
   { title: 'Main', keys: ['dashboard'] },
   { title: 'People', keys: ['users', 'seniors', 'careManagers'] },
   { title: 'Care operations', keys: ['visits', 'appointments', 'services', 'addonServices', 'requests', 'emergencies'] },
-  { title: 'Programs', keys: ['community', 'memberships', 'serviceItems'] },
+  { title: 'Programs', keys: ['community', 'memberships', 'credits', 'serviceItems'] },
   { title: 'System', keys: ['notifications', 'audit', 'profile'] },
 ];
 
@@ -151,6 +153,11 @@ export function adminCareManagerDisplay(manager: AdminCareManager): string {
 
 export function adminStaffKindLabel(staffKind: string | null | undefined): string {
   return STAFF_KIND_LABELS[parseStaffKind(staffKind)];
+}
+
+export function adminStaffServiceLine(staff: { companionServiceSlugs?: readonly string[] | null }): string | null {
+  const labels = companionServiceLabels(staff.companionServiceSlugs);
+  return labels.length ? labels.join(' · ') : null;
 }
 
 export function splitTagList(value: string | null | undefined): string[] {

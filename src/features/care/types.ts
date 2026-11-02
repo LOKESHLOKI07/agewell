@@ -30,6 +30,7 @@ export interface CareManagerProfile {
   skills: string | null;
   status: string | null;
   staffKind: string | null;
+  companionServiceSlugs?: string[];
 }
 
 export interface VisitTask {
@@ -79,6 +80,9 @@ export interface DeliveryResponse {
   location: string | null;
   status: DeliveryStatus;
   scheduled_at: string | null;
+  service_slug?: string | null;
+  request_notes?: string | null;
+  list_photo?: string | null;
 }
 
 export interface Delivery {
@@ -91,6 +95,9 @@ export interface Delivery {
   location: string | null;
   status: DeliveryStatus;
   scheduledAt: string | null;
+  serviceSlug: string | null;
+  requestNotes: string | null;
+  listPhoto: string | null;
 }
 
 export const TRAINING_STATUSES = ['PENDING', 'IN_PROGRESS', 'COMPLETED'] as const;

@@ -29,6 +29,8 @@ class Senior(Base):
     location_lng = Column(Float, nullable=True)
     location_query = Column(String, nullable=True)
     location_source = Column(String, nullable=True)  # gps | manual
+    # mumbai | chandrapur — admin city scope; derived from address/GPS.
+    service_city = Column(String, nullable=True, index=True)
     photo = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

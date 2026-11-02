@@ -4,7 +4,9 @@ import { router, type Href } from 'expo-router';
 import { ConfirmDialog, PrimaryButton, StatusPill, TextField, statusToneFromLabel } from '@/components';
 import { Avatar, Icon } from '@/components/ui';
 import { colors, radius, shadows, spacing, typography } from '@/constants/theme';
-import { STAFF_KIND_LABELS, STAFF_KINDS, type StaffKind } from '@/features/care/staffKind';
+import { ServiceCompanionServicePicker } from '@/features/care/ServiceCompanionServicePicker';
+import { isServiceCompanionKind, STAFF_KIND_LABELS, STAFF_KINDS, type StaffKind } from '@/features/care/staffKind';
+import type { ServiceCompanionSlug } from '@/features/care/serviceCompanionServices';
 import { AdminFilterChips } from './components/AdminFilterChips';
 import { AdminSelectCheckbox, AdminSelectionToolbar } from './components/AdminListActions';
 import { AdminQueryView } from './components/AdminQueryView';
@@ -13,7 +15,14 @@ import { deleteAdminCareManager } from './api';
 import { useDeletePeopleRecords } from './hooks/useDeletePeopleRecords';
 import { useAdminCareManagers, useApproveAdminCareManager, useProvisionAdminStaff } from './hooks';
 import { ADMIN_STAFF_DEFAULT_PASSWORD } from './staffDefaults';
-import { adminCareManagerDisplay, adminStaffKindLabel, getAdminErrorMessage, getSectionState, humanizeStatus } from './selectors';
+import {
+  adminCareManagerDisplay,
+  adminStaffKindLabel,
+  adminStaffServiceLine,
+  getAdminErrorMessage,
+  getSectionState,
+  humanizeStatus,
+} from './selectors';
 import type { AdminCareManager } from './types';
 import { useAdminLayout } from './useAdminLayout';
 
@@ -161,6 +170,9 @@ function CareListCard({
               {adminStaffKindLabel(staff.staffKind)}
               {staff.employeeId ? ` · ${staff.employeeId}` : ''}
             </Text>
+            {isServiceCompanionKind(staff.staffKind) && adminStaffServiceLine(staff) ? (
+              <Text style={styles.personMeta}>{adminStaffServiceLine(staff)}</Text>
+            ) : null}
           </View>
         </Pressable>
       </View>
@@ -203,6 +215,7 @@ export function AdminCareManagerCreateScreen() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [staffKind, setStaffKind] = useState<StaffKind>('CARE_MANAGER');
+  const [companionServiceSlugs, setCompanionServiceSlugs] = useState<ServiceCompanionSlug[]>([]);
   const [skills, setSkills] = useState('');
   const [experience, setExperience] = useState('');
   const [languages, setLanguages] = useState('');
@@ -225,9 +238,20 @@ export function AdminCareManagerCreateScreen() {
         label="Staff role"
         value={staffKind}
         options={STAFF_KINDS.map((kind) => ({ value: kind, label: STAFF_KIND_LABELS[kind] }))}
-        onChange={(next) => next && setStaffKind(next)}
+        onChange={(next) => {
+          if (!next) {
+            return;
+          }
+          setStaffKind(next);
+          if (!isServiceCompanionKind(next)) {
+            setCompanionServiceSlugs([]);
+          }
+        }}
         allowAll={false}
       />
+      {isServiceCompanionKind(staffKind) ? (
+        <ServiceCompanionServicePicker values={companionServiceSlugs} onChange={setCompanionServiceSlugs} />
+      ) : null}
       <TextField label="Skills (optional)" value={skills} onChangeText={setSkills} />
       <TextField label="Experience (optional)" value={experience} onChangeText={setExperience} />
       <TextField label="Languages (optional)" value={languages} onChangeText={setLanguages} />
@@ -250,6 +274,10 @@ export function AdminCareManagerCreateScreen() {
             setFormError('Password must be at least 8 characters.');
             return;
           }
+          if (isServiceCompanionKind(staffKind) && companionServiceSlugs.length === 0) {
+            setFormError('Select at least one service for a Service Companion.');
+            return;
+          }
           setFormError(null);
           provision.mutate(
             {
@@ -260,6 +288,7 @@ export function AdminCareManagerCreateScreen() {
               firstName: trimmedFirst,
               lastName: trimmedLast,
               staffKind,
+              companionServiceSlugs: isServiceCompanionKind(staffKind) ? companionServiceSlugs : [],
               skills: skills.trim() || undefined,
               experience: experience.trim() || undefined,
               languages: languages.trim() || undefined,

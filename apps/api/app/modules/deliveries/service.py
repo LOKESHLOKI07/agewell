@@ -5,9 +5,12 @@ from fastapi import HTTPException, status
 
 from app.api.schemas import ListPage
 from app.modules.access.service import AccessService
+from sqlalchemy import select
+
 from app.modules.deliveries.models import DeliveryStatus, StaffDelivery
 from app.modules.deliveries.repository import DeliveryRepository
 from app.modules.deliveries.schemas import DeliveryResponse, MemberDeliveryResponse
+from app.modules.services.models import ServiceRequest
 from app.modules.users.models import User
 
 
@@ -19,7 +22,13 @@ def _executive_name(care_manager) -> Optional[str]:
     return name or None
 
 
-def to_member_delivery(row: StaffDelivery, *, executive_name: Optional[str] = None) -> MemberDeliveryResponse:
+def to_member_delivery(
+    row: StaffDelivery,
+    *,
+    executive_name: Optional[str] = None,
+    request_notes: Optional[str] = None,
+    list_photo: Optional[str] = None,
+) -> MemberDeliveryResponse:
     return MemberDeliveryResponse(
         id=row.id,
         care_manager_id=row.care_manager_id,
@@ -30,6 +39,10 @@ def to_member_delivery(row: StaffDelivery, *, executive_name: Optional[str] = No
         location=row.location,
         status=row.status,
         scheduled_at=row.scheduled_at,
+        service_slug=getattr(row, "service_slug", None),
+        proof_photo=getattr(row, "proof_photo", None),
+        request_notes=request_notes,
+        list_photo=list_photo,
         executive_name=executive_name,
     )
 
@@ -40,7 +53,18 @@ class DeliveryService:
 
     async def _member_response(self, row: StaffDelivery) -> MemberDeliveryResponse:
         care_manager = await self.repo.get_care_manager(row.care_manager_id)
-        return to_member_delivery(row, executive_name=_executive_name(care_manager))
+        request = None
+        if row.service_request_id:
+            result = await self.repo.session.execute(
+                select(ServiceRequest).where(ServiceRequest.id == row.service_request_id)
+            )
+            request = result.scalar_one_or_none()
+        return to_member_delivery(
+            row,
+            executive_name=_executive_name(care_manager),
+            request_notes=request.notes if request else None,
+            list_photo=getattr(request, "list_photo", None) if request else None,
+        )
 
     async def get_member_delivery(self, delivery_id: UUID, user: User, access: AccessService) -> MemberDeliveryResponse:
         row = await self.repo.get_by_id(delivery_id)

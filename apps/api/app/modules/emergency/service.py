@@ -180,6 +180,7 @@ class EmergencyService:
         assigned_senior_ids: Optional[Sequence[UUID]] = None,
         status: Optional[EmergencyStatus] = None,
         emergency_type: Optional[EmergencyType] = None,
+        service_city: Optional[str] = None,
         limit: int = 50,
         offset: int = 0,
     ) -> ListPage[EmergencyCaseResponse]:
@@ -188,6 +189,7 @@ class EmergencyService:
             assigned_senior_ids=assigned_senior_ids,
             status=status,
             emergency_type=emergency_type,
+            service_city=service_city,
             limit=limit,
             offset=offset,
         )
@@ -314,8 +316,17 @@ class EmergencyService:
         case.status = new_status
         if new_status == EmergencyStatus.IN_PROGRESS and case.assistance_started_at is None:
             case.assistance_started_at = now
-        if new_status == EmergencyStatus.RESOLVED and case.resolved_at is None:
-            case.resolved_at = now
+        if new_status == EmergencyStatus.RESOLVED:
+            from app.modules.care.repository import CareManagerRepository
+            from app.modules.services.service_policy import ensure_can_finish, policy_role_for_user
+
+            staff_kind = None
+            if actor is not None:
+                profile = await CareManagerRepository(self.repo.session).get_by_user_id(actor.id)
+                staff_kind = profile.staff_kind if profile else None
+            ensure_can_finish("emergency-sos", policy_role_for_user(actor, staff_kind))
+            if case.resolved_at is None:
+                case.resolved_at = now
             if actor:
                 case.handled_by_user_id = actor.id
         if new_status == EmergencyStatus.CANCELLED and case.closed_at is None:
@@ -430,6 +441,13 @@ class EmergencyService:
         for key, value in fields.items():
             setattr(case, key, value)
         if payload.mark_resolved or payload.mark_closed:
+            from app.modules.care.repository import CareManagerRepository
+            from app.modules.services.service_policy import ensure_can_finish, ensure_proof_photo, policy_role_for_user
+
+            profile = await CareManagerRepository(self.repo.session).get_by_user_id(actor.id)
+            ensure_can_finish("emergency-sos", policy_role_for_user(actor, profile.staff_kind if profile else None))
+            photo = payload.proof_photo or getattr(case, "proof_photo", None)
+            ensure_proof_photo("emergency-sos", photo)
             case.handled_by_user_id = actor.id
         if payload.mark_resolved:
             if case.assistance_started_at is None:

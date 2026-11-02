@@ -12,7 +12,12 @@ import {
 import { KeyboardAwareScrollView } from '@/components/KeyboardAwareScrollView';
 import { Avatar, Icon } from '@/components/ui';
 import { colors, minTouchSize, radius, shadows, spacing, typography } from '@/constants/theme';
-import { parseStaffKind, STAFF_KIND_LABELS, STAFF_KINDS, type StaffKind } from '@/features/care/staffKind';
+import { ServiceCompanionServicePicker } from '@/features/care/ServiceCompanionServicePicker';
+import {
+  normalizeCompanionServiceSlugs,
+  type ServiceCompanionSlug,
+} from '@/features/care/serviceCompanionServices';
+import { isServiceCompanionKind, parseStaffKind, STAFF_KIND_LABELS, STAFF_KINDS, type StaffKind } from '@/features/care/staffKind';
 import { formatLongDate, formatRelativeDay, formatRelativeTimestamp, formatTime } from '@/utils/date';
 import {
   DetailBackLink,
@@ -37,6 +42,7 @@ import {
   adminCareManagerDisplay,
   adminSeniorDisplay,
   adminStaffKindLabel,
+  adminStaffServiceLine,
   getAdminErrorMessage,
   getSectionState,
   humanizeStatus,
@@ -82,6 +88,7 @@ export function AdminCareManagerDetailScreen() {
   const [availability, setAvailability] = useState('');
   const [status, setStatus] = useState('');
   const [staffKind, setStaffKind] = useState<StaffKind>('CARE_MANAGER');
+  const [companionServiceSlugs, setCompanionServiceSlugs] = useState<ServiceCompanionSlug[]>([]);
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -103,6 +110,7 @@ export function AdminCareManagerDetailScreen() {
       setAvailability(query.data.availability ?? '');
       setStatus(query.data.status ?? '');
       setStaffKind(parseStaffKind(query.data.staffKind));
+      setCompanionServiceSlugs(normalizeCompanionServiceSlugs(query.data.companionServiceSlugs));
     }
   }, [query.data]);
 
@@ -176,6 +184,7 @@ export function AdminCareManagerDetailScreen() {
       setAvailability(staff.availability ?? '');
       setStatus(staff.status ?? '');
       setStaffKind(parseStaffKind(staff.staffKind));
+      setCompanionServiceSlugs(normalizeCompanionServiceSlugs(staff.companionServiceSlugs));
     }
     if (user.data) {
       setEmail(user.data.email ?? '');
@@ -292,6 +301,12 @@ export function AdminCareManagerDetailScreen() {
                     <View style={styles.fields}>
                       <DetailInfoField label="Employee ID" value={staff.employeeId ?? 'Not on file'} />
                       <DetailInfoField label="Role" value={roleLabel} />
+                      {isServiceCompanionKind(staff.staffKind) ? (
+                        <DetailInfoField
+                          label="Covered services"
+                          value={adminStaffServiceLine(staff) ?? 'None selected'}
+                        />
+                      ) : null}
                       <DetailInfoField label="Experience" value={staff.experience ?? 'Not on file'} />
                       <DetailInfoField label="Care status" value={staff.status ? humanizeStatus(staff.status) : 'Not on file'} />
                       <DetailInfoField
@@ -384,6 +399,7 @@ export function AdminCareManagerDetailScreen() {
                     phone={phone}
                     employeeId={employeeId}
                     staffKind={staffKind}
+                    companionServiceSlugs={companionServiceSlugs}
                     skills={skills}
                     experience={experience}
                     languages={languages}
@@ -400,6 +416,7 @@ export function AdminCareManagerDetailScreen() {
                       phone: setPhone,
                       employeeId: setEmployeeId,
                       staffKind: setStaffKind,
+                      companionServiceSlugs: setCompanionServiceSlugs,
                       skills: setSkills,
                       experience: setExperience,
                       languages: setLanguages,
@@ -408,10 +425,25 @@ export function AdminCareManagerDetailScreen() {
                       accountStatus: setAccountStatus,
                     }}
                     onSave={() => {
+                      if (isServiceCompanionKind(staffKind) && companionServiceSlugs.length === 0) {
+                        setFormError('Select at least one service for a Service Companion.');
+                        return;
+                      }
                       setFormError(null);
                       setSaving(true);
                       update.mutate(
-                        { employeeId, firstName, lastName, skills, experience, languages, availability, status, staffKind },
+                        {
+                          employeeId,
+                          firstName,
+                          lastName,
+                          skills,
+                          experience,
+                          languages,
+                          availability,
+                          status,
+                          staffKind,
+                          companionServiceSlugs: isServiceCompanionKind(staffKind) ? companionServiceSlugs : [],
+                        },
                         {
                           onError: (error) => {
                             setSaving(false);
@@ -464,6 +496,7 @@ export function AdminCareManagerDetailScreen() {
                       phone={phone}
                       employeeId={employeeId}
                       staffKind={staffKind}
+                      companionServiceSlugs={companionServiceSlugs}
                       skills={skills}
                       experience={experience}
                       languages={languages}
@@ -480,6 +513,7 @@ export function AdminCareManagerDetailScreen() {
                         phone: setPhone,
                         employeeId: setEmployeeId,
                         staffKind: setStaffKind,
+                        companionServiceSlugs: setCompanionServiceSlugs,
                         skills: setSkills,
                         experience: setExperience,
                         languages: setLanguages,
@@ -488,10 +522,25 @@ export function AdminCareManagerDetailScreen() {
                         accountStatus: setAccountStatus,
                       }}
                       onSave={() => {
+                        if (isServiceCompanionKind(staffKind) && companionServiceSlugs.length === 0) {
+                          setFormError('Select at least one service for a Service Companion.');
+                          return;
+                        }
                         setFormError(null);
                         setSaving(true);
                         update.mutate(
-                          { employeeId, firstName, lastName, skills, experience, languages, availability, status, staffKind },
+                          {
+                            employeeId,
+                            firstName,
+                            lastName,
+                            skills,
+                            experience,
+                            languages,
+                            availability,
+                            status,
+                            staffKind,
+                            companionServiceSlugs: isServiceCompanionKind(staffKind) ? companionServiceSlugs : [],
+                          },
                           {
                             onError: (error) => {
                               setSaving(false);
@@ -526,6 +575,12 @@ export function AdminCareManagerDetailScreen() {
                     <View style={styles.fields}>
                       <DetailInfoField label="Employee ID" value={staff.employeeId ?? 'Not on file'} />
                       <DetailInfoField label="Role" value={roleLabel} />
+                      {isServiceCompanionKind(staff.staffKind) ? (
+                        <DetailInfoField
+                          label="Covered services"
+                          value={adminStaffServiceLine(staff) ?? 'None selected'}
+                        />
+                      ) : null}
                       <DetailInfoField label="Experience" value={staff.experience ?? 'Not on file'} />
                       <DetailInfoField label="Care status" value={staff.status ? humanizeStatus(staff.status) : 'Not on file'} />
                       <DetailInfoField
@@ -643,6 +698,7 @@ function EditForm({
   phone,
   employeeId,
   staffKind,
+  companionServiceSlugs,
   skills,
   experience,
   languages,
@@ -662,6 +718,7 @@ function EditForm({
   phone: string;
   employeeId: string;
   staffKind: StaffKind;
+  companionServiceSlugs: ServiceCompanionSlug[];
   skills: string;
   experience: string;
   languages: string;
@@ -678,6 +735,7 @@ function EditForm({
     phone: (value: string) => void;
     employeeId: (value: string) => void;
     staffKind: (value: StaffKind) => void;
+    companionServiceSlugs: (value: ServiceCompanionSlug[]) => void;
     skills: (value: string) => void;
     experience: (value: string) => void;
     languages: (value: string) => void;
@@ -710,9 +768,20 @@ function EditForm({
         label="Staff role"
         value={staffKind}
         options={STAFF_KINDS.map((kind) => ({ value: kind, label: STAFF_KIND_LABELS[kind] }))}
-        onChange={(next) => next && onChange.staffKind(next)}
+        onChange={(next) => {
+          if (!next) {
+            return;
+          }
+          onChange.staffKind(next);
+          if (!isServiceCompanionKind(next)) {
+            onChange.companionServiceSlugs([]);
+          }
+        }}
         allowAll={false}
       />
+      {isServiceCompanionKind(staffKind) ? (
+        <ServiceCompanionServicePicker values={companionServiceSlugs} onChange={onChange.companionServiceSlugs} />
+      ) : null}
       <TextField label="Skills" value={skills} onChangeText={onChange.skills} />
       <TextField label="Experience" value={experience} onChangeText={onChange.experience} />
       <TextField label="Languages" value={languages} onChangeText={onChange.languages} />

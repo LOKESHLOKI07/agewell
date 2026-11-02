@@ -1,5 +1,6 @@
 import type { AuthRole } from '@/features/auth/authTypes';
 import { isAuthRole } from '@/features/auth/authTypes';
+import { isServiceCity } from '@/features/auth/serviceCities';
 import { toListPage } from '@/features/home/api/mappers';
 import type { NotificationPriority } from '@/features/home/types/home';
 import { toIsoDate } from '@/utils/date';
@@ -63,6 +64,7 @@ export function toAdminUser(payload: unknown): AdminUser {
     phone: asString(data.phone, 'user.phone'),
     role: data.role,
     accountStatus: asOptionalString(data.account_status) ?? 'ACTIVE',
+    serviceCity: isServiceCity(data.service_city) ? data.service_city : null,
     createdAt: asOptionalString(data.created_at),
     updatedAt: asOptionalString(data.updated_at),
   };
@@ -100,6 +102,7 @@ export function toAdminSenior(payload: unknown): AdminSenior {
       data.location_source === 'gps' || data.location_source === 'manual'
         ? data.location_source
         : null,
+    serviceCity: isServiceCity(data.service_city) ? data.service_city : null,
     hasMembership: Boolean(data.has_membership),
     careManagerId: asOptionalString(data.care_manager_id),
     companionId: asOptionalString(data.companion_id),
@@ -129,6 +132,9 @@ export function toAdminCareManager(payload: unknown): AdminCareManager {
     availability: asOptionalString(data.availability),
     status: asOptionalString(data.status),
     staffKind: parseStaffKind(data.staff_kind),
+    companionServiceSlugs: Array.isArray(data.companion_service_slugs)
+      ? data.companion_service_slugs.filter((item): item is string => typeof item === 'string')
+      : [],
   };
 }
 
@@ -197,10 +203,12 @@ export function toAdminNotification(payload: unknown): AdminNotification {
   return {
     id: asId(data.id, 'notification.id'),
     userId: asOptionalString(data.user_id),
+    userEmail: asOptionalString(data.user_email),
     title: asOptionalString(data.title),
     message: asOptionalString(data.message),
     priority: asString(data.priority, 'notification.priority') as NotificationPriority,
     isRead: asBoolean(data.is_read, 'notification.is_read'),
+    actionRef: asOptionalString(data.action_ref),
     createdAt: asOptionalString(data.created_at),
   };
 }
@@ -222,12 +230,14 @@ export function adminUserCreateBody(input: {
   phone: string;
   role: AuthRole;
   password: string;
+  serviceCity?: string | null;
 }) {
   return {
     email: input.email,
     phone: input.phone,
     role: input.role,
     password: input.password,
+    ...(input.serviceCity ? { service_city: input.serviceCity } : {}),
   };
 }
 

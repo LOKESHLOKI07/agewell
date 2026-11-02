@@ -2,14 +2,18 @@ import { router, type Href } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, minTouchSize, radius, spacing, typography } from '@/constants/theme';
 import { Icon, IconWell } from '@/components/ui';
+import { useAuthStore } from '@/features/auth/authStore';
+import { isSuperStaff } from '@/features/auth/serviceCities';
 import { AdminScreen } from './components/AdminScreen';
 import { adminOverflowNav } from './selectors';
 
 export function AdminMoreScreen() {
+  const user = useAuthStore((state) => state.user);
+  const items = adminOverflowNav().filter((item) => item.key !== 'audit' || isSuperStaff(user));
   return (
     <AdminScreen title="More" subtitle="Additional operations screens.">
       <View style={styles.list}>
-        {adminOverflowNav().map((item) => (
+        {items.map((item) => (
           <Pressable
             key={item.key}
             onPress={() => router.push(item.href as Href)}

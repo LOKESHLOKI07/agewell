@@ -51,6 +51,7 @@ class EmergencyCaseResponse(BaseModel):
     hospital_details: Optional[str] = None
     family_communication: Optional[str] = None
     notes: Optional[str] = None
+    proof_photo: Optional[str] = None
     follow_up_required: Optional[bool] = None
     follow_up_date: Optional[date] = None
     recipients: list[EmergencyRecipientResponse] = Field(default_factory=list)
@@ -88,3 +89,4 @@ class EmergencyReportUpdate(BaseModel):
     follow_up_date: Optional[date] = None
     mark_resolved: bool = False
     mark_closed: bool = False
+    proof_photo: Optional[str] = None

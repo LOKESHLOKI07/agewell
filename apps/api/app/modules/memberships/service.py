@@ -21,6 +21,7 @@ from app.modules.memberships.models import (
     STAGE_VISIT_PLANNED,
     STAGE_VISIT_SCHEDULED,
     Membership,
+    MembershipPlan,
 )
 from app.modules.memberships.repository import MembershipRepository
 from app.modules.memberships.schemas import (
@@ -151,8 +152,12 @@ class MembershipService:
             offset=offset,
         )
 
-    async def list_memberships(self, *, senior_id=None, limit: int = 50, offset: int = 0) -> ListPage[MembershipRecordResponse]:
-        rows, total = await self.repo.list_memberships(senior_id=senior_id, limit=limit, offset=offset)
+    async def list_memberships(
+        self, *, senior_id=None, service_city: Optional[str] = None, limit: int = 50, offset: int = 0
+    ) -> ListPage[MembershipRecordResponse]:
+        rows, total = await self.repo.list_memberships(
+            senior_id=senior_id, service_city=service_city, limit=limit, offset=offset
+        )
         items = [
             MembershipRecordResponse(
                 id=membership.id,
@@ -202,12 +207,14 @@ class MembershipService:
         *,
         senior_id: Optional[UUID] = None,
         status: Optional[str] = None,
+        service_city: Optional[str] = None,
         limit: int = 50,
         offset: int = 0,
     ) -> ListPage[MembershipRequestResponse]:
         rows, total = await self.repo.list_requests(
             senior_id=senior_id,
             status=status,
+            service_city=service_city,
             limit=limit,
             offset=offset,
         )
@@ -216,12 +223,18 @@ class MembershipService:
             items.append(await self._to_request_response(request, senior, plan))
         return ListPage(items=items, total=total, limit=limit, offset=offset)
 
-    async def review_request(self, request_id: UUID, new_status: str) -> MembershipRequestResponse:
+    async def review_request(
+        self, request_id: UUID, new_status: str, *, actor=None
+    ) -> MembershipRequestResponse:
         """Legacy approve/reject. Approve now means accept (show Pay Now), not activate."""
+        from app.modules.cities.catalog import ensure_staff_city_for_senior
+
         row = await self.repo.get_request_row(request_id)
         if not row:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Membership request not found")
-        request, _senior, _plan = row
+        request, senior, _plan = row
+        if actor is not None:
+            ensure_staff_city_for_senior(actor, senior)
         current_status = request.status
         current_stage = getattr(request, "stage", None) or STAGE_SUBMITTED
 
@@ -278,11 +291,17 @@ class MembershipService:
         self,
         request_id: UUID,
         payload: MembershipRequestStageUpdate,
+        *,
+        actor=None,
     ) -> MembershipRequestResponse:
+        from app.modules.cities.catalog import ensure_staff_city_for_senior
+
         row = await self.repo.get_request_row(request_id)
         if not row:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Membership request not found")
         request, senior, _plan = row
+        if actor is not None:
+            ensure_staff_city_for_senior(actor, senior)
         if request.status == "REJECTED" or (getattr(request, "stage", None) == STAGE_REJECTED):
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Rejected applications cannot be updated.")
 
@@ -420,6 +439,11 @@ class MembershipService:
         request.paid_at = now
         request.reviewed_at = now
         self.repo.session.add(membership)
+        await self.repo.session.flush()
+        plan = await self.repo.session.get(MembershipPlan, request.plan_id)
+        from app.modules.credits.service import CreditService
+
+        await CreditService(self.repo.session).allocate_initial(request.senior_id, membership, plan)
         await self.repo.save_request(request)
 
     async def _require_staff(self, staff_id: UUID, expected_kind: str):
@@ -449,12 +473,19 @@ class MembershipService:
             return membership
         return None
 
-    async def cancel_membership(self, membership_id: UUID) -> MembershipRecordResponse:
-        rows, _total = await self.repo.list_memberships(limit=500, offset=0)
+    async def cancel_membership(self, membership_id: UUID, *, actor=None) -> MembershipRecordResponse:
+        from app.modules.cities.catalog import ensure_staff_city_for_senior, staff_city
+
+        rows, _total = await self.repo.list_memberships(
+            service_city=staff_city(actor) if actor is not None else None, limit=500, offset=0
+        )
         match = next(((membership, plan) for membership, plan in rows if membership.id == membership_id), None)
         if not match:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Membership not found")
         membership, plan = match
+        if actor is not None:
+            senior = await self.repo.session.get(Senior, membership.senior_id)
+            ensure_staff_city_for_senior(actor, senior)
         membership.end_date = datetime.now(timezone.utc).replace(tzinfo=None)
         await self.repo.session.commit()
         await self.repo.session.refresh(membership)

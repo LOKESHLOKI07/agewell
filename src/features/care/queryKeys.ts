@@ -12,4 +12,13 @@ export const careQueryKeys = {
   deliveryDetail: (deliveryId: string) => ['care', 'deliveries', deliveryId] as const,
   training: ['care', 'training'] as const,
   staffEmergencies: ['care', 'emergencies', 'open'] as const,
+  assignableStaff: ['care', 'assignableStaff'] as const,
+  serviceRequests: (params: {
+    limit: number;
+    offset: number;
+    status?: string;
+    serviceSlug?: string;
+  }) => ['care', 'serviceRequests', params] as const,
+  serviceRequestUnassignedCounts: ['care', 'serviceRequestUnassignedCounts'] as const,
+  dispatchQueue: ['care', 'dispatchQueue'] as const,
 };

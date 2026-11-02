@@ -79,6 +79,7 @@ class EmergencyCase(Base):
     hospital_details = Column(Text, nullable=True)
     family_communication = Column(Text, nullable=True)
     notes = Column(Text, nullable=True)
+    proof_photo = Column(Text, nullable=True)
     follow_up_required = Column(Boolean, nullable=True)
     follow_up_date = Column(Date, nullable=True)
     # Durable SOS escalation schedule. Survives API process restart (see escalation.py).

@@ -87,7 +87,7 @@ export const STAFF_HOME_CONFIG: Record<StaffKind, StaffHomeConfig> = {
     viewAllHref: '/(care)/tasks',
     emptyIcon: 'bike',
     emptyTitle: 'No deliveries yet',
-    emptyMessage: 'Grocery, food, and medicine drops assigned to you will appear here.',
+    emptyMessage: 'Medicine, grocery, errands, and banking jobs assigned to you will appear here.',
     itemPrefix: 'Delivery',
   },
 };

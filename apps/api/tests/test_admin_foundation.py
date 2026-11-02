@@ -368,8 +368,12 @@ async def test_care_service_visit_emergency_membership_admin(client):
 
     notes = await client.get("/api/v1/notifications/admin", headers=headers)
     assert notes.status_code == 200
-    assert "total" in notes.json()
-    assert_no_secrets(notes.json())
+    body = notes.json()
+    assert "total" in body
+    assert_no_secrets(body)
+    if body["items"]:
+        assert "user_email" in body["items"][0]
+        assert "user_id" in body["items"][0]
 
 
 @pytest.mark.asyncio

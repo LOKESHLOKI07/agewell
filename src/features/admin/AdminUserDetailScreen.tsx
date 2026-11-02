@@ -5,6 +5,12 @@ import { router, useLocalSearchParams, type Href } from 'expo-router';
 import { PrimaryButton, PremiumCard, SecondaryButton, StatusPill, TextField, statusToneFromLabel } from '@/components';
 import { colors, radius, spacing, typography } from '@/constants/theme';
 import { AUTH_ROLES, type AuthRole } from '@/features/auth/authTypes';
+import { useAuthStore } from '@/features/auth/authStore';
+import {
+  SERVICE_CITY_OPTIONS,
+  isSuperStaff,
+  type ServiceCity,
+} from '@/features/auth/serviceCities';
 import { formatLongDate, formatRelativeDay, formatTime, toDisplayDate } from '@/utils/date';
 import { AdminFilterChips } from './components/AdminFilterChips';
 import { AdminQueryView } from './components/AdminQueryView';
@@ -577,24 +583,59 @@ function CareUserAssignments({ careManagerId }: { careManagerId: string | undefi
 }
 
 export function AdminUserCreateScreen() {
+  const params = useLocalSearchParams<{ role?: string }>();
+  const currentUser = useAuthStore((state) => state.user);
+  const superStaff = isSuperStaff(currentUser);
+  const createCityAdmin = superStaff && params.role === 'ADMIN';
   const create = useCreateAdminUser();
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<AuthRole>('SENIOR');
+  const [role, setRole] = useState<AuthRole>(createCityAdmin ? 'ADMIN' : 'SENIOR');
+  const [city, setCity] = useState<ServiceCity | undefined>(
+    currentUser?.serviceCity ?? (createCityAdmin ? undefined : undefined),
+  );
   const [formError, setFormError] = useState<string | null>(null);
+  const roleOptions = superStaff
+    ? ROLE_OPTIONS
+    : ROLE_OPTIONS.filter((item) => item.value !== 'ADMIN' && item.value !== 'OPERATIONS');
+  const showCity = superStaff && (createCityAdmin || role === 'ADMIN' || role === 'OPERATIONS');
 
   return (
     <AdminScreen
-      title="Create user"
-      subtitle="Creates a login account. Then attach the matching Senior or Care profile."
+      title={createCityAdmin ? 'Create city admin' : 'Create user'}
+      subtitle={
+        createCityAdmin
+          ? 'Enter email, a temporary password, and the city. Share the login with that admin — they can change the password later.'
+          : 'Creates a login account. Then attach the matching Senior or Care profile.'
+      }
       backHref="/(admin)/users"
     >
       <PremiumCard style={styles.card}>
         <TextField label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
         <TextField label="Phone" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
         <TextField label="Temporary password" value={password} onChangeText={setPassword} secureTextEntry />
-        <AdminFilterChips label="Role" value={role} options={ROLE_OPTIONS} onChange={(next) => next && setRole(next)} allowAll={false} />
+        {createCityAdmin ? null : (
+          <AdminFilterChips
+            label="Role"
+            value={role}
+            options={roleOptions}
+            onChange={(next) => next && setRole(next)}
+            allowAll={false}
+          />
+        )}
+        {showCity ? (
+          <AdminFilterChips
+            label="City"
+            value={city}
+            options={SERVICE_CITY_OPTIONS.map((item) => ({
+              value: item.value,
+              label: `${item.label} (${item.hint})`,
+            }))}
+            onChange={(next) => setCity(next)}
+            allowAll={false}
+          />
+        ) : null}
         {formError ? (
           <Text style={styles.error} accessibilityLiveRegion="polite">
             {formError}
@@ -602,13 +643,18 @@ export function AdminUserCreateScreen() {
         ) : null}
         <View style={styles.buttonRow}>
           <PrimaryButton
-            label="Create user"
+            label={createCityAdmin ? 'Create city admin' : 'Create user'}
             fullWidth={false}
             loading={create.isPending}
             onPress={() => {
+              const nextRole = createCityAdmin ? 'ADMIN' : role;
+              if (showCity && !city) {
+                setFormError('Choose Mumbai or Chandrapur.');
+                return;
+              }
               setFormError(null);
               create.mutate(
-                { email, phone, role, password },
+                { email, phone, role: nextRole, password, serviceCity: city ?? currentUser?.serviceCity ?? null },
                 {
                   onError: (error) => setFormError(getAdminErrorMessage(error, 'user')),
                   onSuccess: (user) => router.replace(`/(admin)/users/${user.id}` as Href),

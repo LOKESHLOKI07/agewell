@@ -6,6 +6,7 @@ from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.notifications.models import DevicePushToken, Notification, NotificationPriority
+from app.modules.users.models import User
 
 
 class NotificationRepository:
@@ -39,8 +40,8 @@ class NotificationRepository:
         is_read: Optional[bool] = None,
         limit: int = 50,
         offset: int = 0,
-    ):
-        stmt = select(Notification)
+    ) -> tuple[list[tuple[Notification, Optional[str]]], int]:
+        stmt = select(Notification, User.email).outerjoin(User, Notification.user_id == User.id)
         count_stmt = select(func.count()).select_from(Notification)
         if user_id is not None:
             stmt = stmt.where(Notification.user_id == user_id)
@@ -55,7 +56,8 @@ class NotificationRepository:
         result = await self.session.execute(
             stmt.order_by(Notification.created_at.desc().nulls_last()).offset(offset).limit(limit)
         )
-        return list(result.scalars().all()), int(total)
+        rows = [(row[0], row[1]) for row in result.all()]
+        return rows, int(total)
 
     async def get_by_id(self, notification_id: UUID) -> Optional[Notification]:
         result = await self.session.execute(select(Notification).where(Notification.id == notification_id))
@@ -68,6 +70,7 @@ class NotificationRepository:
         title: str,
         message: str,
         priority: NotificationPriority,
+        action_ref: Optional[str] = None,
     ) -> Notification:
         row = Notification(
             user_id=user_id,
@@ -75,6 +78,7 @@ class NotificationRepository:
             message=message,
             priority=priority,
             is_read=False,
+            action_ref=action_ref,
         )
         self.session.add(row)
         await self.session.flush()

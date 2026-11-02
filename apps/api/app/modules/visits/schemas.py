@@ -19,6 +19,7 @@ class VisitResponse(BaseModel):
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
     notes: Optional[str] = None
+    service_slug: Optional[str] = None
 
 
 class VisitCreate(BaseModel):
@@ -27,6 +28,7 @@ class VisitCreate(BaseModel):
     status: Optional[VisitStatus] = None
     scheduled_at: Optional[datetime] = None
     notes: Optional[str] = None
+    service_slug: Optional[str] = None
 
 
 class VisitUpdate(BaseModel):
@@ -36,6 +38,8 @@ class VisitUpdate(BaseModel):
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
     notes: Optional[str] = None
+    service_slug: Optional[str] = None
+    proof_photo: Optional[str] = None
 
 
 class VisitTaskResponse(BaseModel):
@@ -58,8 +62,10 @@ class VisitReportResponse(BaseModel):
     visit_id: UUID4
     summary: Optional[str] = None
     issues_noted: Optional[str] = None
+    proof_photo: Optional[str] = None
 
 
 class VisitReportCreate(BaseModel):
     summary: Optional[str] = None
     issues_noted: Optional[str] = None
+    proof_photo: Optional[str] = None

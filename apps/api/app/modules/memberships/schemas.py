@@ -37,6 +37,8 @@ class MembershipPlanResponse(BaseModel):
     id: UUID4
     name: Optional[str] = None
     price: Optional[float] = None
+    initial_service_credit: Optional[float] = None
+    initial_emergency_credit: Optional[float] = None
 
 
 class MembershipBenefitResponse(BaseModel):

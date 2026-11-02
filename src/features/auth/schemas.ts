@@ -13,6 +13,15 @@ export const mobileLoginSchema = z.object({
   password: z.string().min(1, 'Enter your password'),
 });
 
+export const mobilePhoneSchema = z.object({
+  phone: z
+    .string()
+    .trim()
+    .regex(/^[+]?\d[\d\s-]{8,14}$/, 'Enter a valid mobile number'),
+});
+
+export type MobilePhoneFormValues = z.infer<typeof mobilePhoneSchema>;
+
 export const otpSchema = z.object({
   otp: z.string().regex(/^\d{6}$/, 'Enter the 6-digit code'),
 });

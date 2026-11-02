@@ -82,6 +82,7 @@ export async function registerCareAssociate(values: RegisterCareValues): Promise
         languages: values.languages || null,
         availability: values.availability || null,
         staff_kind: values.staffKind ?? null,
+        companion_service_slugs: values.companionServiceSlugs ?? [],
       },
       { skipAuth: true },
     );

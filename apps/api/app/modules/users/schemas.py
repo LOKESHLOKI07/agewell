@@ -10,6 +10,7 @@ class UserBase(BaseModel):
     email: str
     phone: str
     role: RoleEnum
+    service_city: Optional[str] = None
 
 
 class UserCreate(UserBase):
@@ -22,6 +23,7 @@ class UserUpdate(BaseModel):
     phone: Optional[str] = None
     role: Optional[RoleEnum] = None
     account_status: Optional[AccountStatus] = None
+    service_city: Optional[str] = None
 
 
 class UserResponse(UserBase):
@@ -29,5 +31,6 @@ class UserResponse(UserBase):
 
     id: UUID4
     account_status: AccountStatus = AccountStatus.ACTIVE
+    service_city: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None

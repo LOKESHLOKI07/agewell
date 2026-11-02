@@ -48,6 +48,7 @@ class SeniorCreate(SeniorBase):
     location_lng: Optional[float] = None
     location_query: Optional[str] = None
     location_source: Optional[str] = None
+    service_city: Optional[str] = None
 
 
 class SeniorUpdate(BaseModel):
@@ -73,10 +74,12 @@ class SeniorUpdate(BaseModel):
     location_lng: Optional[float] = None
     location_query: Optional[str] = None
     location_source: Optional[str] = None
+    service_city: Optional[str] = None
 
 
 class SeniorPhotoUpdate(BaseModel):
     photo: Optional[str] = None
+    address: Optional[str] = None
     in_service_area: Optional[bool] = None
     location_lat: Optional[float] = None
     location_lng: Optional[float] = None
@@ -97,6 +100,7 @@ class SeniorResponse(SeniorBase):
     location_lng: Optional[float] = None
     location_query: Optional[str] = None
     location_source: Optional[str] = None
+    service_city: Optional[str] = None
 
 
 class SeniorDirectoryItem(SeniorResponse):

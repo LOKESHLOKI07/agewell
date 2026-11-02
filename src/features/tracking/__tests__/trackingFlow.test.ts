@@ -11,6 +11,7 @@ import {
   LOCATION_PERMISSION_MESSAGE,
   LOCATION_UNAVAILABLE_MESSAGE,
   canPostTrackingPoints,
+  canWatchSharedLocation,
   careTrackingHref,
   formatCoordinate,
   formatCoordinatePair,
@@ -155,6 +156,14 @@ describe('tracking authorization copy', () => {
     expect(canPostTrackingPoints('FAMILY')).toBe(false);
     expect(canPostTrackingPoints('CARE_MANAGER')).toBe(false);
     expect(canPostTrackingPoints('ADMIN')).toBe(false);
+  });
+
+  it('does not let Admin keep posting leftover live-share points', () => {
+    expect(canWatchSharedLocation('ADMIN', 'senior')).toBe(false);
+    expect(canWatchSharedLocation('ADMIN', 'delivery')).toBe(false);
+    expect(canWatchSharedLocation('SENIOR', 'senior')).toBe(true);
+    expect(canWatchSharedLocation('CARE_MANAGER', 'delivery')).toBe(true);
+    expect(canWatchSharedLocation('CARE_MANAGER', 'senior')).toBe(false);
   });
 });
 

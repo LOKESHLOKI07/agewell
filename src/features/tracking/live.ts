@@ -1,4 +1,5 @@
 import type { Visit } from '@/features/home/types/home';
+import { tracksEmployeeLocation } from '@/features/services/servicePolicy';
 import { humanizeStatus } from '@/features/home/selectors/homeViewModel';
 import { formatTime } from '@/utils/date';
 import { ApiError } from '@/api/errors';
@@ -226,7 +227,11 @@ export function pickTrackableVisit(...lists: Array<Visit[] | undefined | null>):
   if (merged.length === 0) {
     return null;
   }
-  return merged.find((visit) => visitHasAssignedAssociate(visit)) ?? merged[0] ?? null;
+  return (
+    merged.find((visit) => visitHasAssignedAssociate(visit) && tracksEmployeeLocation(visit.serviceSlug)) ??
+    merged.find((visit) => tracksEmployeeLocation(visit.serviceSlug)) ??
+    null
+  );
 }
 
 export function associateDisplayName(visit: Pick<Visit, 'careManagerName'> | null | undefined): string {

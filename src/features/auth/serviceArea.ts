@@ -24,6 +24,8 @@ export const SERVICE_AREA_CITIES =
 
 const TIER1_CLUSTER_LABEL = 'Kandivali & Borivali, Mumbai';
 const TIER2_CLUSTER_LABEL = 'Warora, Bhadravati & Wani, Chandrapur';
+const TIER1_CITY_LABEL = 'Mumbai';
+const TIER2_CITY_LABEL = 'Chandrapur';
 
 export const SERVICE_AREA_STAY_TUNED =
   'Stay tuned, we will start our service in your area shortly.';
@@ -130,6 +132,25 @@ function clusterMatch(tier: ServiceTier): ServiceAreaMatch {
   };
 }
 
+/** City-only fallback when we know the senior is in-area but not which neighborhood. */
+function cityMatch(tier: ServiceTier): ServiceAreaMatch {
+  return {
+    inServiceArea: true,
+    tier,
+    localityId: tier === 'tier1' ? 'mumbai' : 'chandrapur',
+    localityLabel: tier === 'tier1' ? TIER1_CITY_LABEL : TIER2_CITY_LABEL,
+  };
+}
+
+function isClusterMatch(match: ServiceAreaMatch): boolean {
+  return (
+    match.localityId === 'mumbai-west' ||
+    match.localityId === 'chandrapur-cluster' ||
+    match.localityLabel === TIER1_CLUSTER_LABEL ||
+    match.localityLabel === TIER2_CLUSTER_LABEL
+  );
+}
+
 function matchingLocalities(place: string): ServiceLocality[] {
   const normalized = place.trim().toLowerCase();
   if (!normalized) {
@@ -138,6 +159,11 @@ function matchingLocalities(place: string): ServiceLocality[] {
   return SERVICE_LOCALITIES.filter((locality) =>
     locality.keywords.some((keyword) => matchesKeyword(normalized, keyword)),
   );
+}
+
+/** True when the text names more than one service locality (marketing copy, not a home). */
+function isMultiLocalityPlace(place: string): boolean {
+  return matchingLocalities(place).length > 1;
 }
 
 function uniquePlaceMatch(place: string): ServiceAreaMatch | null {
@@ -182,12 +208,30 @@ export function matchCoordinate(latitude: number, longitude: number): ServiceAre
   return NONE_SERVICE_AREA_MATCH;
 }
 
-/** Banner copy: one locality and region, e.g. "Kandivali, Mumbai". */
+/** Banner copy: one locality and region, e.g. "Borivali, Mumbai" — never the full city cluster list. */
 export function serviceAreaDeliveryLabel(
-  match: Pick<ServiceAreaMatch, 'inServiceArea' | 'localityLabel'> | null | undefined,
+  match: Pick<ServiceAreaMatch, 'inServiceArea' | 'tier' | 'localityId' | 'localityLabel'> | null | undefined,
 ): string {
-  const label = match?.inServiceArea ? match.localityLabel?.trim() : '';
-  return label || SERVICE_AREA_CITIES;
+  if (!match?.inServiceArea) {
+    return SERVICE_AREA_CITIES;
+  }
+  const label = match.localityLabel?.trim() ?? '';
+  if (
+    !label ||
+    label === TIER1_CLUSTER_LABEL ||
+    label === TIER2_CLUSTER_LABEL ||
+    match.localityId === 'mumbai-west' ||
+    match.localityId === 'chandrapur-cluster'
+  ) {
+    if (match.tier === 'tier2') {
+      return TIER2_CITY_LABEL;
+    }
+    if (match.tier === 'tier1') {
+      return TIER1_CITY_LABEL;
+    }
+    return SERVICE_AREA_CITIES;
+  }
+  return label;
 }
 
 export function isCoordinateInServiceArea(latitude: number, longitude: number): boolean {
@@ -273,10 +317,17 @@ export function resolveServiceAreaFromSenior(input: {
   locationLng?: number | null;
   address?: string | null;
 }): ServiceAreaMatch {
-  if (input.locationQuery) {
+  // Prefer a single neighborhood — never treat "Kandivali & Borivali" marketing copy as the home.
+  if (input.locationQuery && !isMultiLocalityPlace(input.locationQuery)) {
     const uniqueFromQuery = uniquePlaceMatch(input.locationQuery);
     if (uniqueFromQuery) {
       return uniqueFromQuery;
+    }
+  }
+  if (input.address && !isMultiLocalityPlace(input.address)) {
+    const uniqueFromAddress = uniquePlaceMatch(input.address);
+    if (uniqueFromAddress) {
+      return uniqueFromAddress;
     }
   }
   if (input.locationLat != null && input.locationLng != null) {
@@ -285,26 +336,24 @@ export function resolveServiceAreaFromSenior(input: {
       return fromGps;
     }
   }
-  if (input.address) {
-    const uniqueFromAddress = uniquePlaceMatch(input.address);
-    if (uniqueFromAddress) {
-      return uniqueFromAddress;
-    }
-  }
-  if (input.locationQuery) {
+  if (input.locationQuery && !isMultiLocalityPlace(input.locationQuery)) {
     const fromQuery = matchPlaceName(input.locationQuery);
-    if (fromQuery.inServiceArea) {
+    if (fromQuery.inServiceArea && !isClusterMatch(fromQuery)) {
       return fromQuery;
     }
   }
-  if (input.address) {
+  if (input.address && !isMultiLocalityPlace(input.address)) {
     const fromAddress = matchPlaceName(input.address);
-    if (fromAddress.inServiceArea) {
+    if (fromAddress.inServiceArea && !isClusterMatch(fromAddress)) {
       return fromAddress;
     }
   }
   if (input.inServiceArea) {
-    return clusterMatch('tier1');
+    const tierHint =
+      (input.address ? matchingLocalities(input.address)[0]?.tier : null) ??
+      (input.locationQuery ? matchingLocalities(input.locationQuery)[0]?.tier : null) ??
+      'tier1';
+    return cityMatch(tierHint);
   }
   return NONE_SERVICE_AREA_MATCH;
 }

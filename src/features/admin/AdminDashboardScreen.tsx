@@ -6,6 +6,7 @@ import { Icon, IconWell, type IconName } from '@/components/ui';
 import { StatusPill, statusToneFromLabel } from '@/components';
 import { colors, radius, shadows, spacing, tones, typography, type ColorTone } from '@/constants/theme';
 import { useAuthStore } from '@/features/auth/authStore';
+import { staffScopeLabel } from '@/features/auth/serviceCities';
 import { AdminBarChart } from './components/AdminBarChart';
 import { AdminDonutChart } from './components/AdminDonutChart';
 import {
@@ -46,10 +47,9 @@ type MetricDensity = 'compact' | 'comfortable';
 
 export function AdminDashboardScreen() {
   const { isDesktop, isPhone, width } = useAdminLayout();
-  const email = useAuthStore((state) => state.user?.email);
+  const user = useAuthStore((state) => state.user);
   const now = new Date();
-  const rawName = email?.split('@')[0] || 'Admin';
-  const displayName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
+  const displayName = staffScopeLabel(user);
 
   const seniors = useAdminSeniors({ limit: 100, offset: 0 });
   const membershipSeniors = useAdminSeniors({ limit: 1, offset: 0, segment: 'membership' });

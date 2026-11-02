@@ -141,6 +141,7 @@ export function toVisit(payload: unknown): Visit {
     startedAt: asOptionalString(data.started_at),
     completedAt: asOptionalString(data.completed_at),
     notes: asOptionalString(data.notes),
+    serviceSlug: asOptionalString(data.service_slug),
   };
 }
 
@@ -253,16 +254,30 @@ export function toHealthcareProvider(payload: unknown): HealthcareProvider {
 }
 
 export function toServiceRequest(payload: unknown): ServiceRequest {
-  const data = asRecord(payload, 'service request') as unknown as ServiceRequestRead;
+  const data = asRecord(payload, 'service request') as unknown as ServiceRequestRead & {
+    senior_name?: unknown;
+    created_at?: unknown;
+    dispatcher_id?: unknown;
+    executor_id?: unknown;
+    dispatch_mode?: unknown;
+    awaiting_dispatch?: unknown;
+  };
+  const mode = data.dispatch_mode;
   return {
     id: asId(data.id, 'service_request.id'),
     seniorId: asId(data.senior_id, 'service_request.senior_id'),
     serviceId: asId(data.service_id, 'service_request.service_id'),
     serviceName: asString(data.service_name, 'service_request.service_name'),
     serviceSlug: asOptionalString(data.service_slug),
+    seniorName: asOptionalString(data.senior_name),
     status: asString(data.status, 'service_request.status') as ServiceRequest['status'],
     notes: asOptionalString(data.notes),
-    createdAt: asOptionalString((data as { created_at?: unknown }).created_at),
+    createdAt: asOptionalString(data.created_at),
+    dispatcherId: asOptionalString(data.dispatcher_id),
+    executorId: asOptionalString(data.executor_id),
+    dispatchMode:
+      mode === 'assign_sc_only' || mode === 'take_or_assign' || mode === 'none' ? mode : null,
+    awaitingDispatch: data.awaiting_dispatch === true,
   };
 }
 
@@ -326,11 +341,13 @@ export function toServiceRequestCreateBody(
   seniorId: string,
   serviceId: string,
   notes?: string | null,
+  listPhoto?: string | null,
 ): ServiceRequestCreate {
   return {
     senior_id: seniorId,
     service_id: serviceId,
     ...(notes ? { notes } : {}),
+    ...(listPhoto ? { list_photo: listPhoto } : {}),
   };
 }
 

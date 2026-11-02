@@ -32,11 +32,15 @@ class VisitRepository:
         status: Optional[VisitStatus] = None,
         on_date: Optional[date] = None,
         upcoming: bool = False,
+        service_city: Optional[str] = None,
         limit: int = 50,
         offset: int = 0,
     ):
+        from app.modules.cities.catalog import apply_city_fk
+
         stmt = select(Visit, CareManager).outerjoin(CareManager, Visit.care_manager_id == CareManager.id)
         count_stmt = select(func.count()).select_from(Visit)
+        stmt, count_stmt = apply_city_fk(stmt, count_stmt, Visit.senior_id, service_city)
 
         if senior_id is not None:
             stmt = stmt.where(Visit.senior_id == senior_id)

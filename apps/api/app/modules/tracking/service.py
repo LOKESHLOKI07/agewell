@@ -87,20 +87,19 @@ class TrackingService:
             offset=offset,
         )
 
-    async def create_point(self, session_id: UUID, payload: TrackingPointCreate) -> TrackingPointResponse:
-        await self.get_session(session_id)
-        timestamp = payload.timestamp
-        if timestamp.tzinfo is not None:
-            timestamp = timestamp.replace(tzinfo=None)
-        row = await self.repo.create_point(
-            session_id=session_id,
-            latitude=payload.latitude,
-            longitude=payload.longitude,
-            timestamp=timestamp,
-        )
-        await self.repo.session.commit()
-        await self.repo.session.refresh(row)
-        return to_point_response(row)
+    async def create_point(
+        self,
+        session_id: UUID,
+        payload: TrackingPointCreate,
+        *,
+        actor=None,
+    ) -> TrackingPointResponse:
+        row = await self.repo.get_session(session_id)
+        if row is None and actor is not None:
+            return await self.create_delivery_executive_point(session_id, payload, actor)
+        if row is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tracking session not found")
+        return await self._write_point(session_id, payload)
 
     async def get_latest_point(self, session_id: UUID) -> TrackingPointResponse:
         await self.get_session(session_id)
@@ -231,3 +230,44 @@ class TrackingService:
     ) -> CareAssociateTrackingSessionResponse:
         session = await self.resolve_delivery_executive_session(delivery_id, user, access)
         return to_care_session_response(session)
+
+    async def create_delivery_executive_point(
+        self,
+        delivery_id: UUID,
+        payload: TrackingPointCreate,
+        user,
+    ) -> TrackingPointResponse:
+        if self.delivery_repo is None:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Delivery repository is required",
+            )
+        delivery = await self.delivery_repo.get_by_id(delivery_id)
+        if not delivery:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tracking session not found")
+        care_manager = await self.delivery_repo.get_care_manager(delivery.care_manager_id)
+        if care_manager is None or care_manager.user_id is None or care_manager.user_id != user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only the assigned Service Companion can share this delivery.",
+            )
+        existing = await self.repo.get_newest_session_for_user(user.id)
+        if existing:
+            return await self._write_point(existing.id, payload)
+        created = await self.repo.create_session(user_id=user.id)
+        await self.repo.session.commit()
+        return await self._write_point(created.id, payload)
+
+    async def _write_point(self, session_id: UUID, payload: TrackingPointCreate) -> TrackingPointResponse:
+        timestamp = payload.timestamp
+        if timestamp.tzinfo is not None:
+            timestamp = timestamp.replace(tzinfo=None)
+        row = await self.repo.create_point(
+            session_id=session_id,
+            latitude=payload.latitude,
+            longitude=payload.longitude,
+            timestamp=timestamp,
+        )
+        await self.repo.session.commit()
+        await self.repo.session.refresh(row)
+        return to_point_response(row)

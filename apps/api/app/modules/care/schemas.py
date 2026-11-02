@@ -3,6 +3,8 @@ from uuid import UUID
 
 from pydantic import UUID4, BaseModel, ConfigDict, Field, field_validator
 
+from app.modules.care.companion_services import canonicalize_staff_kind
+
 
 def care_manager_display_name(first_name: Optional[str], last_name: Optional[str]) -> Optional[str]:
     parts = [part.strip() for part in (first_name, last_name) if part and part.strip()]
@@ -24,6 +26,7 @@ class CareManagerResponse(BaseModel):
     availability: Optional[str] = None
     status: Optional[str] = None
     staff_kind: Optional[str] = None
+    companion_service_slugs: list[str] = []
 
 
 class CareManagerCreate(BaseModel):
@@ -37,6 +40,7 @@ class CareManagerCreate(BaseModel):
     availability: Optional[str] = None
     status: Optional[str] = None
     staff_kind: Optional[str] = None
+    companion_service_slugs: Optional[list[str]] = None
 
 
 class CareManagerUpdate(BaseModel):
@@ -49,6 +53,7 @@ class CareManagerUpdate(BaseModel):
     availability: Optional[str] = None
     status: Optional[str] = None
     staff_kind: Optional[str] = None
+    companion_service_slugs: Optional[list[str]] = None
 
 
 class CareManagerApproval(BaseModel):
@@ -69,6 +74,7 @@ class StaffProvisionRequest(BaseModel):
     languages: Optional[str] = Field(default=None, max_length=200)
     availability: Optional[str] = Field(default=None, max_length=200)
     status: Optional[str] = Field(default="ACTIVE", max_length=40)
+    companion_service_slugs: Optional[list[str]] = None
 
     @field_validator("email")
     @classmethod
@@ -81,7 +87,7 @@ class StaffProvisionRequest(BaseModel):
     @field_validator("staff_kind")
     @classmethod
     def normalize_staff_kind(cls, value: str) -> str:
-        kind = value.strip().upper()
+        kind = canonicalize_staff_kind(value)
         if kind not in ("CARE_MANAGER", "COMPANION", "DELIVERY_EXECUTIVE"):
             raise ValueError("staff_kind must be CARE_MANAGER, COMPANION, or DELIVERY_EXECUTIVE")
         return kind
@@ -101,6 +107,7 @@ class AssignedCareManager(BaseModel):
     availability: Optional[str] = None
     status: Optional[str] = None
     staff_kind: Optional[str] = None
+    companion_service_slugs: list[str] = []
 
 
 class AssignedCareManagerResponse(BaseModel):

@@ -5,6 +5,7 @@ import type { ListPage } from '@/features/home/types/home';
 import {
   createCareAssociatePoint,
   createCareAssociateSession,
+  createDeliveryExecutivePoint,
   createTrackingPoint,
   createTrackingSession,
   fetchCareAssociateLatest,
@@ -21,7 +22,13 @@ import {
   watchForegroundCoordinates,
 } from './location';
 import { invalidateTrackingQueries, trackingQueryKeys } from './queryKeys';
-import { newestSession, viewerLocationState, LOCATION_NO_FIX_MESSAGE } from './selectors';
+import {
+  newestSession,
+  viewerLocationState,
+  LOCATION_NO_FIX_MESSAGE,
+  SESSION_CREATE_FAILED_MESSAGE,
+  canWatchSharedLocation,
+} from './selectors';
 import { useTrackingShareStore } from './shareStore';
 import { startLiveLocationShare } from './sharing';
 import {
@@ -160,6 +167,36 @@ export function useStartCareAssociateLocation() {
   });
 }
 
+export function useStartDeliveryExecutiveLocation(deliveryId: string | null | undefined) {
+  const startShare = useTrackingShareStore((state) => state.start);
+
+  return useMutation({
+    mutationFn: () => {
+      if (!deliveryId) {
+        return Promise.resolve({
+          ok: false as const,
+          reason: 'session' as const,
+          message: SESSION_CREATE_FAILED_MESSAGE,
+        });
+      }
+      return startLiveLocationShare({
+        requestPermission: requestForegroundPermission,
+        readCoordinates: readForegroundCoordinates,
+        createSession: async () => ({ id: deliveryId, userId: null }),
+        postPoint: (_sessionId, point) => createDeliveryExecutivePoint(deliveryId, point),
+        toPoint: toTrackingPointCreate,
+      });
+    },
+    onSuccess: async (result) => {
+      if (!result.ok) {
+        return;
+      }
+      startShare(deliveryId as string, 'delivery');
+      await invalidateTrackingQueries();
+    },
+  });
+}
+
 export function useCareAssociateSession(visitId: string | null | undefined, enabled = true) {
   return useAuthedQuery<TrackingSession>(
     trackingQueryKeys.careAssociateSession(visitId ?? ''),
@@ -287,14 +324,20 @@ export function useResumeSeniorLiveLocation() {
 
 export function useForegroundLocationWatch(enabled: boolean, sessionId: string | null) {
   const kind = useTrackingShareStore((state) => state.kind);
+  const role = useAuthStore((state) => state.user?.role);
   useEffect(() => {
-    if (!enabled || !sessionId) {
+    if (!enabled || !sessionId || !canWatchSharedLocation(role, kind)) {
       return undefined;
     }
 
     let cancelled = false;
     let stop: (() => void) | undefined;
-    const postPoint = kind === 'care-associate' ? createCareAssociatePoint : createTrackingPoint;
+    const postPoint =
+      kind === 'care-associate'
+        ? createCareAssociatePoint
+        : kind === 'delivery'
+          ? createDeliveryExecutivePoint
+          : createTrackingPoint;
 
     void (async () => {
       stop = await watchForegroundCoordinates((coords) => {
@@ -311,5 +354,5 @@ export function useForegroundLocationWatch(enabled: boolean, sessionId: string |
       cancelled = true;
       stop?.();
     };
-  }, [enabled, sessionId, kind]);
+  }, [enabled, sessionId, kind, role]);
 }

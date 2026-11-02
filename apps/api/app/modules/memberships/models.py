@@ -8,6 +8,8 @@ class MembershipPlan(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = Column(String)
     price = Column(Numeric(10, 2))
+    initial_service_credit = Column(Numeric(12, 2), nullable=True)
+    initial_emergency_credit = Column(Numeric(12, 2), nullable=True)
 
 class Membership(Base):
     __tablename__ = "memberships"

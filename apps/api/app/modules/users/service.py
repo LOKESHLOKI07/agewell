@@ -21,6 +21,7 @@ def to_user_response(user: User) -> UserResponse:
         phone=user.phone,
         role=user.role,
         account_status=user.account_status or AccountStatus.ACTIVE,
+        service_city=getattr(user, "service_city", None),
         created_at=user.created_at,
         updated_at=user.updated_at,
     )
@@ -31,7 +32,27 @@ class UserService:
         self.repo = repo
         self.audit_repo = audit_repo
 
-    async def create_user(self, user_in: UserCreate):
+    def _resolved_create_city(self, user_in: UserCreate, actor: Optional[User]) -> Optional[str]:
+        from app.modules.cities.catalog import is_super_staff, normalize_city, staff_city
+
+        requested = normalize_city(user_in.service_city)
+        if actor is None:
+            if user_in.role == RoleEnum.ADMIN:
+                return normalize_city(requested, required=True)
+            return requested
+        actor_city = staff_city(actor)
+        if not is_super_staff(actor):
+            if user_in.role in (RoleEnum.ADMIN, RoleEnum.OPERATIONS):
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Only a super admin can create city admins.",
+                )
+            return actor_city
+        if user_in.role == RoleEnum.ADMIN:
+            return normalize_city(requested, required=True)
+        return requested
+
+    async def create_user(self, user_in: UserCreate, *, actor: Optional[User] = None):
         from app.modules.users.models import AccountStatus
 
         if await self.repo.get_by_email(user_in.email):
@@ -45,6 +66,7 @@ class UserService:
             role=user_in.role,
             password=hashed,
             account_status=user_in.account_status or AccountStatus.ACTIVE,
+            service_city=self._resolved_create_city(user_in, actor),
         )
         user = await self.repo.create(created)
         if self.audit_repo:
@@ -57,8 +79,12 @@ class UserService:
             await self.repo.session.commit()
         return to_user_response(user)
 
-    async def get_user(self, user_id):
+    async def get_user(self, user_id, *, actor: Optional[User] = None):
+        from app.modules.cities.catalog import ensure_staff_can_see_user
+
         user = await self.repo.get_by_id(user_id)
+        if actor is not None:
+            ensure_staff_can_see_user(actor, user)
         return to_user_response(user) if user else None
 
     async def list_users(
@@ -66,10 +92,13 @@ class UserService:
         *,
         role: Optional[RoleEnum] = None,
         email: Optional[str] = None,
+        service_city: Optional[str] = None,
         limit: int = 50,
         offset: int = 0,
     ) -> ListPage[UserResponse]:
-        rows, total = await self.repo.list_users(role=role, email=email, limit=limit, offset=offset)
+        rows, total = await self.repo.list_users(
+            role=role, email=email, service_city=service_city, limit=limit, offset=offset
+        )
         return ListPage(
             items=[to_user_response(row) for row in rows],
             total=total,
@@ -77,11 +106,20 @@ class UserService:
             offset=offset,
         )
 
-    async def update_user(self, user_id: UUID, payload: UserUpdate) -> UserResponse:
+    async def update_user(self, user_id: UUID, payload: UserUpdate, *, actor: Optional[User] = None) -> UserResponse:
+        from app.modules.cities.catalog import ensure_staff_can_see_user, is_super_staff, normalize_city
+
         user = await self.repo.get_by_id(user_id)
         if not user:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        if actor is not None:
+            ensure_staff_can_see_user(actor, user)
         data = payload.model_dump(exclude_unset=True)
+        if "service_city" in data:
+            if actor is not None and not is_super_staff(actor):
+                data.pop("service_city")
+            else:
+                data["service_city"] = normalize_city(data.get("service_city"))
         if "role" in data and data["role"] != user.role:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -108,12 +146,15 @@ class UserService:
             await self.repo.session.commit()
         return to_user_response(user)
 
-    async def delete_user(self, user_id: UUID, *, actor_user_id: UUID) -> UserResponse:
+    async def delete_user(self, user_id: UUID, *, actor_user_id: UUID, actor: Optional[User] = None) -> UserResponse:
+        from app.modules.cities.catalog import ensure_staff_can_see_user
         from app.modules.people.deletion import commit_people_delete, delete_user_record
 
         user = await self.repo.get_by_id(user_id)
         if not user:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        if actor is not None:
+            ensure_staff_can_see_user(actor, user)
         response = to_user_response(user)
         await delete_user_record(self.repo.session, user_id, also_profile=True, actor_user_id=actor_user_id)
         if self.audit_repo:

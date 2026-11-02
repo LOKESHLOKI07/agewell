@@ -75,6 +75,27 @@ export async function updateSeniorMeServiceArea(input: SeniorLocationUpdate | bo
   }
 }
 
+export async function updateSeniorMeHomeAddress(input: {
+  address: string;
+  locationLat: number;
+  locationLng: number;
+  locationQuery?: string | null;
+  locationSource?: 'gps' | 'manual';
+}): Promise<SeniorProfile> {
+  try {
+    const response = await apiClient.patch('/seniors/me', {
+      address: input.address,
+      location_lat: input.locationLat,
+      location_lng: input.locationLng,
+      location_query: input.locationQuery ?? input.address,
+      location_source: input.locationSource ?? 'gps',
+    });
+    return toSeniorProfile(response.data);
+  } catch (error) {
+    throw toApiError(error);
+  }
+}
+
 export function fetchTodayVisits(): Promise<ListPage<Visit>> {
   return getMapped('/visits/', (data) => toListPage(data, toVisit, 'visits'), { today: true });
 }

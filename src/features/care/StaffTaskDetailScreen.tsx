@@ -1,12 +1,16 @@
+import { useState } from 'react';
 import { Alert, Linking, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams, type Href } from 'expo-router';
 import { PrimaryButton, SecondaryButton, StatusBadge } from '@/components';
+import { getApiErrorMessage } from '@/api/errors';
 import { cardSurface, colors, spacing, tones, typography } from '@/constants/theme';
 import { getSectionState, humanizeStatus } from '@/features/home/selectors/homeViewModel';
+import { dispatchModeFor, tracksEmployeeLocation } from '@/features/services/servicePolicy';
 import { formatLongDate, formatTime } from '@/utils/date';
+import { AssignServiceCompanionSheet } from './AssignServiceCompanionSheet';
 import { CareQueryView } from './components/CareQueryView';
 import { CareSubScreen } from './components/CareSubScreen';
-import { useVisitDetail, useVisitTasks } from './hooks';
+import { useAssignVisitServiceCompanion, useVisitDetail, useVisitTasks } from './hooks';
 import {
   taskDisplayName,
   taskStatusLabel,
@@ -19,11 +23,17 @@ export function StaffTaskDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const visitQuery = useVisitDetail(id);
   const tasksQuery = useVisitTasks(id);
+  const assignSc = useAssignVisitServiceCompanion();
   const visit = visitQuery.data;
   const status = visit?.status?.toUpperCase() ?? '';
   const canStart = status === 'SCHEDULED' || status === 'CHECKED_IN';
   const canResume = status === 'IN_PROGRESS';
   const isDone = status === 'COMPLETED' || status === 'CHECKED_OUT';
+  const mode = dispatchModeFor(visit?.serviceSlug);
+  const canAssignSc = status === 'SCHEDULED' && (mode === 'take_or_assign' || mode === 'assign_sc_only');
+  const showStart = canStart && mode !== 'assign_sc_only';
+
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   const visitState = getSectionState({
     isPending: visitQuery.isPending,
@@ -81,23 +91,32 @@ export function StaffTaskDetailScreen() {
             ) : null}
 
             <View style={styles.actions}>
-              <SecondaryButton
-                label="Share Live Location"
-                onPress={() => {
-                  if (!visit) {
-                    return;
-                  }
-                  router.push({ pathname: '/care/visits/[id]/share', params: { id: visit.id } } as unknown as Href);
-                }}
-              />
+              {tracksEmployeeLocation(visit.serviceSlug) ? (
+                <SecondaryButton
+                  label="Share Live Location"
+                  onPress={() => {
+                    router.push({ pathname: '/care/visits/[id]/share', params: { id: visit.id } } as unknown as Href);
+                  }}
+                />
+              ) : null}
               <SecondaryButton
                 label="Navigate"
                 onPress={() => {
-                  const query = visit?.notes?.trim() || 'Kandivali West Mumbai';
+                  const query = visit.notes?.trim();
+                  if (!query) {
+                    Alert.alert('No address', 'Ask the member to pin their home address in Profile.');
+                    return;
+                  }
                   void Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`);
                 }}
               />
-              {canStart ? (
+              {canAssignSc ? (
+                <SecondaryButton
+                  label="Assign to Service Companion"
+                  onPress={() => setSheetOpen(true)}
+                />
+              ) : null}
+              {showStart ? (
                 <PrimaryButton
                   label="Start Task"
                   onPress={() => router.push(visitStartHref(visit.id) as unknown as Href)}
@@ -116,6 +135,30 @@ export function StaffTaskDetailScreen() {
                 />
               ) : null}
             </View>
+
+            <AssignServiceCompanionSheet
+              visible={sheetOpen}
+              serviceSlug={visit.serviceSlug}
+              hint={
+                mode === 'assign_sc_only'
+                  ? 'Only a Service Companion can finish this job. Pick one from the list.'
+                  : 'Pick an available Service Companion from the list.'
+              }
+              loading={assignSc.isPending}
+              onClose={() => setSheetOpen(false)}
+              onConfirm={(serviceCompanionId) => {
+                assignSc.mutate(
+                  { visitId: visit.id, serviceCompanionId },
+                  {
+                    onError: (err) => Alert.alert('Assign failed', getApiErrorMessage(err)),
+                    onSuccess: () => {
+                      setSheetOpen(false);
+                      router.back();
+                    },
+                  },
+                );
+              }}
+            />
           </>
         ) : null}
       </CareQueryView>

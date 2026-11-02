@@ -202,6 +202,21 @@ async def get_visit_care_associate_session(
     return await service.get_visit_care_associate_session(visit_id, current_user, access)
 
 
+@router.post(
+    "/deliveries/{delivery_id}/executive/points",
+    response_model=CareAssociateTrackingPointResponse,
+)
+async def create_delivery_executive_point(
+    delivery_id: UUID,
+    payload: CareAssociateTrackingPointCreate,
+    current_user: User = Depends(get_current_user),
+    service: TrackingService = Depends(get_tracking_service),
+):
+    ensure_care_manager(current_user)
+    point = await service.create_delivery_executive_point(delivery_id, payload, current_user)
+    return CareAssociateTrackingPointResponse.model_validate(point.model_dump())
+
+
 @router.get(
     "/deliveries/{delivery_id}/executive/latest",
     response_model=CareAssociateLatestLocationResponse,
@@ -290,9 +305,11 @@ async def create_point(
     current_user: User = Depends(get_current_user),
     service: TrackingService = Depends(get_tracking_service),
 ):
-    session = await service.get_session(session_id)
+    session = await service.repo.get_session(session_id)
+    if session is None:
+        return await service.create_delivery_executive_point(session_id, payload, current_user)
     ensure_session_write_access(current_user, session.user_id)
-    return await service.create_point(session_id, payload)
+    return await service.create_point(session_id, payload, actor=current_user)
 
 
 @router.get("/{session_id}", response_model=TrackingSessionResponse)

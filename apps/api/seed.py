@@ -1,6 +1,6 @@
 import asyncio
 import uuid
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import AsyncSessionLocal
@@ -115,6 +115,37 @@ async def repair_john_service_area(session: AsyncSession) -> None:
         return
     senior.address = "Kandivali West"
     senior.in_service_area = True
+    senior.service_city = "mumbai"
+    user.service_city = "mumbai"
+    await session.commit()
+
+
+async def repair_service_cities(session: AsyncSession) -> None:
+    """Backfill mumbai/chandrapur on seniors and their login users."""
+    from app.modules.cities.catalog import resolve_service_city
+
+    seniors = (await session.execute(select(Senior))).scalars().all()
+    for senior in seniors:
+        city = senior.service_city or resolve_service_city(
+            address=senior.address,
+            location_query=senior.location_query,
+            location_lat=senior.location_lat,
+            location_lng=senior.location_lng,
+        )
+        if not city:
+            continue
+        senior.service_city = city
+        if senior.user_id:
+            user = (
+                await session.execute(select(User).where(User.id == senior.user_id))
+            ).scalar_one_or_none()
+            if user and user.role == RoleEnum.SENIOR:
+                user.service_city = city
+    care_users = (
+        await session.execute(select(User).where(User.role == RoleEnum.CARE_MANAGER, User.service_city.is_(None)))
+    ).scalars().all()
+    for user in care_users:
+        user.service_city = "mumbai"
     await session.commit()
 
 
@@ -148,6 +179,7 @@ async def seed_in_area_no_membership_senior(session: AsyncSession) -> None:
             phone=IN_AREA_NO_MEMBERSHIP_PHONE,
             role=RoleEnum.SENIOR,
             hashed_password=get_password_hash(IN_AREA_NO_MEMBERSHIP_PASSWORD),
+            service_city="mumbai",
         )
         session.add(user)
         await session.flush()
@@ -173,6 +205,7 @@ async def seed_in_area_no_membership_senior(session: AsyncSession) -> None:
             in_service_area=True,
             location_query="Kandivali East, Mumbai",
             location_source="manual",
+            service_city="mumbai",
         )
         session.add(senior)
         await session.flush()
@@ -184,6 +217,8 @@ async def seed_in_area_no_membership_senior(session: AsyncSession) -> None:
         senior.in_service_area = True
         senior.location_query = "Kandivali East, Mumbai"
         senior.location_source = "manual"
+        senior.service_city = "mumbai"
+        user.service_city = "mumbai"
         if not senior.preferred_hospital:
             senior.preferred_hospital = "Apex Hospital, Kandivali"
 
@@ -512,6 +547,8 @@ async def seed_membership_plans(session: AsyncSession) -> int:
         {
             "name": "Single Membership",
             "price": 15499.00,
+            "initial_service_credit": 2500.00,
+            "initial_emergency_credit": 15000.00,
             "benefits": [
                 ("Companion Visits", 20),
                 ("Membership services", 1),
@@ -522,6 +559,8 @@ async def seed_membership_plans(session: AsyncSession) -> int:
         {
             "name": "Couple Membership",
             "price": 18499.00,
+            "initial_service_credit": 2500.00,
+            "initial_emergency_credit": 15000.00,
             "benefits": [
                 ("Companion Visits", 20),
                 ("Membership services", 1),
@@ -537,11 +576,21 @@ async def seed_membership_plans(session: AsyncSession) -> int:
         ).scalar_one_or_none()
         if existing:
             existing.price = item["price"]
+            existing.initial_service_credit = item["initial_service_credit"]
+            existing.initial_emergency_credit = item["initial_emergency_credit"]
             plan_id = existing.id
             touched += 1
         else:
             plan_id = uuid.uuid4()
-            session.add(MembershipPlan(id=plan_id, name=item["name"], price=item["price"]))
+            session.add(
+                MembershipPlan(
+                    id=plan_id,
+                    name=item["name"],
+                    price=item["price"],
+                    initial_service_credit=item["initial_service_credit"],
+                    initial_emergency_credit=item["initial_emergency_credit"],
+                )
+            )
             await session.flush()
             touched += 1
         for benefit_name, quota in item["benefits"]:
@@ -678,6 +727,7 @@ async def seed_data():
             await repair_emergency_copy(session)
             await repair_emergency_sos_rows(session)
             await repair_john_service_area(session)
+            await repair_service_cities(session)
             await repair_care_manager_assignment(session)
             await seed_operations_user(session)
             await seed_in_area_no_membership_senior(session)
@@ -698,13 +748,13 @@ async def seed_data():
 
         # Users
         pw_hash = get_password_hash("password123")
-        u_senior = User(id=uuid.uuid4(), email="senior@example.com", phone="111", role=RoleEnum.SENIOR, hashed_password=pw_hash)
+        u_senior = User(id=uuid.uuid4(), email="senior@example.com", phone="111", role=RoleEnum.SENIOR, hashed_password=pw_hash, service_city="mumbai")
         u_family = User(id=uuid.uuid4(), email="family@example.com", phone="222", role=RoleEnum.FAMILY, hashed_password=pw_hash)
         u_family_b = User(id=uuid.uuid4(), email="family2@example.com", phone="333", role=RoleEnum.FAMILY, hashed_password=pw_hash)
         u_senior_b = User(id=uuid.uuid4(), email="senior2@example.com", phone="444", role=RoleEnum.SENIOR, hashed_password=pw_hash)
-        u_care_mgr = User(id=uuid.uuid4(), email="care@example.com", phone="555", role=RoleEnum.CARE_MANAGER, hashed_password=pw_hash)
-        u_companion = User(id=uuid.uuid4(), email="companion@example.com", phone="557", role=RoleEnum.CARE_MANAGER, hashed_password=pw_hash)
-        u_delivery = User(id=uuid.uuid4(), email="delivery@example.com", phone="558", role=RoleEnum.CARE_MANAGER, hashed_password=pw_hash)
+        u_care_mgr = User(id=uuid.uuid4(), email="care@example.com", phone="555", role=RoleEnum.CARE_MANAGER, hashed_password=pw_hash, service_city="mumbai")
+        u_companion = User(id=uuid.uuid4(), email="companion@example.com", phone="557", role=RoleEnum.CARE_MANAGER, hashed_password=pw_hash, service_city="mumbai")
+        u_delivery = User(id=uuid.uuid4(), email="delivery@example.com", phone="558", role=RoleEnum.CARE_MANAGER, hashed_password=pw_hash, service_city="mumbai")
         u_admin = User(id=uuid.uuid4(), email="admin@example.com", phone="666", role=RoleEnum.ADMIN, hashed_password=pw_hash)
         u_ops = User(id=uuid.uuid4(), email=OPERATIONS_EMAIL, phone=OPERATIONS_PHONE, role=RoleEnum.OPERATIONS, hashed_password=pw_hash)
         session.add_all(
@@ -723,6 +773,7 @@ async def seed_data():
             emergency_contact="911",
             in_service_area=True,
             care_manager_id=None,
+            service_city="mumbai",
         )
         senior_b = Senior(id=uuid.uuid4(), user_id=u_senior_b.id, first_name="Jane", last_name="Doe", date_of_birth=date(1945, 1, 1), address="456", emergency_contact="911")
         family = FamilyMember(id=uuid.uuid4(), user_id=u_family.id, first_name="Son", last_name="Doe")
@@ -758,6 +809,7 @@ async def seed_data():
             skills="Delivery",
             status="ACTIVE",
             staff_kind="DELIVERY_EXECUTIVE",
+            companion_service_slugs=["medicine", "grocery"],
         )
         senior_a.care_manager_id = care_mgr.id
         senior_a.companion_id = companion.id
@@ -875,7 +927,7 @@ async def seed_data():
             senior_id=senior_a.id,
             plan_id=single.id,
             start_date=datetime.utcnow(),
-            end_date=datetime.utcnow(),
+            end_date=datetime.utcnow() + timedelta(days=30),
         )
         benefit = (
             await session.execute(
@@ -884,6 +936,9 @@ async def seed_data():
         ).scalar_one()
         session.add(membership)
         await session.commit()
+        from app.modules.credits.service import CreditService
+
+        await CreditService(session).allocate_initial(senior_a.id, membership, single, commit=True)
         
         ledger = MembershipUsageLedger(id=uuid.uuid4(), membership_id=membership.id, benefit_id=benefit.id, used_amount=1)
         

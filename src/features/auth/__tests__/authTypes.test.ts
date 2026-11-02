@@ -18,6 +18,7 @@ describe('toAuthUser', () => {
       phone: payload.phone,
       role: 'SENIOR',
       accountStatus: 'ACTIVE',
+      serviceCity: null,
       createdAt: payload.created_at,
     });
   });
@@ -31,5 +32,9 @@ describe('toAuthUser', () => {
 
   it('rejects unknown roles', () => {
     expect(() => toAuthUser({ ...payload, role: 'SUPERUSER' })).toThrow('Invalid user profile');
+  });
+
+  it('maps service_city when present', () => {
+    expect(toAuthUser({ ...payload, role: 'ADMIN', service_city: 'mumbai' }).serviceCity).toBe('mumbai');
   });
 });

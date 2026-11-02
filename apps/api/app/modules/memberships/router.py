@@ -84,19 +84,23 @@ async def list_membership_records(
     senior_id: Optional[UUID] = None,
     limit: int = Query(50, ge=1, le=100),
     offset: int = Query(0, ge=0),
-    _staff: User = Depends(require_staff),
+    current_user: User = Depends(require_staff),
     service: MembershipService = Depends(get_membership_service),
 ):
-    return await service.list_memberships(senior_id=senior_id, limit=limit, offset=offset)
+    from app.modules.cities.catalog import staff_city
+
+    return await service.list_memberships(
+        senior_id=senior_id, service_city=staff_city(current_user), limit=limit, offset=offset
+    )
 
 
 @router.post("/records/{membership_id}/cancel", response_model=MembershipRecordResponse)
 async def cancel_membership_record(
     membership_id: UUID,
-    _staff: User = Depends(require_staff),
+    current_user: User = Depends(require_staff),
     service: MembershipService = Depends(get_membership_service),
 ):
-    return await service.cancel_membership(membership_id)
+    return await service.cancel_membership(membership_id, actor=current_user)
 
 
 @router.post("/requests", response_model=MembershipRequestResponse)
@@ -122,10 +126,13 @@ async def list_membership_requests(
     access: AccessService = Depends(get_access_service),
     service: MembershipService = Depends(get_membership_service),
 ):
+    from app.modules.cities.catalog import staff_city
+
     scoped_senior_id = await access.resolve_senior_id(current_user, senior_id, allow_unscoped_staff=True)
     return await service.list_requests(
         senior_id=scoped_senior_id,
         status=status.value if status else None,
+        service_city=staff_city(current_user),
         limit=limit,
         offset=offset,
     )
@@ -135,20 +142,20 @@ async def list_membership_requests(
 async def review_membership_request(
     request_id: UUID,
     payload: MembershipRequestReview,
-    _staff: User = Depends(require_staff),
+    current_user: User = Depends(require_staff),
     service: MembershipService = Depends(get_membership_service),
 ):
-    return await service.review_request(request_id, payload.status)
+    return await service.review_request(request_id, payload.status, actor=current_user)
 
 
 @router.patch("/requests/{request_id}/stage", response_model=MembershipRequestResponse)
 async def update_membership_request_stage(
     request_id: UUID,
     payload: MembershipRequestStageUpdate,
-    _staff: User = Depends(require_staff),
+    current_user: User = Depends(require_staff),
     service: MembershipService = Depends(get_membership_service),
 ):
-    return await service.update_request_stage(request_id, payload)
+    return await service.update_request_stage(request_id, payload, actor=current_user)
 
 
 @router.post("/requests/{request_id}/pay", response_model=MembershipRequestResponse)

@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, String, Text, UUID
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, JSON, String, Text, UUID
 import enum
 import uuid
 from sqlalchemy.sql import func
@@ -40,6 +40,7 @@ class CareManager(Base):
     availability = Column(String, nullable=True)
     status = Column(String)
     staff_kind = Column(String, nullable=False, default=CARE_STAFF_KIND_CARE_MANAGER)
+    companion_service_slugs = Column(JSON, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 

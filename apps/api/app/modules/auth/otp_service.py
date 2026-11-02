@@ -97,6 +97,36 @@ def read_password_reset_email(token: str | None) -> str | None:
     return _read_purpose_email(token, {"password_reset"})
 
 
+def create_family_invite_claim_token(*, invite_id: str, contact: str) -> str:
+    expire = _now() + OTP_SESSION_TTL
+    return jwt.encode(
+        {
+            "exp": expire,
+            "sub": invite_id,
+            "contact": contact,
+            "purpose": "family_invite_claim",
+        },
+        settings.JWT_SECRET,
+        algorithm=ALGORITHM,
+    )
+
+
+def read_family_invite_claim(token: str | None) -> dict | None:
+    if not token or not token.strip():
+        return None
+    try:
+        payload = jwt.decode(token.strip(), settings.JWT_SECRET, algorithms=[ALGORITHM])
+    except PyJWTError:
+        return None
+    if payload.get("purpose") != "family_invite_claim":
+        return None
+    invite_id = (payload.get("sub") or "").strip()
+    contact = (payload.get("contact") or "").strip()
+    if not invite_id or not contact:
+        return None
+    return {"invite_id": invite_id, "contact": contact}
+
+
 def _read_purpose_email(token: str | None, purposes: set[str]) -> str | None:
     if not token or not token.strip():
         return None

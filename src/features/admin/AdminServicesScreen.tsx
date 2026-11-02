@@ -1,21 +1,44 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams, type Href } from 'expo-router';
-import { PrimaryButton, StatusPill, TextField } from '@/components';
+import { PrimaryButton, SecondaryButton, StatusPill, TextField } from '@/components';
 import { Icon, IconWell, type IconName } from '@/components/ui';
 import { colors, minTouchSize, radius, shadows, spacing, typography } from '@/constants/theme';
 import type { ServiceCategory, ServiceRequest, ServiceRequestStatus } from '@/features/home/types/home';
 import { OFFERING_SERVICE_SLUGS } from '@/features/membership/catalogTypes';
 import { pickProfilePhoto } from '@/features/profile/profilePhoto';
 import { ADD_ON_SERVICES } from '@/features/services/addOnServiceCatalog';
+import { ProofPhotoField } from '@/features/care/ProofPhotoField';
+import { assignableCareAssociates } from '@/features/care/serviceCompanionServices';
+import { isServiceCompanionKind } from '@/features/care/staffKind';
 import { MARKETPLACE_SERVICES } from '@/features/services/serviceCatalog';
+import {
+  needsServiceCompanionDispatch,
+  requestNeedsFieldAssign,
+  requiresProofPhoto,
+  roleCanFinish,
+  SERVICE_POLICY_OPTIONS,
+  shouldAutoAssignStanding,
+  usesDeliveryJob,
+} from '@/features/services/servicePolicy';
 import { AdminCollection } from './components/AdminCollection';
 import { AdminFilterChips } from './components/AdminFilterChips';
 import { AdminPagination } from './components/AdminPagination';
 import { AdminQueryView } from './components/AdminQueryView';
 import { AdminScreen } from './components/AdminScreen';
 import { findMembershipOps } from './membershipOpsMap';
-import { useAdminServiceRequests, useAdminServices, useCreateAdminService, useUpdateAdminService, useUpdateAdminServiceRequest } from './hooks';
+import {
+  useAdminCareManagers,
+  useAdminSeniors,
+  useAdminServiceRequests,
+  useAdminServices,
+  useAssignAdminServiceRequest,
+  useAutoAssignAdminServiceRequest,
+  useAdminUnassignedServiceRequestCounts,
+  useCreateAdminService,
+  useUpdateAdminService,
+  useUpdateAdminServiceRequest,
+} from './hooks';
 import {
   ADDON_SLUG_ORDER,
   MEMBERSHIP_SLUG_ORDER,
@@ -27,7 +50,15 @@ import {
   topRequestedService,
   type AdminServiceListFilter,
 } from './servicesAdminModel';
-import { getAdminErrorMessage, getSectionState, humanizeStatus } from './selectors';
+import {
+  adminCareManagerDisplay,
+  adminSeniorDisplay,
+  adminStaffKindLabel,
+  adminStaffServiceLine,
+  getAdminErrorMessage,
+  getSectionState,
+  humanizeStatus,
+} from './selectors';
 import type { AdminService } from './types';
 import { ADMIN_PAGE_SIZE } from './types';
 import { useAdminLayout } from './useAdminLayout';
@@ -624,17 +655,131 @@ export function AdminServiceCreateScreen() {
 export function AdminServiceRequestsScreen() {
   const [offset, setOffset] = useState(0);
   const [status, setStatus] = useState<ServiceRequestStatus | undefined>();
-  const query = useAdminServiceRequests({ limit: ADMIN_PAGE_SIZE, offset, status });
+  const [serviceSlug, setServiceSlug] = useState<string | undefined>();
+  const query = useAdminServiceRequests({ limit: ADMIN_PAGE_SIZE, offset, status, serviceSlug });
+  const unassignedCounts = useAdminUnassignedServiceRequestCounts();
   const update = useUpdateAdminServiceRequest();
+  const assign = useAssignAdminServiceRequest();
+  const autoAssign = useAutoAssignAdminServiceRequest();
+  const seniors = useAdminSeniors({ limit: 100, offset: 0 });
+  const managers = useAdminCareManagers();
   const [formError, setFormError] = useState<string | null>(null);
+  const [pendingComplete, setPendingComplete] = useState<ServiceRequest | null>(null);
+  const [proofPhoto, setProofPhoto] = useState<string | null>(null);
+  const [pendingAssign, setPendingAssign] = useState<ServiceRequest | null>(null);
+  const [autoAssigningId, setAutoAssigningId] = useState<string | null>(null);
+  const [assigneeIds, setAssigneeIds] = useState<string[]>([]);
+  const [assigneeSearch, setAssigneeSearch] = useState('');
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const state = getSectionState({
     isPending: query.isPending,
     isError: query.isError,
     isEmpty: (query.data?.items.length ?? 0) === 0,
   });
+  const seniorNames = useMemo(() => {
+    const names = new Map<string, string>();
+    for (const senior of seniors.data?.items ?? []) {
+      names.set(senior.id, adminSeniorDisplay(senior));
+    }
+    return names;
+  }, [seniors.data?.items]);
+  const scOnlyAssign = Boolean(
+    pendingAssign &&
+      needsServiceCompanionDispatch(pendingAssign.serviceSlug) &&
+      (pendingAssign.awaitingDispatch || pendingAssign.dispatcherId),
+  );
+  const assignOptions = useMemo(() => {
+    if (!pendingAssign) {
+      return [];
+    }
+    let staff = assignableCareAssociates(managers.data ?? [], { serviceSlug: pendingAssign.serviceSlug });
+    if (scOnlyAssign) {
+      staff = staff.filter((item) => isServiceCompanionKind(item.staffKind));
+    } else if (needsServiceCompanionDispatch(pendingAssign.serviceSlug)) {
+      // No standing companion yet: Admin may soft-assign Companion or execute via SC.
+      staff = staff.filter(
+        (item) => isServiceCompanionKind(item.staffKind) || item.staffKind === 'COMPANION',
+      );
+    }
+    return staff.map((item) => ({
+      id: item.id,
+      title: adminCareManagerDisplay(item),
+      subtitle: [
+        adminStaffKindLabel(item.staffKind),
+        item.employeeId,
+        isServiceCompanionKind(item.staffKind) ? adminStaffServiceLine(item) : null,
+      ]
+        .filter(Boolean)
+        .join(' · '),
+    }));
+  }, [managers.data, pendingAssign, scOnlyAssign]);
+  const filteredAssignOptions = useMemo(() => {
+    const q = assigneeSearch.trim().toLowerCase();
+    if (!q) return assignOptions;
+    return assignOptions.filter((item) => {
+      const haystack = `${item.title} ${item.subtitle ?? ''}`.toLowerCase();
+      return haystack.includes(q);
+    });
+  }, [assignOptions, assigneeSearch]);
+  const serviceCounts = unassignedCounts.data ?? {};
+  const unassignedTotal = useMemo(
+    () => Object.values(serviceCounts).reduce((sum, value) => sum + value, 0),
+    [serviceCounts],
+  );
+
+  useEffect(() => {
+    if (!pendingAssign || assigneeIds.length > 0 || assignOptions.length !== 1) {
+      return;
+    }
+    setAssigneeIds([assignOptions[0].id]);
+  }, [assigneeIds.length, assignOptions, pendingAssign]);
+
+  const seniorLabel = (item: ServiceRequest) =>
+    item.seniorName?.trim() || seniorNames.get(item.seniorId) || item.seniorId;
+
+  const closeAssign = () => {
+    setPendingAssign(null);
+    setAssigneeIds([]);
+    setAssigneeSearch('');
+  };
+
+  const toggleAssignee = (id: string) => {
+    setFormError(null);
+    setAssigneeIds((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
+  };
+
+  const confirmAssign = () => {
+    if (!pendingAssign) {
+      return;
+    }
+    if (assigneeIds.length === 0) {
+      setFormError('Select at least one person to assign.');
+      return;
+    }
+    setFormError(null);
+    assign.mutate(
+      { id: pendingAssign.id, careManagerIds: assigneeIds },
+      {
+        onError: (error) => setFormError(getAdminErrorMessage(error)),
+        onSuccess: () => {
+          const names = assigneeIds
+            .map((id) => assignOptions.find((item) => item.id === id)?.title)
+            .filter(Boolean);
+          const label =
+            names.length === 0
+              ? 'staff'
+              : names.length === 1
+                ? names[0]
+                : `${names.length} people`;
+          setSuccessMessage(`Assigned ${pendingAssign.serviceName} to ${label}.`);
+          closeAssign();
+        },
+      },
+    );
+  };
 
   return (
-    <AdminScreen title="Service Requests" subtitle="Update status for membership requests. Notes come from the member app.">
+    <AdminScreen title="Service Requests" subtitle="Find the request, then Assign a Care Manager, Companion, or Service Companion.">
       <AdminFilterChips
         label="Status"
         value={status}
@@ -644,7 +789,132 @@ export function AdminServiceRequestsScreen() {
           setStatus(next);
         }}
       />
-      {formError ? <Text style={styles.error}>{formError}</Text> : null}
+      <AdminFilterChips
+        label="Service"
+        value={serviceSlug}
+        options={SERVICE_POLICY_OPTIONS}
+        counts={serviceCounts}
+        allCount={unassignedTotal}
+        onChange={(next) => {
+          setOffset(0);
+          setServiceSlug(next);
+          if (next) {
+            setStatus(undefined);
+          }
+        }}
+      />
+      {successMessage ? <Text style={styles.success}>{successMessage}</Text> : null}
+      {formError && !pendingAssign ? <Text style={styles.error}>{formError}</Text> : null}
+      {pendingComplete ? (
+        <View style={styles.toolbarCard}>
+          <Text style={styles.metricLabel}>Complete {pendingComplete.serviceName}</Text>
+          <Text style={styles.metricHint}>This service needs a proof photo before it can be closed.</Text>
+          <ProofPhotoField value={proofPhoto} onChange={setProofPhoto} required />
+          <PrimaryButton
+            label="Confirm complete"
+            loading={update.isPending}
+            onPress={() => {
+              if (!proofPhoto) {
+                setFormError('A proof photo is required to complete this service.');
+                return;
+              }
+              setFormError(null);
+              update.mutate(
+                { id: pendingComplete.id, status: 'COMPLETED', proofPhoto },
+                {
+                  onError: (error) => setFormError(getAdminErrorMessage(error)),
+                  onSuccess: () => {
+                    setPendingComplete(null);
+                    setProofPhoto(null);
+                  },
+                },
+              );
+            }}
+          />
+          <PrimaryButton
+            label="Cancel"
+            onPress={() => {
+              setPendingComplete(null);
+              setProofPhoto(null);
+            }}
+          />
+        </View>
+      ) : null}
+      <Modal visible={Boolean(pendingAssign)} transparent animationType="fade" onRequestClose={closeAssign}>
+        <View style={styles.assignOverlay}>
+          <Pressable style={styles.assignBackdrop} onPress={closeAssign} accessibilityRole="button" accessibilityLabel="Close assign" />
+          <View style={styles.assignSheet}>
+            <Text style={styles.metricLabel}>
+              Assign {pendingAssign?.serviceName} · {pendingAssign ? seniorLabel(pendingAssign) : ''}
+            </Text>
+            <Text style={styles.metricHint}>
+              {scOnlyAssign
+                ? 'Companion already has this request. Assign a Service Companion to execute.'
+                : needsServiceCompanionDispatch(pendingAssign?.serviceSlug)
+                  ? 'No standing Companion yet — assign a Companion to dispatch, or a Service Companion to execute now.'
+                  : usesDeliveryJob(pendingAssign?.serviceSlug)
+                    ? 'Creates a delivery for each selected Service Companion.'
+                    : 'Creates a visit for each selected Care Associate. You can assign more than one role on the same request.'}
+            </Text>
+            <Text style={styles.metricLabel}>
+              {scOnlyAssign ? 'Assign Service Companion' : 'Assign to (multi-select)'}
+            </Text>
+            {assignOptions.length > 0 ? (
+              <TextField
+                label="Search staff"
+                value={assigneeSearch}
+                onChangeText={(next) => {
+                  setAssigneeSearch(next);
+                  setFormError(null);
+                }}
+                placeholder="Name or employee ID"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+            ) : null}
+            {managers.isPending ? <Text style={styles.metricHint}>Loading staff…</Text> : null}
+            {!managers.isPending && assignOptions.length === 0 ? (
+              <Text style={styles.error}>No ACTIVE staff match this service.</Text>
+            ) : null}
+            {!managers.isPending && assignOptions.length > 0 && filteredAssignOptions.length === 0 ? (
+              <Text style={styles.error}>No staff match “{assigneeSearch.trim()}”.</Text>
+            ) : null}
+            <ScrollView style={styles.assignList} keyboardShouldPersistTaps="handled">
+              {filteredAssignOptions.map((item) => {
+                const selected = assigneeIds.includes(item.id);
+                return (
+                  <Pressable
+                    key={item.id}
+                    onPress={() => toggleAssignee(item.id)}
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: selected }}
+                    style={[styles.assignOption, selected ? styles.assignOptionSelected : null]}
+                  >
+                    <View style={styles.assignOptionRow}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.assignOptionTitle}>{item.title}</Text>
+                        {item.subtitle ? <Text style={styles.assignOptionSub}>{item.subtitle}</Text> : null}
+                      </View>
+                      {selected ? <Icon name="checkmark-circle" size={22} color={colors.primary} /> : null}
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+            {formError ? <Text style={styles.error}>{formError}</Text> : null}
+            <PrimaryButton
+              label={
+                assigneeIds.length > 1
+                  ? `Confirm assign (${assigneeIds.length})`
+                  : 'Confirm assign'
+              }
+              loading={assign.isPending}
+              onPress={confirmAssign}
+            />
+            <SecondaryButton label="Cancel" onPress={closeAssign} />
+          </View>
+        </View>
+      </Modal>
       <AdminQueryView
         state={state}
         error={query.error}
@@ -657,8 +927,56 @@ export function AdminServiceRequestsScreen() {
           items={query.data?.items ?? []}
           keyExtractor={(item) => item.id}
           accessibilityLabel={(item) => `${item.serviceName}, ${humanizeStatus(item.status)}`}
+          actionsLabel="Assign"
+          actions={(item) =>
+            requestNeedsFieldAssign(item.serviceSlug) && item.status !== 'COMPLETED' && item.status !== 'CANCELLED' ? (
+              <PrimaryButton
+                label={
+                  item.awaitingDispatch
+                    ? 'Assign SC'
+                    : item.status === 'ASSIGNED'
+                      ? 'Reassign'
+                      : shouldAutoAssignStanding(item.serviceSlug)
+                        ? 'Auto-assign'
+                        : 'Assign'
+                }
+                loading={autoAssigningId === item.id}
+                onPress={() => {
+                  setFormError(null);
+                  setSuccessMessage(null);
+                  setPendingComplete(null);
+                  // Health-check style: route standing CM/Companion immediately — no Confirm modal.
+                  if (
+                    shouldAutoAssignStanding(item.serviceSlug) &&
+                    item.status !== 'ASSIGNED' &&
+                    !item.awaitingDispatch
+                  ) {
+                    setAutoAssigningId(item.id);
+                    autoAssign.mutate(item.id, {
+                      onSettled: () => setAutoAssigningId(null),
+                      onError: (error) => {
+                        setFormError(getAdminErrorMessage(error));
+                        setPendingAssign(item);
+                        setAssigneeIds([]);
+                      },
+                      onSuccess: (assigned) => {
+                        setSuccessMessage(
+                          `Auto-assigned ${assigned.serviceName} to standing staff for ${seniorLabel(assigned)}.`,
+                        );
+                      },
+                    });
+                    return;
+                  }
+                  setPendingAssign(item);
+                  setAssigneeIds([]);
+                }}
+              />
+            ) : (
+              <Text style={cell}>Inbox</Text>
+            )
+          }
           columns={[
-            { key: 'senior', label: 'Senior', render: (item: ServiceRequest) => <Text style={cell}>{item.seniorId}</Text> },
+            { key: 'senior', label: 'Senior', render: (item: ServiceRequest) => <Text style={cell}>{seniorLabel(item)}</Text> },
             { key: 'service', label: 'Service', render: (item) => <Text style={cell}>{item.serviceName}</Text> },
             {
               key: 'notes',
@@ -680,6 +998,15 @@ export function AdminServiceRequestsScreen() {
                   onChange={(next) => {
                     if (!next || next === item.status) return;
                     setFormError(null);
+                    if (next === 'COMPLETED' && !roleCanFinish(item.serviceSlug, 'ADMIN')) {
+                      setFormError('Only the final finisher can close this service.');
+                      return;
+                    }
+                    if (next === 'COMPLETED' && requiresProofPhoto(item.serviceSlug)) {
+                      setPendingComplete(item);
+                      setProofPhoto(null);
+                      return;
+                    }
                     update.mutate({ id: item.id, status: next }, { onError: (error) => setFormError(getAdminErrorMessage(error)) });
                   }}
                 />
@@ -930,5 +1257,54 @@ const styles = StyleSheet.create({
   coverPlaceholderText: {
     ...typography.caption,
     color: colors.textMuted,
+  },
+  assignOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.xl,
+  },
+  assignBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: colors.overlay,
+  },
+  assignSheet: {
+    zIndex: 2,
+    width: '100%',
+    maxWidth: 480,
+    maxHeight: '90%',
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: radius.xl,
+    padding: spacing.xxl,
+    gap: spacing.md,
+  },
+  assignList: {
+    maxHeight: 280,
+  },
+  assignOption: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+    backgroundColor: colors.surface,
+  },
+  assignOptionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  assignOptionSelected: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primarySoft,
+  },
+  assignOptionTitle: {
+    ...typography.bodyStrong,
+    color: colors.text,
+  },
+  assignOptionSub: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    marginTop: spacing.xs,
   },
 });

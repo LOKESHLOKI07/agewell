@@ -28,12 +28,14 @@ export async function fetchServiceBySlug(slug: string): Promise<CatalogService> 
 export async function submitMembershipRequest(input: {
   slug: string;
   notes?: string;
+  listPhoto?: string;
 }): Promise<CreatedServiceRequest> {
   const [senior, service] = await Promise.all([fetchSeniorMe(), fetchServiceBySlug(input.slug)]);
   return createServiceRequest({
     seniorId: senior.id,
     serviceId: service.id,
     notes: input.notes,
+    listPhoto: input.listPhoto,
   });
 }
 

@@ -8,6 +8,10 @@ export const MEMBERSHIP_ONBOARDING_NOTE =
   'Onboarding takes time. Services cannot start instantly after a medical emergency — take membership beforehand.';
 
 /** Mumbai (tier1) vs Chandrapur (tier2). Unknown/null tier keeps Mumbai prices. */
+/** One-time credits allocated on first successful membership activation. */
+export const INITIAL_SERVICE_CREDIT_INR = 2500;
+export const INITIAL_EMERGENCY_CREDIT_INR = 15000;
+
 export const MEMBERSHIP_PLAN_PRICES = {
   tier1: { single: 15499, couple: 18499 },
   tier2: { single: 13999, couple: 16999 },

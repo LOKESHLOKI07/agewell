@@ -107,6 +107,7 @@ class RegisterCareAssociateRequest(BaseModel):
     languages: Optional[str] = Field(default=None, max_length=200)
     availability: Optional[str] = Field(default=None, max_length=200)
     staff_kind: Optional[str] = Field(default=None, max_length=40)
+    companion_service_slugs: Optional[list[str]] = None
 
     @field_validator("email")
     @classmethod
@@ -124,6 +125,8 @@ class RegisterCareAssociateRequest(BaseModel):
         kind = value.strip().upper()
         if not kind:
             return None
+        if kind == "SERVICE_COMPANION":
+            kind = "DELIVERY_EXECUTIVE"
         if kind not in ("CARE_MANAGER", "COMPANION", "DELIVERY_EXECUTIVE"):
             raise ValueError("staff_kind must be CARE_MANAGER, COMPANION, or DELIVERY_EXECUTIVE")
         return kind
@@ -221,6 +224,45 @@ class EmailOtpVerifyResponse(BaseModel):
     token_type: str = "bearer"
 
 
+class PhoneOtpRequest(BaseModel):
+    phone: str = Field(min_length=8, max_length=20)
+
+    @field_validator("phone")
+    @classmethod
+    def normalize_phone(cls, value: str) -> str:
+        digits = "".join(ch for ch in value if ch.isdigit())
+        if len(digits) < 8:
+            raise ValueError("Enter a valid mobile number")
+        return digits
+
+
+class PhoneOtpVerifyRequest(BaseModel):
+    phone: str = Field(min_length=8, max_length=20)
+    code: str = Field(min_length=6, max_length=6)
+
+    @field_validator("phone")
+    @classmethod
+    def normalize_phone(cls, value: str) -> str:
+        digits = "".join(ch for ch in value if ch.isdigit())
+        if len(digits) < 8:
+            raise ValueError("Enter a valid mobile number")
+        return digits
+
+
+class PhoneOtpSentResponse(BaseModel):
+    message: str
+    channel: str
+    contact: str
+    debug_code: Optional[str] = None
+
+
+class PhoneOtpVerifyResponse(BaseModel):
+    phone: str
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+
+
 class PasswordResetVerifyResponse(BaseModel):
     email: str
     reset_token: str
@@ -233,3 +275,78 @@ class PasswordResetRequest(BaseModel):
 
 class PasswordResetResponse(BaseModel):
     message: str
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str = Field(min_length=1, max_length=128)
+    new_password: str = Field(min_length=8, max_length=128)
+
+
+class ChangePasswordResponse(BaseModel):
+    message: str
+
+
+class FamilyInviteOtpRequest(BaseModel):
+    email: Optional[str] = Field(default=None, max_length=255)
+    phone: Optional[str] = Field(default=None, max_length=20)
+
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        email = value.strip().lower()
+        if not email:
+            return None
+        if "@" not in email or "." not in email.split("@")[-1]:
+            raise ValueError("Invalid email address")
+        return email
+
+    @field_validator("phone")
+    @classmethod
+    def normalize_phone(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        digits = "".join(ch for ch in value if ch.isdigit())
+        return digits or None
+
+    @model_validator(mode="after")
+    def require_one(self):
+        if not self.email and not self.phone:
+            raise ValueError("Enter the email or mobile from your invite")
+        if self.email and self.phone:
+            raise ValueError("Use either email or mobile, not both")
+        return self
+
+
+class FamilyInviteOtpVerifyRequest(FamilyInviteOtpRequest):
+    code: str = Field(min_length=6, max_length=6)
+
+
+class FamilyInviteCompleteRequest(BaseModel):
+    claim_token: str = Field(min_length=16, max_length=4096)
+    password: str = Field(min_length=8, max_length=128)
+    first_name: Optional[str] = Field(default=None, max_length=100)
+    last_name: Optional[str] = Field(default=None, max_length=100)
+    email: Optional[str] = Field(default=None, max_length=255)
+    phone: Optional[str] = Field(default=None, max_length=20)
+
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        email = value.strip().lower()
+        if not email:
+            return None
+        if "@" not in email or "." not in email.split("@")[-1]:
+            raise ValueError("Invalid email address")
+        return email
+
+    @field_validator("phone")
+    @classmethod
+    def normalize_phone(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        digits = "".join(ch for ch in value if ch.isdigit())
+        return digits or None

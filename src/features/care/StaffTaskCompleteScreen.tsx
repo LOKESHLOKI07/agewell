@@ -8,6 +8,8 @@ import { getSectionState } from '@/features/home/selectors/homeViewModel';
 import { CareQueryView } from './components/CareQueryView';
 import { CareSubScreen } from './components/CareSubScreen';
 import { useCreateVisitReport, useUpdateVisitStatus, useVisitDetail } from './hooks';
+import { requiresProofPhoto } from '@/features/services/servicePolicy';
+import { ProofPhotoField } from './ProofPhotoField';
 import { visitSeniorLabel } from './selectors';
 
 export function StaffTaskCompleteScreen() {
@@ -17,6 +19,7 @@ export function StaffTaskCompleteScreen() {
   const updateStatus = useUpdateVisitStatus();
   const [summary, setSummary] = useState('');
   const [issuesNoted, setIssuesNoted] = useState('');
+  const [proofPhoto, setProofPhoto] = useState<string | null>(null);
   const visit = visitQuery.data;
   const busy = createReport.isPending || updateStatus.isPending;
   const state = getSectionState({
@@ -29,13 +32,18 @@ export function StaffTaskCompleteScreen() {
     if (!visit) {
       return;
     }
+    if (requiresProofPhoto(visit.serviceSlug) && !proofPhoto) {
+      Alert.alert('Photo required', 'Attach a proof photo before closing this service.');
+      return;
+    }
     try {
       await createReport.mutateAsync({
         visitId: visit.id,
         summary: summary.trim() || 'Visit completed',
         issuesNoted: issuesNoted.trim() || null,
+        proofPhoto,
       });
-      await updateStatus.mutateAsync({ visitId: visit.id, status: 'COMPLETED' });
+      await updateStatus.mutateAsync({ visitId: visit.id, status: 'COMPLETED', proofPhoto });
       Alert.alert('Report submitted', 'This visit is marked complete.', [
         { text: 'Done', onPress: () => router.replace('/(care)/tasks' as Href) },
       ]);
@@ -73,6 +81,9 @@ export function StaffTaskCompleteScreen() {
                 placeholder="What was completed during this visit?"
                 multiline
               />
+              {requiresProofPhoto(visit.serviceSlug) ? (
+                <ProofPhotoField value={proofPhoto} onChange={setProofPhoto} required />
+              ) : null}
               <TextField
                 label="Issues noted"
                 value={issuesNoted}

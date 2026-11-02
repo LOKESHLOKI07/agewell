@@ -6,6 +6,7 @@ import { ConfirmDialog, PrimaryButton, TextField } from '@/components';
 import { colors, spacing, typography } from '@/constants/theme';
 import { AUTH_ROLES, type AuthRole } from '@/features/auth/authTypes';
 import { useAuthStore } from '@/features/auth/authStore';
+import { isSuperStaff, serviceCityLabel } from '@/features/auth/serviceCities';
 import { formatLongDate } from '@/utils/date';
 import { AdminCollection } from './components/AdminCollection';
 import { AdminFilterChips } from './components/AdminFilterChips';
@@ -29,7 +30,8 @@ export function AdminUsersScreen() {
   const [role, setRole] = useState<AuthRole | undefined>();
   const [emailInput, setEmailInput] = useState(initialEmail);
   const [email, setEmail] = useState<string | undefined>(initialEmail || undefined);
-  const currentUserId = useAuthStore((state) => state.user?.id);
+  const currentUser = useAuthStore((state) => state.user);
+  const currentUserId = currentUser?.id;
 
   useEffect(() => {
     if (typeof params.email === 'string' && params.email) {
@@ -93,7 +95,18 @@ export function AdminUsersScreen() {
     <AdminScreen
       title="Users"
       subtitle="Login accounts and roles. Use Edit, View, or Delete on each row. Delete removes the account and its linked profile."
-      actions={<PrimaryButton label="Create user" fullWidth={false} onPress={() => router.push('/(admin)/users/new' as Href)} />}
+      actions={
+        <View style={styles.actionRow}>
+          {isSuperStaff(currentUser) ? (
+            <PrimaryButton
+              label="Create city admin"
+              fullWidth={false}
+              onPress={() => router.push('/(admin)/users/new?role=ADMIN' as Href)}
+            />
+          ) : null}
+          <PrimaryButton label="Create user" fullWidth={false} onPress={() => router.push('/(admin)/users/new' as Href)} />
+        </View>
+      }
     >
       <View style={styles.toolbar}>
         <View style={styles.searchField}>
@@ -168,6 +181,11 @@ export function AdminUsersScreen() {
             { key: 'email', label: 'Email', flex: 1.5, render: (item: AdminUser) => <Text style={cell}>{item.email}</Text> },
             { key: 'phone', label: 'Phone', render: (item) => <Text style={cell}>{item.phone}</Text> },
             { key: 'role', label: 'Role', render: (item) => <Text style={cell}>{humanizeStatus(item.role)}</Text> },
+            {
+              key: 'city',
+              label: 'City',
+              render: (item) => <Text style={cell}>{serviceCityLabel(item.serviceCity)}</Text>,
+            },
             {
               key: 'status',
               label: 'Account status',
@@ -247,6 +265,12 @@ export function AdminUsersScreen() {
 const cell = { ...typography.body, color: colors.text };
 
 const styles = StyleSheet.create({
+  actionRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    justifyContent: 'flex-end',
+  },
   toolbar: {
     flexDirection: 'row',
     flexWrap: 'wrap',

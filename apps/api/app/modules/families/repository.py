@@ -30,14 +30,19 @@ class FamilyRepository:
         )
         return list(result.scalars().all())
 
-    async def list_families(self, *, limit: int = 50, offset: int = 0):
+    async def list_families(self, *, service_city: str | None = None, limit: int = 50, offset: int = 0):
         from sqlalchemy import func
 
+        from app.modules.users.models import User
+
+        stmt = select(FamilyMember)
         count_stmt = select(func.count()).select_from(FamilyMember)
+        if service_city:
+            stmt = stmt.join(User, FamilyMember.user_id == User.id).where(User.service_city == service_city)
+            count_stmt = count_stmt.join(User, FamilyMember.user_id == User.id).where(User.service_city == service_city)
         total = (await self.session.execute(count_stmt)).scalar_one()
         result = await self.session.execute(
-            select(FamilyMember)
-            .order_by(FamilyMember.last_name.asc().nulls_last(), FamilyMember.first_name.asc().nulls_last())
+            stmt.order_by(FamilyMember.last_name.asc().nulls_last(), FamilyMember.first_name.asc().nulls_last())
             .offset(offset)
             .limit(limit)
         )

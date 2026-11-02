@@ -14,6 +14,7 @@ class NotificationResponse(BaseModel):
     message: Optional[str] = None
     priority: NotificationPriority
     is_read: bool
+    action_ref: Optional[str] = None
     created_at: Optional[datetime] = None
 
 
@@ -23,6 +24,7 @@ class MarkAllReadResponse(BaseModel):
 
 class AdminNotificationResponse(NotificationResponse):
     user_id: Optional[UUID4] = None
+    user_email: Optional[str] = None
 
 
 class DevicePushTokenRegister(BaseModel):

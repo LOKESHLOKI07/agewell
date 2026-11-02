@@ -37,5 +37,11 @@ class ServiceRequest(Base):
     senior_id = Column(UUID(as_uuid=True), ForeignKey("seniors.id"))
     service_id = Column(UUID(as_uuid=True), ForeignKey("services.id"))
     status = Column(Enum(ServiceRequestStatus), default=ServiceRequestStatus.REQUESTED)
-    notes = Column(String, nullable=True)
+    notes = Column(Text, nullable=True)
+    proof_photo = Column(Text, nullable=True)
+    list_photo = Column(Text, nullable=True)
+    # Companion/CM holding an SC-dispatch ticket before Take / Assign to SC.
+    dispatcher_id = Column(UUID(as_uuid=True), ForeignKey("care_managers.id"), nullable=True, index=True)
+    # Who executes after take or SC handoff (visit/delivery owner).
+    executor_id = Column(UUID(as_uuid=True), ForeignKey("care_managers.id"), nullable=True, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
