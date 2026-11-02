@@ -12,7 +12,12 @@ import {
   type ServiceCity,
 } from '@/features/auth/serviceCities';
 import { formatLongDate, formatRelativeDay, formatTime, toDisplayDate } from '@/utils/date';
-import { showAdminRegisterSuccess } from './adminFeedback';
+import {
+  AdminSuccessDialog,
+  registerSuccessNotice,
+  updateSuccessNotice,
+  type AdminSuccessNotice,
+} from './adminFeedback';
 import { AdminFilterChips } from './components/AdminFilterChips';
 import { AdminQueryView } from './components/AdminQueryView';
 import { AdminScreen } from './components/AdminScreen';
@@ -98,6 +103,7 @@ export function AdminUserDetailScreen() {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
+  const [success, setSuccess] = useState<AdminSuccessNotice | null>(null);
 
   useEffect(() => {
     setEmail('');
@@ -242,6 +248,7 @@ export function AdminUserDetailScreen() {
       }
 
       setSavedMessage('All changes saved.');
+      setSuccess(updateSuccessNotice('All changes saved.'));
     } catch (error) {
       setFormError(getAdminErrorMessage(error, 'user'));
     } finally {
@@ -265,6 +272,7 @@ export function AdminUserDetailScreen() {
         />
       }
     >
+      <AdminSuccessDialog notice={success} onClose={() => setSuccess(null)} />
       <AdminQueryView
         state={state}
         error={query.error}
@@ -597,6 +605,7 @@ export function AdminUserCreateScreen() {
     currentUser?.serviceCity ?? (createCityAdmin ? undefined : undefined),
   );
   const [formError, setFormError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<AdminSuccessNotice | null>(null);
   const roleOptions = superStaff
     ? ROLE_OPTIONS
     : ROLE_OPTIONS.filter((item) => item.value !== 'ADMIN' && item.value !== 'OPERATIONS');
@@ -612,6 +621,15 @@ export function AdminUserCreateScreen() {
       }
       backHref="/(admin)/users"
     >
+      <AdminSuccessDialog
+        notice={success}
+        onClose={(href) => {
+          setSuccess(null);
+          if (href) {
+            router.replace(href as Href);
+          }
+        }}
+      />
       <PremiumCard style={styles.card}>
         <TextField label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
         <TextField label="Phone" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
@@ -659,11 +677,13 @@ export function AdminUserCreateScreen() {
                 {
                   onError: (error) => setFormError(getAdminErrorMessage(error, 'user')),
                   onSuccess: (user) => {
-                    showAdminRegisterSuccess(
-                      createCityAdmin
-                        ? 'City admin account was created. Share the temporary password with them.'
-                        : 'Login account was created. Attach a Senior or Care profile if needed.',
-                      () => router.replace(`/(admin)/users/${user.id}` as Href),
+                    setSuccess(
+                      registerSuccessNotice(
+                        createCityAdmin
+                          ? 'City admin account was created. Share the temporary password with them.'
+                          : 'Login account was created. Attach a Senior or Care profile if needed.',
+                        `/(admin)/users/${user.id}`,
+                      ),
                     );
                   },
                 },

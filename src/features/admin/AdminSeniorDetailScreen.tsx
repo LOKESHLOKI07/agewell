@@ -42,6 +42,11 @@ import {
   useUpdateAdminSenior,
 } from './hooks';
 import {
+  AdminSuccessDialog,
+  updateSuccessNotice,
+  type AdminSuccessNotice,
+} from './adminFeedback';
+import {
   adminCareManagerDisplay,
   adminSeniorDisplay,
   adminSeniorLocationLabel,
@@ -109,6 +114,7 @@ export function AdminSeniorDetailScreen() {
   const [accountStatus, setAccountStatus] = useState('ACTIVE');
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<AdminSuccessNotice | null>(null);
 
   useEffect(() => {
     if (edit === '1') {
@@ -252,6 +258,7 @@ export function AdminSeniorDetailScreen() {
               });
             }
             setEditing(false);
+            setSuccess(updateSuccessNotice('Senior profile was updated.'));
           } catch (error) {
             setFormError(getAdminErrorMessage(error, 'user'));
           } finally {
@@ -268,6 +275,7 @@ export function AdminSeniorDetailScreen() {
       contentContainerStyle={[styles.content, isDesktop ? styles.contentDesktop : null]}
     >
       <DetailBackLink label="Back to Seniors" onPress={() => router.replace('/(admin)/seniors' as Href)} />
+      <AdminSuccessDialog notice={success} onClose={() => setSuccess(null)} />
 
       <AdminQueryView
         state={state}

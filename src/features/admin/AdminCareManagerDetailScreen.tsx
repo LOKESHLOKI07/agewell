@@ -39,6 +39,11 @@ import {
   useUpdateAdminCareManager,
 } from './hooks';
 import {
+  AdminSuccessDialog,
+  updateSuccessNotice,
+  type AdminSuccessNotice,
+} from './adminFeedback';
+import {
   adminCareManagerDisplay,
   adminSeniorDisplay,
   adminStaffKindLabel,
@@ -91,6 +96,7 @@ export function AdminCareManagerDetailScreen() {
   const [companionServiceSlugs, setCompanionServiceSlugs] = useState<ServiceCompanionSlug[]>([]);
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [success, setSuccess] = useState<AdminSuccessNotice | null>(null);
 
   useEffect(() => {
     if (edit === '1') {
@@ -199,6 +205,7 @@ export function AdminCareManagerDetailScreen() {
       contentContainerStyle={[styles.content, isDesktop ? styles.contentDesktop : null]}
     >
       <DetailBackLink label="Back to Care Team" onPress={() => router.replace('/(admin)/care-managers' as Href)} />
+      <AdminSuccessDialog notice={success} onClose={() => setSuccess(null)} />
 
       <AdminQueryView
         state={state}
@@ -459,6 +466,7 @@ export function AdminCareManagerDetailScreen() {
                                 });
                               }
                               setEditing(false);
+                              setSuccess(updateSuccessNotice('Care team member was updated.'));
                             } catch (error) {
                               setFormError(getAdminErrorMessage(error, 'user'));
                             } finally {
@@ -556,6 +564,7 @@ export function AdminCareManagerDetailScreen() {
                                   });
                                 }
                                 setEditing(false);
+                                setSuccess(updateSuccessNotice('Care team member was updated.'));
                               } catch (error) {
                                 setFormError(getAdminErrorMessage(error, 'user'));
                               } finally {

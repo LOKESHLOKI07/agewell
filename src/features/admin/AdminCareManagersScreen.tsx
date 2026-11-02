@@ -15,7 +15,11 @@ import { deleteAdminCareManager } from './api';
 import { useDeletePeopleRecords } from './hooks/useDeletePeopleRecords';
 import { useAdminCareManagers, useApproveAdminCareManager, useProvisionAdminStaff } from './hooks';
 import { ADMIN_STAFF_DEFAULT_PASSWORD } from './staffDefaults';
-import { showAdminRegisterSuccess } from './adminFeedback';
+import {
+  AdminSuccessDialog,
+  registerSuccessNotice,
+  type AdminSuccessNotice,
+} from './adminFeedback';
 import {
   adminCareManagerDisplay,
   adminStaffKindLabel,
@@ -222,6 +226,7 @@ export function AdminCareManagerCreateScreen() {
   const [languages, setLanguages] = useState('');
   const [availability, setAvailability] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<AdminSuccessNotice | null>(null);
 
   return (
     <AdminScreen
@@ -229,6 +234,15 @@ export function AdminCareManagerCreateScreen() {
       subtitle="Creates login account and profile in one step. Share the default password with the staff member."
       backHref="/(admin)/care-managers"
     >
+      <AdminSuccessDialog
+        notice={success}
+        onClose={(href) => {
+          setSuccess(null);
+          if (href) {
+            router.replace(href as Href);
+          }
+        }}
+      />
       <TextField label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
       <TextField label="Phone" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
       <TextField label="Password" value={password} onChangeText={setPassword} autoCapitalize="none" secureTextEntry />
@@ -299,9 +313,11 @@ export function AdminCareManagerCreateScreen() {
             {
               onError: (error) => setFormError(getAdminErrorMessage(error, 'care')),
               onSuccess: (row) => {
-                showAdminRegisterSuccess(
-                  `${adminStaffKindLabel(row.staffKind)} was registered. Share the password with them.`,
-                  () => router.replace(`/(admin)/care-managers/${row.id}` as Href),
+                setSuccess(
+                  registerSuccessNotice(
+                    `${adminStaffKindLabel(row.staffKind)} was registered. Share the password with them.`,
+                    `/(admin)/care-managers/${row.id}`,
+                  ),
                 );
               },
             },

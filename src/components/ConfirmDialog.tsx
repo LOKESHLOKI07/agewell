@@ -16,6 +16,8 @@ interface ConfirmDialogProps {
   error?: string | null;
   /** Red confirm button for destructive actions (logout, delete). */
   destructive?: boolean;
+  /** Success / info dialogs with a single OK action (works on web; Alert.alert does not). */
+  hideCancel?: boolean;
 }
 
 export function ConfirmDialog({
@@ -29,6 +31,7 @@ export function ConfirmDialog({
   busy = false,
   error = null,
   destructive = false,
+  hideCancel = false,
 }: ConfirmDialogProps) {
   const insets = useSafeAreaInsets();
 
@@ -61,7 +64,9 @@ export function ConfirmDialog({
               <Text style={styles.message}>{message}</Text>
               {error ? <Text style={styles.error}>{error}</Text> : null}
               <View style={styles.actions}>
-                <SecondaryButton label={cancelLabel} onPress={onCancel} disabled={busy} />
+                {hideCancel ? null : (
+                  <SecondaryButton label={cancelLabel} onPress={onCancel} disabled={busy} />
+                )}
                 <PrimaryButton
                   label={confirmLabel}
                   onPress={onConfirm}

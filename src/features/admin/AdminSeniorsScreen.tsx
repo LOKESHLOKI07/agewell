@@ -21,7 +21,11 @@ import { AdminSearchPicker } from './components/AdminSearchPicker';
 import { deleteAdminSenior } from './api';
 import { useDeletePeopleRecords } from './hooks/useDeletePeopleRecords';
 import { useAdminSeniors, useAdminUsers, useCreateAdminSenior } from './hooks';
-import { showAdminRegisterSuccess } from './adminFeedback';
+import {
+  AdminSuccessDialog,
+  registerSuccessNotice,
+  type AdminSuccessNotice,
+} from './adminFeedback';
 import { adminSeniorDisplay, getAdminErrorMessage, getSectionState, humanizeStatus, seniorAgeYears } from './selectors';
 import type { AdminSenior, AdminSeniorSegment } from './types';
 import { ADMIN_PAGE_SIZE } from './types';
@@ -270,6 +274,7 @@ export function AdminSeniorCreateScreen() {
   const [emergencyContact, setEmergencyContact] = useState('');
   const [preferredLanguage, setPreferredLanguage] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<AdminSuccessNotice | null>(null);
   const userOptions = useMemo(
     () =>
       (users.data?.items ?? []).map((user) => ({
@@ -282,6 +287,15 @@ export function AdminSeniorCreateScreen() {
 
   return (
     <AdminScreen title="Create senior" subtitle="Links an existing SENIOR user account to a senior profile.">
+      <AdminSuccessDialog
+        notice={success}
+        onClose={(href) => {
+          setSuccess(null);
+          if (href) {
+            router.replace(href as Href);
+          }
+        }}
+      />
       <AdminSearchPicker
         label="SENIOR user"
         options={userOptions}
@@ -325,8 +339,8 @@ export function AdminSeniorCreateScreen() {
             {
               onError: (error) => setFormError(getAdminErrorMessage(error)),
               onSuccess: (senior) => {
-                showAdminRegisterSuccess('Senior profile was created.', () =>
-                  router.replace(`/(admin)/seniors/${senior.id}` as Href),
+                setSuccess(
+                  registerSuccessNotice('Senior profile was created.', `/(admin)/seniors/${senior.id}`),
                 );
               },
             },
