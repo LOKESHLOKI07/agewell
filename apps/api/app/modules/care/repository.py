@@ -1,7 +1,7 @@
 from typing import Optional, Sequence
 from uuid import UUID
 
-from sqlalchemy import or_, select
+from sqlalchemy import or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.care.models import (
@@ -12,7 +12,13 @@ from app.modules.care.models import (
 )
 from app.modules.seniors.models import Senior
 from app.modules.users.models import User
-from app.modules.visits.models import Visit
+from app.modules.visits.models import Visit, VisitStatus
+
+OPEN_VISIT_STATUSES = (
+    VisitStatus.SCHEDULED,
+    VisitStatus.CHECKED_IN,
+    VisitStatus.IN_PROGRESS,
+)
 
 
 class CareManagerRepository:
@@ -203,3 +209,57 @@ class CareManagerRepository:
         await self.session.commit()
         await self.session.refresh(row)
         return row
+
+    async def list_standing_seniors(self, staff_id: UUID, *, staff_kind: str) -> list[Senior]:
+        kind = (staff_kind or CARE_STAFF_KIND_CARE_MANAGER).upper()
+        if kind == CARE_STAFF_KIND_COMPANION:
+            stmt = select(Senior).where(Senior.companion_id == staff_id)
+        else:
+            stmt = select(Senior).where(Senior.care_manager_id == staff_id)
+        result = await self.session.execute(stmt.order_by(Senior.last_name.asc().nulls_last()))
+        return list(result.scalars().all())
+
+    async def list_covered_seniors(self, primary_id: UUID, *, staff_kind: str) -> list[Senior]:
+        kind = (staff_kind or CARE_STAFF_KIND_CARE_MANAGER).upper()
+        if kind == CARE_STAFF_KIND_COMPANION:
+            stmt = select(Senior).where(Senior.companion_primary_id == primary_id)
+        else:
+            stmt = select(Senior).where(Senior.care_manager_primary_id == primary_id)
+        result = await self.session.execute(stmt.order_by(Senior.last_name.asc().nulls_last()))
+        return list(result.scalars().all())
+
+    async def count_open_visits(self, care_manager_id: UUID) -> int:
+        from sqlalchemy import func
+
+        result = await self.session.execute(
+            select(func.count())
+            .select_from(Visit)
+            .where(
+                Visit.care_manager_id == care_manager_id,
+                Visit.status.in_(OPEN_VISIT_STATUSES),
+            )
+        )
+        return int(result.scalar_one())
+
+    async def reassign_open_visits(
+        self,
+        *,
+        from_staff_id: UUID,
+        to_staff_id: UUID,
+        senior_ids: Optional[Sequence[UUID]] = None,
+    ) -> int:
+        stmt = (
+            update(Visit)
+            .where(
+                Visit.care_manager_id == from_staff_id,
+                Visit.status.in_(OPEN_VISIT_STATUSES),
+            )
+            .values(care_manager_id=to_staff_id)
+        )
+        if senior_ids is not None:
+            ids = list(senior_ids)
+            if not ids:
+                return 0
+            stmt = stmt.where(Visit.senior_id.in_(ids))
+        result = await self.session.execute(stmt)
+        return int(result.rowcount or 0)

@@ -24,6 +24,10 @@ from app.modules.care.schemas import (
     CareMessageCreate,
     CareVisitCreate,
     CareVisitSlotsResponse,
+    CaseloadPreviewResponse,
+    CaseloadRestoreResponse,
+    CaseloadTransferRequest,
+    CaseloadTransferResponse,
     StaffProvisionRequest,
 )
 from app.modules.care.service import CareManagerService
@@ -243,6 +247,34 @@ async def update_care_manager(
 ):
     await service.get_by_id(care_manager_id, actor=current_user)
     return await service.update_care_manager(care_manager_id, payload)
+
+
+@router.get("/{care_manager_id}/caseload", response_model=CaseloadPreviewResponse)
+async def preview_caseload(
+    care_manager_id: UUID,
+    current_user: User = Depends(require_staff),
+    service: CareManagerService = Depends(get_care_service),
+):
+    return await service.preview_caseload(care_manager_id, actor=current_user)
+
+
+@router.post("/{care_manager_id}/transfer-caseload", response_model=CaseloadTransferResponse)
+async def transfer_caseload(
+    care_manager_id: UUID,
+    payload: CaseloadTransferRequest,
+    current_user: User = Depends(require_staff),
+    service: CareManagerService = Depends(get_care_service),
+):
+    return await service.transfer_caseload(care_manager_id, payload, actor=current_user)
+
+
+@router.post("/{care_manager_id}/restore-caseload", response_model=CaseloadRestoreResponse)
+async def restore_caseload(
+    care_manager_id: UUID,
+    current_user: User = Depends(require_staff),
+    service: CareManagerService = Depends(get_care_service),
+):
+    return await service.restore_caseload(care_manager_id, actor=current_user)
 
 
 @router.delete("/{care_manager_id}", response_model=CareManagerResponse)

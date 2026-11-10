@@ -13,9 +13,11 @@ from app.modules.care.companion_services import (
 )
 from app.modules.care.models import (
     CARE_STAFF_KIND_CARE_MANAGER,
+    CARE_STAFF_KIND_COMPANION,
     CARE_STAFF_KINDS,
     CARE_STATUS_ACTIVE,
     CARE_STATUS_DISABLED,
+    CARE_STATUS_ON_LEAVE,
     CARE_STATUS_REJECTED,
     CARE_STATUSES,
     CareManager,
@@ -26,6 +28,10 @@ from app.modules.care.schemas import (
     CareManagerCreate,
     CareManagerResponse,
     CareManagerUpdate,
+    CaseloadPreviewResponse,
+    CaseloadRestoreResponse,
+    CaseloadTransferRequest,
+    CaseloadTransferResponse,
     StaffProvisionRequest,
     care_manager_display_name,
 )
@@ -257,6 +263,175 @@ class CareManagerService:
             companion_service_slugs=slugs if is_service_companion_kind(staff_kind) else [],
         )
         return await self.create_care_manager(create_payload)
+
+    def _assignment_fields(self, staff_kind: str) -> tuple[str, str]:
+        kind = (staff_kind or CARE_STAFF_KIND_CARE_MANAGER).upper()
+        if kind == CARE_STAFF_KIND_COMPANION:
+            return "companion_id", "companion_primary_id"
+        if kind == CARE_STAFF_KIND_CARE_MANAGER:
+            return "care_manager_id", "care_manager_primary_id"
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Caseload transfer is only supported for Care Managers and Companions.",
+        )
+
+    async def preview_caseload(self, care_manager_id: UUID, *, actor=None) -> CaseloadPreviewResponse:
+        row = await self.repo.get_by_id(care_manager_id)
+        if not row:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Care manager not found")
+        await self._ensure_care_visible(row, actor)
+        kind = (row.staff_kind or CARE_STAFF_KIND_CARE_MANAGER).upper()
+        transfer_supported = kind in (CARE_STAFF_KIND_CARE_MANAGER, CARE_STAFF_KIND_COMPANION)
+        standing = await self.repo.list_standing_seniors(care_manager_id, staff_kind=kind) if transfer_supported else []
+        covered = await self.repo.list_covered_seniors(care_manager_id, staff_kind=kind) if transfer_supported else []
+        open_visits = await self.repo.count_open_visits(care_manager_id)
+        return CaseloadPreviewResponse(
+            staff_id=row.id,
+            staff_kind=kind,
+            status=row.status,
+            standing_senior_count=len(standing),
+            covered_senior_count=len(covered),
+            open_visit_count=open_visits,
+            can_restore=len(covered) > 0,
+            transfer_supported=transfer_supported,
+        )
+
+    async def transfer_caseload(
+        self,
+        care_manager_id: UUID,
+        payload: CaseloadTransferRequest,
+        *,
+        actor=None,
+    ) -> CaseloadTransferResponse:
+        source = await self.repo.get_by_id(care_manager_id)
+        if not source:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Care manager not found")
+        await self._ensure_care_visible(source, actor)
+
+        if payload.substitute_id == care_manager_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Choose a different staff member as the substitute.",
+            )
+
+        substitute = await self.repo.get_by_id(payload.substitute_id)
+        if not substitute:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Substitute not found")
+        await self._ensure_care_visible(substitute, actor)
+
+        source_kind = (source.staff_kind or CARE_STAFF_KIND_CARE_MANAGER).upper()
+        substitute_kind = (substitute.staff_kind or CARE_STAFF_KIND_CARE_MANAGER).upper()
+        assignment_field, primary_field = self._assignment_fields(source_kind)
+        if substitute_kind != source_kind:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Substitute must have the same role (Care Manager or Companion).",
+            )
+        if (substitute.status or "").upper() != CARE_STATUS_ACTIVE:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Substitute must be ACTIVE.",
+            )
+
+        seniors = await self.repo.list_standing_seniors(care_manager_id, staff_kind=source_kind)
+        senior_ids = [senior.id for senior in seniors]
+        mode = payload.mode.upper()
+        for senior in seniors:
+            if mode == "TEMPORARY":
+                if getattr(senior, primary_field) is None:
+                    setattr(senior, primary_field, care_manager_id)
+            else:
+                if getattr(senior, primary_field) == care_manager_id:
+                    setattr(senior, primary_field, None)
+            setattr(senior, assignment_field, payload.substitute_id)
+
+        visits_moved = 0
+        if payload.transfer_visits and senior_ids:
+            visits_moved = await self.repo.reassign_open_visits(
+                from_staff_id=care_manager_id,
+                to_staff_id=payload.substitute_id,
+            )
+
+        if mode == "TEMPORARY":
+            source.status = CARE_STATUS_ON_LEAVE
+
+        if self.audit_repo:
+            await self.audit_repo.record(
+                entity_name="care_managers",
+                entity_id=str(care_manager_id),
+                action="TRANSFER_CASELOAD",
+                changes=json.dumps(
+                    {
+                        "mode": mode,
+                        "substitute_id": str(payload.substitute_id),
+                        "seniors_moved": len(senior_ids),
+                        "visits_moved": visits_moved,
+                        "staff_kind": source_kind,
+                    }
+                ),
+            )
+        await self.repo.session.commit()
+        return CaseloadTransferResponse(
+            from_staff_id=care_manager_id,
+            to_staff_id=payload.substitute_id,
+            mode=mode,
+            staff_kind=source_kind,
+            seniors_moved=len(senior_ids),
+            visits_moved=visits_moved,
+            senior_ids=senior_ids,
+        )
+
+    async def restore_caseload(self, care_manager_id: UUID, *, actor=None) -> CaseloadRestoreResponse:
+        source = await self.repo.get_by_id(care_manager_id)
+        if not source:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Care manager not found")
+        await self._ensure_care_visible(source, actor)
+
+        source_kind = (source.staff_kind or CARE_STAFF_KIND_CARE_MANAGER).upper()
+        assignment_field, primary_field = self._assignment_fields(source_kind)
+        seniors = await self.repo.list_covered_seniors(care_manager_id, staff_kind=source_kind)
+        if not seniors:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No temporary coverage found to restore for this staff member.",
+            )
+
+        senior_ids = [senior.id for senior in seniors]
+        visits_moved = 0
+        for senior in seniors:
+            current_assignee = getattr(senior, assignment_field)
+            if current_assignee and current_assignee != care_manager_id:
+                visits_moved += await self.repo.reassign_open_visits(
+                    from_staff_id=current_assignee,
+                    to_staff_id=care_manager_id,
+                    senior_ids=[senior.id],
+                )
+            setattr(senior, assignment_field, care_manager_id)
+            setattr(senior, primary_field, None)
+
+        source.status = CARE_STATUS_ACTIVE
+
+        if self.audit_repo:
+            await self.audit_repo.record(
+                entity_name="care_managers",
+                entity_id=str(care_manager_id),
+                action="RESTORE_CASELOAD",
+                changes=json.dumps(
+                    {
+                        "seniors_restored": len(senior_ids),
+                        "visits_moved": visits_moved,
+                        "staff_kind": source_kind,
+                    }
+                ),
+            )
+        await self.repo.session.commit()
+        return CaseloadRestoreResponse(
+            staff_id=care_manager_id,
+            staff_kind=source_kind,
+            seniors_restored=len(senior_ids),
+            visits_moved=visits_moved,
+            senior_ids=senior_ids,
+        )
 
     async def approve_care_manager(
         self, care_manager_id: UUID, payload: CareManagerApproval

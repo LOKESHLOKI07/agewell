@@ -30,9 +30,11 @@ import {
 import { AdminFilterChips } from './components/AdminFilterChips';
 import { AdminQueryView } from './components/AdminQueryView';
 import { deleteAdminCareManager, updateAdminUser } from './api';
+import { CaseloadTransferPanel } from './CaseloadTransferPanel';
 import {
   useAdminAuditLogs,
   useAdminCareManager,
+  useAdminCaseloadPreview,
   useAdminSeniors,
   useAdminUser,
   useAdminVisits,
@@ -73,6 +75,7 @@ export function AdminCareManagerDetailScreen() {
   const user = useAdminUser(query.data?.userId ?? undefined);
   const visits = useAdminVisits({ careManagerId: id, limit: 50, offset: 0 });
   const seniors = useAdminSeniors({ limit: 100, offset: 0 });
+  const caseload = useAdminCaseloadPreview(id);
   const audit = useAdminAuditLogs({ limit: 40, offset: 0 });
   const update = useUpdateAdminCareManager(id ?? '');
 
@@ -279,7 +282,15 @@ export function AdminCareManagerDetailScreen() {
                 value={String(visits.data?.total ?? visitItems.length)}
                 hint={`This month: ${thisMonthVisits}`}
               />
-              <DetailStatCard label="Seniors assigned" value={String(seniorIds.size)} hint="Through visits" />
+              <DetailStatCard
+                label="Seniors assigned"
+                value={String(caseload.data?.standingSeniorCount ?? seniorIds.size)}
+                hint={
+                  caseload.data?.coveredSeniorCount
+                    ? `${caseload.data.coveredSeniorCount} covered for restore`
+                    : 'Standing assignment'
+                }
+              />
               <DetailStatCard
                 label="Completed"
                 value={String(completedVisits)}
@@ -619,33 +630,42 @@ export function AdminCareManagerDetailScreen() {
             ) : null}
 
             {tab === 'assignments' ? (
-              <DetailPanel title="Assignments" action="+ Assign Visit" onAction={() => router.push(assignHref)}>
-                {!visitItems.length ? (
-                  <DetailEmptyBlock
-                    icon="calendar-outline"
-                    title="No assigned visits"
-                    action="Assign visit"
-                    onAction={() => router.push(assignHref)}
+              <>
+                <DetailPanel title="Caseload coverage">
+                  <CaseloadTransferPanel
+                    staffId={id ?? staff.id}
+                    staff={staff}
+                    onSuccess={(message) => setSuccess(updateSuccessNotice(message))}
                   />
-                ) : (
-                  visitItems.map((visit) => (
-                    <View key={visit.id} style={styles.listCard}>
-                      <Text style={styles.sideTitle}>{seniorName(visit.seniorId)}</Text>
-                      <Text style={styles.sideMeta}>
-                        {visit.scheduledAt
-                          ? `${formatRelativeDay(visit.scheduledAt)} · ${formatTime(visit.scheduledAt)}`
-                          : 'Schedule not set'}{' '}
-                        · {humanizeStatus(visit.status)}
-                      </Text>
-                      <PrimaryButton
-                        label="View Visit"
-                        fullWidth={false}
-                        onPress={() => router.push(`/(admin)/visits/${visit.id}` as Href)}
-                      />
-                    </View>
-                  ))
-                )}
-              </DetailPanel>
+                </DetailPanel>
+                <DetailPanel title="Assignments" action="+ Assign Visit" onAction={() => router.push(assignHref)}>
+                  {!visitItems.length ? (
+                    <DetailEmptyBlock
+                      icon="calendar-outline"
+                      title="No assigned visits"
+                      action="Assign visit"
+                      onAction={() => router.push(assignHref)}
+                    />
+                  ) : (
+                    visitItems.map((visit) => (
+                      <View key={visit.id} style={styles.listCard}>
+                        <Text style={styles.sideTitle}>{seniorName(visit.seniorId)}</Text>
+                        <Text style={styles.sideMeta}>
+                          {visit.scheduledAt
+                            ? `${formatRelativeDay(visit.scheduledAt)} · ${formatTime(visit.scheduledAt)}`
+                            : 'Schedule not set'}{' '}
+                          · {humanizeStatus(visit.status)}
+                        </Text>
+                        <PrimaryButton
+                          label="View Visit"
+                          fullWidth={false}
+                          onPress={() => router.push(`/(admin)/visits/${visit.id}` as Href)}
+                        />
+                      </View>
+                    ))
+                  )}
+                </DetailPanel>
+              </>
             ) : null}
 
             {tab === 'activity' ? (

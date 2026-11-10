@@ -96,6 +96,8 @@ class SeniorResponse(SeniorBase):
     in_service_area: bool = False
     care_manager_id: Optional[UUID4] = None
     companion_id: Optional[UUID4] = None
+    care_manager_primary_id: Optional[UUID4] = None
+    companion_primary_id: Optional[UUID4] = None
     location_lat: Optional[float] = None
     location_lng: Optional[float] = None
     location_query: Optional[str] = None

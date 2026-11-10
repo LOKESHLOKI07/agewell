@@ -8,11 +8,13 @@ from app.db.base import Base
 # Application / employment status for care associates (string, validated in service).
 CARE_STATUS_PENDING = "PENDING"
 CARE_STATUS_ACTIVE = "ACTIVE"
+CARE_STATUS_ON_LEAVE = "ON_LEAVE"
 CARE_STATUS_REJECTED = "REJECTED"
 CARE_STATUS_DISABLED = "DISABLED"
 CARE_STATUSES = {
     CARE_STATUS_PENDING,
     CARE_STATUS_ACTIVE,
+    CARE_STATUS_ON_LEAVE,
     CARE_STATUS_REJECTED,
     CARE_STATUS_DISABLED,
 }

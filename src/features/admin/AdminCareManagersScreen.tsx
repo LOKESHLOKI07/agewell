@@ -1,12 +1,13 @@
 import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { router, type Href } from 'expo-router';
-import { ConfirmDialog, PrimaryButton, StatusPill, TextField, statusToneFromLabel } from '@/components';
+import { ConfirmDialog, PrimaryButton, SecondaryButton, StatusPill, TextField, statusToneFromLabel } from '@/components';
 import { Avatar, Icon } from '@/components/ui';
 import { colors, radius, shadows, spacing, typography } from '@/constants/theme';
 import { ServiceCompanionServicePicker } from '@/features/care/ServiceCompanionServicePicker';
 import { isServiceCompanionKind, STAFF_KIND_LABELS, STAFF_KINDS, type StaffKind } from '@/features/care/staffKind';
 import type { ServiceCompanionSlug } from '@/features/care/serviceCompanionServices';
+import { BulkCaseloadAssignModal } from './BulkCaseloadAssignModal';
 import { AdminFilterChips } from './components/AdminFilterChips';
 import { AdminSelectCheckbox, AdminSelectionToolbar } from './components/AdminListActions';
 import { AdminQueryView } from './components/AdminQueryView';
@@ -18,6 +19,7 @@ import { ADMIN_STAFF_DEFAULT_PASSWORD } from './staffDefaults';
 import {
   AdminSuccessDialog,
   registerSuccessNotice,
+  updateSuccessNotice,
   type AdminSuccessNotice,
 } from './adminFeedback';
 import {
@@ -36,6 +38,8 @@ export function AdminCareManagersScreen() {
   const query = useAdminCareManagers();
   const approve = useApproveAdminCareManager();
   const [search, setSearch] = useState('');
+  const [bulkAssignOpen, setBulkAssignOpen] = useState(false);
+  const [success, setSuccess] = useState<AdminSuccessNotice | null>(null);
   const items = useMemo(() => {
     const needle = search.trim().toLowerCase();
     const rows = query.data ?? [];
@@ -61,11 +65,14 @@ export function AdminCareManagersScreen() {
       title="Care Team"
       subtitle="Staff profiles, roles, and visit assignments."
       actions={
-        <PrimaryButton
-          label="Register staff"
-          fullWidth={false}
-          onPress={() => router.push('/(admin)/care-managers/new' as Href)}
-        />
+        <View style={styles.headerActions}>
+          <SecondaryButton label="Bulk Assign" fullWidth={false} onPress={() => setBulkAssignOpen(true)} />
+          <PrimaryButton
+            label="Register staff"
+            fullWidth={false}
+            onPress={() => router.push('/(admin)/care-managers/new' as Href)}
+          />
+        </View>
       }
     >
       <View style={styles.toolbarCard}>
@@ -131,6 +138,16 @@ export function AdminCareManagersScreen() {
           void selection.deleteRecords([...selection.selectedIds]);
         }}
       />
+      <BulkCaseloadAssignModal
+        visible={bulkAssignOpen}
+        onClose={() => setBulkAssignOpen(false)}
+        onSuccess={(message) => {
+          setBulkAssignOpen(false);
+          setSuccess(updateSuccessNotice(message));
+          void query.refetch();
+        }}
+      />
+      <AdminSuccessDialog notice={success} onClose={() => setSuccess(null)} />
     </>
   );
 }
@@ -329,6 +346,12 @@ export function AdminCareManagerCreateScreen() {
 }
 
 const styles = StyleSheet.create({
+  headerActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
   toolbarCard: {
     backgroundColor: colors.white,
     borderRadius: radius.lg,

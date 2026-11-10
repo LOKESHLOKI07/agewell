@@ -598,6 +598,16 @@ export function AdminSeniorDetailScreen() {
             {tab === 'visits' ? (
               <DetailPanel title="Care / Visits" action="+ Create Visit" onAction={() => router.push(scheduleHref)}>
                 <Text style={styles.formHint}>Tap a field to change or clear the standing assignment.</Text>
+                {query.data?.careManagerPrimaryId ? (
+                  <Text style={styles.formHint}>
+                    Care manager is on temporary cover. Primary owner is preserved for restore.
+                  </Text>
+                ) : null}
+                {query.data?.companionPrimaryId ? (
+                  <Text style={styles.formHint}>
+                    Companion is on temporary cover. Primary owner is preserved for restore.
+                  </Text>
+                ) : null}
                 <AdminSearchPicker
                   label="Assigned Care Manager"
                   options={(managers.data ?? [])

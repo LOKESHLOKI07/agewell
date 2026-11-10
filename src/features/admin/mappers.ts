@@ -8,6 +8,9 @@ import { parseStaffKind } from '@/features/care/staffKind';
 import type {
   AdminAuditLog,
   AdminCareManager,
+  AdminCaseloadPreview,
+  AdminCaseloadRestoreResult,
+  AdminCaseloadTransferResult,
   AdminMembershipBenefit,
   AdminMembershipPlan,
   AdminMembershipRecord,
@@ -106,6 +109,51 @@ export function toAdminSenior(payload: unknown): AdminSenior {
     hasMembership: Boolean(data.has_membership),
     careManagerId: asOptionalString(data.care_manager_id),
     companionId: asOptionalString(data.companion_id),
+    careManagerPrimaryId: asOptionalString(data.care_manager_primary_id),
+    companionPrimaryId: asOptionalString(data.companion_primary_id),
+  };
+}
+
+export function toAdminCaseloadPreview(payload: unknown): AdminCaseloadPreview {
+  const data = asRecord(payload, 'caseload preview');
+  return {
+    staffId: asId(data.staff_id, 'caseload.staff_id'),
+    staffKind: asString(data.staff_kind, 'caseload.staff_kind'),
+    status: asOptionalString(data.status),
+    standingSeniorCount: Number(data.standing_senior_count ?? 0),
+    coveredSeniorCount: Number(data.covered_senior_count ?? 0),
+    openVisitCount: Number(data.open_visit_count ?? 0),
+    canRestore: Boolean(data.can_restore),
+    transferSupported: Boolean(data.transfer_supported),
+  };
+}
+
+export function toAdminCaseloadTransferResult(payload: unknown): AdminCaseloadTransferResult {
+  const data = asRecord(payload, 'caseload transfer');
+  const mode = data.mode === 'PERMANENT' ? 'PERMANENT' : 'TEMPORARY';
+  return {
+    fromStaffId: asId(data.from_staff_id, 'caseload.from_staff_id'),
+    toStaffId: asId(data.to_staff_id, 'caseload.to_staff_id'),
+    mode,
+    staffKind: asString(data.staff_kind, 'caseload.staff_kind'),
+    seniorsMoved: Number(data.seniors_moved ?? 0),
+    visitsMoved: Number(data.visits_moved ?? 0),
+    seniorIds: Array.isArray(data.senior_ids)
+      ? data.senior_ids.filter((item): item is string => typeof item === 'string')
+      : [],
+  };
+}
+
+export function toAdminCaseloadRestoreResult(payload: unknown): AdminCaseloadRestoreResult {
+  const data = asRecord(payload, 'caseload restore');
+  return {
+    staffId: asId(data.staff_id, 'caseload.staff_id'),
+    staffKind: asString(data.staff_kind, 'caseload.staff_kind'),
+    seniorsRestored: Number(data.seniors_restored ?? 0),
+    visitsMoved: Number(data.visits_moved ?? 0),
+    seniorIds: Array.isArray(data.senior_ids)
+      ? data.senior_ids.filter((item): item is string => typeof item === 'string')
+      : [],
   };
 }
 

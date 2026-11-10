@@ -38,6 +38,9 @@ import {
   toAdminAuditLog,
   toAdminCareManager,
   toAdminCareManagerList,
+  toAdminCaseloadPreview,
+  toAdminCaseloadRestoreResult,
+  toAdminCaseloadTransferResult,
   toAdminMembershipBenefit,
   toAdminMembershipPlan,
   toAdminMembershipRecord,
@@ -53,6 +56,9 @@ import type {
   AdminAuditLog,
   AdminCareManager,
   AdminCareManagerCreate,
+  AdminCaseloadPreview,
+  AdminCaseloadRestoreResult,
+  AdminCaseloadTransferResult,
   AdminStaffProvision,
   AdminCareManagerUpdate,
   AdminMembershipBenefit,
@@ -65,6 +71,7 @@ import type {
   AdminUser,
   AdminUserCreate,
   AdminUserUpdate,
+  CaseloadTransferMode,
 } from './types';
 
 async function getMapped<T>(path: string, map: (data: unknown) => T, params?: Record<string, unknown>): Promise<T> {
@@ -267,6 +274,29 @@ export function updateAdminCareManager(id: string, input: AdminCareManagerUpdate
 
 export function deleteAdminCareManager(id: string): Promise<AdminCareManager> {
   return sendMapped('delete', `/care/${id}`, toAdminCareManager);
+}
+
+export function fetchAdminCaseloadPreview(id: string): Promise<AdminCaseloadPreview> {
+  return getMapped(`/care/${id}/caseload`, toAdminCaseloadPreview);
+}
+
+export function transferAdminCaseload(
+  id: string,
+  input: {
+    substituteId: string;
+    mode: CaseloadTransferMode;
+    transferVisits?: boolean;
+  },
+): Promise<AdminCaseloadTransferResult> {
+  return sendMapped('post', `/care/${id}/transfer-caseload`, toAdminCaseloadTransferResult, {
+    substitute_id: input.substituteId,
+    mode: input.mode,
+    transfer_visits: input.transferVisits ?? true,
+  });
+}
+
+export function restoreAdminCaseload(id: string): Promise<AdminCaseloadRestoreResult> {
+  return sendMapped('post', `/care/${id}/restore-caseload`, toAdminCaseloadRestoreResult);
 }
 
 export function approveAdminCareManager(

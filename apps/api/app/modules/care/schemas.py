@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Literal, Optional
 from uuid import UUID
 
 from pydantic import UUID4, BaseModel, ConfigDict, Field, field_validator
@@ -177,3 +177,38 @@ class CareVisitSlot(BaseModel):
 class CareVisitSlotsResponse(BaseModel):
     date: str
     slots: list[CareVisitSlot]
+
+
+class CaseloadTransferRequest(BaseModel):
+    substitute_id: UUID4
+    mode: Literal["TEMPORARY", "PERMANENT"] = "TEMPORARY"
+    transfer_visits: bool = True
+
+
+class CaseloadTransferResponse(BaseModel):
+    from_staff_id: UUID4
+    to_staff_id: UUID4
+    mode: str
+    staff_kind: str
+    seniors_moved: int
+    visits_moved: int
+    senior_ids: list[UUID4]
+
+
+class CaseloadRestoreResponse(BaseModel):
+    staff_id: UUID4
+    staff_kind: str
+    seniors_restored: int
+    visits_moved: int
+    senior_ids: list[UUID4]
+
+
+class CaseloadPreviewResponse(BaseModel):
+    staff_id: UUID4
+    staff_kind: str
+    status: Optional[str] = None
+    standing_senior_count: int = 0
+    covered_senior_count: int = 0
+    open_visit_count: int = 0
+    can_restore: bool = False
+    transfer_supported: bool = False

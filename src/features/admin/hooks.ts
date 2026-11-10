@@ -21,6 +21,9 @@ import {
   fetchAdminCareManager,
   fetchAdminCareManagerByUserId,
   fetchAdminCareManagers,
+  fetchAdminCaseloadPreview,
+  restoreAdminCaseload,
+  transferAdminCaseload,
   fetchAdminCurrentMembership,
   fetchAdminEmergencies,
   fetchAdminEmergency,
@@ -59,7 +62,16 @@ import { fetchCareActivities, updateCareActivity } from '@/features/membership/c
 import type { CareActivityUpdate } from '@/features/membership/careManagerTypes';
 import { homeQueryKeys } from '@/features/home/api/homeQueryKeys';
 import { adminQueryKeys } from './queryKeys';
-import type { AdminCareManagerCreate, AdminCareManagerUpdate, AdminSeniorCreate, AdminSeniorUpdate, AdminStaffProvision, AdminUserCreate, AdminUserUpdate } from './types';
+import type {
+  AdminCareManagerCreate,
+  AdminCareManagerUpdate,
+  AdminSeniorCreate,
+  AdminSeniorUpdate,
+  AdminStaffProvision,
+  AdminUserCreate,
+  AdminUserUpdate,
+  CaseloadTransferMode,
+} from './types';
 import { ADMIN_PAGE_SIZE } from './types';
 
 function useStaffQuery<T>(
@@ -237,6 +249,82 @@ export function useApproveAdminCareManager() {
       approveAdminCareManager(input.id, { status: input.status, employeeId: input.employeeId }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['admin', 'careManagers'] });
+    },
+  });
+}
+
+export function useAdminCaseloadPreview(id: string | undefined) {
+  return useStaffQuery(
+    adminQueryKeys.caseload(id ?? ''),
+    () => fetchAdminCaseloadPreview(id as string),
+    Boolean(id),
+  );
+}
+
+async function invalidateCaseloadQueries(queryClient: ReturnType<typeof useQueryClient>, staffId: string) {
+  await Promise.all([
+    queryClient.invalidateQueries({ queryKey: ['admin', 'careManagers'] }),
+    queryClient.invalidateQueries({ queryKey: adminQueryKeys.caseload(staffId) }),
+    queryClient.invalidateQueries({ queryKey: ['admin', 'seniors'] }),
+    queryClient.invalidateQueries({ queryKey: ['admin', 'visits'] }),
+  ]);
+}
+
+export function useTransferAdminCaseload(staffId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      substituteId: string;
+      mode: CaseloadTransferMode;
+      transferVisits?: boolean;
+    }) => transferAdminCaseload(staffId, input),
+    onSuccess: async () => {
+      await invalidateCaseloadQueries(queryClient, staffId);
+    },
+  });
+}
+
+/** Bulk assign from the Care Team list — From staff id is chosen at submit time. */
+export function useBulkTransferAdminCaseload() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      fromStaffId: string;
+      substituteId: string;
+      mode: CaseloadTransferMode;
+      transferVisits?: boolean;
+    }) =>
+      transferAdminCaseload(input.fromStaffId, {
+        substituteId: input.substituteId,
+        mode: input.mode,
+        transferVisits: input.transferVisits,
+      }),
+    onSuccess: async (_result, variables) => {
+      await invalidateCaseloadQueries(queryClient, variables.fromStaffId);
+      if (variables.substituteId !== variables.fromStaffId) {
+        await queryClient.invalidateQueries({ queryKey: adminQueryKeys.caseload(variables.substituteId) });
+      }
+    },
+  });
+}
+
+export function useRestoreAdminCaseload(staffId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => restoreAdminCaseload(staffId),
+    onSuccess: async () => {
+      await invalidateCaseloadQueries(queryClient, staffId);
+    },
+  });
+}
+
+/** Bulk restore from the Care Team list — original staff id is chosen at submit time. */
+export function useBulkRestoreAdminCaseload() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (staffId: string) => restoreAdminCaseload(staffId),
+    onSuccess: async (_result, staffId) => {
+      await invalidateCaseloadQueries(queryClient, staffId);
     },
   });
 }

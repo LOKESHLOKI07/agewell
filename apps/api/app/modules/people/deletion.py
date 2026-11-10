@@ -129,6 +129,19 @@ async def delete_care_record(session: AsyncSession, care_manager_id, *, also_use
     await session.execute(
         update(Senior).where(Senior.care_manager_id == care_manager_id).values(care_manager_id=None)
     )
+    await session.execute(
+        update(Senior).where(Senior.companion_id == care_manager_id).values(companion_id=None)
+    )
+    await session.execute(
+        update(Senior)
+        .where(Senior.care_manager_primary_id == care_manager_id)
+        .values(care_manager_primary_id=None)
+    )
+    await session.execute(
+        update(Senior)
+        .where(Senior.companion_primary_id == care_manager_id)
+        .values(companion_primary_id=None)
+    )
     await session.execute(delete(CareManagerActivity).where(CareManagerActivity.care_manager_id == care_manager_id))
     await session.execute(delete(StaffDelivery).where(StaffDelivery.care_manager_id == care_manager_id))
     await session.execute(delete(StaffAttendance).where(StaffAttendance.care_manager_id == care_manager_id))

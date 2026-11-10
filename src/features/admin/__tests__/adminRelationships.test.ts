@@ -1,10 +1,13 @@
-import { toAdminSenior } from '../mappers';
+import { toAdminCaseloadPreview, toAdminCaseloadRestoreResult, toAdminCaseloadTransferResult, toAdminSenior } from '../mappers';
 import {
   createAdminVisit,
   deleteAdminCareManager,
   deleteAdminSenior,
   deleteAdminUser,
+  fetchAdminCaseloadPreview,
   fetchAdminVisits,
+  restoreAdminCaseload,
+  transferAdminCaseload,
   updateAdminSenior,
   updateAdminUser,
 } from '../api';
@@ -42,6 +45,8 @@ describe('admin relationship mapping', () => {
     expect(senior.familyContact1Name).toBeNull();
     expect(senior.locationLat).toBeNull();
     expect(senior.locationSource).toBeNull();
+    expect(senior.careManagerPrimaryId).toBeNull();
+    expect(senior.companionPrimaryId).toBeNull();
     expect(seniorAgeYears('1940-01-01', new Date('2026-09-07'))).toBe(86);
     expect(shortSeniorCode('0b3922d7-6ec2-4810-a259-58d0ec262f69')).toBe('SR-0B392');
     expect(splitTagList('Home visits, Elder care; First Aid')).toEqual(['Home visits', 'Elder care', 'First Aid']);
@@ -263,5 +268,95 @@ describe('admin relationship API calls', () => {
     const match = seniors.find((item) => item.userId === '2235c91a-8012-4c44-c5d3-1d3d056cf99a');
     expect(match?.id).toBe('s1');
     expect(match?.email).toBe('akila@gmail.com');
+  });
+
+  it('maps caseload preview/transfer/restore payloads', () => {
+    expect(
+      toAdminCaseloadPreview({
+        staff_id: 'cm-1',
+        staff_kind: 'CARE_MANAGER',
+        status: 'ON_LEAVE',
+        standing_senior_count: 0,
+        covered_senior_count: 4,
+        open_visit_count: 2,
+        can_restore: true,
+        transfer_supported: true,
+      }),
+    ).toMatchObject({
+      staffId: 'cm-1',
+      coveredSeniorCount: 4,
+      canRestore: true,
+    });
+    expect(
+      toAdminCaseloadTransferResult({
+        from_staff_id: 'cm-1',
+        to_staff_id: 'cm-2',
+        mode: 'TEMPORARY',
+        staff_kind: 'CARE_MANAGER',
+        seniors_moved: 3,
+        visits_moved: 1,
+        senior_ids: ['s1', 's2', 's3'],
+      }),
+    ).toMatchObject({ mode: 'TEMPORARY', seniorsMoved: 3, visitsMoved: 1 });
+    expect(
+      toAdminCaseloadRestoreResult({
+        staff_id: 'cm-1',
+        staff_kind: 'COMPANION',
+        seniors_restored: 2,
+        visits_moved: 0,
+        senior_ids: ['s1', 's2'],
+      }),
+    ).toMatchObject({ seniorsRestored: 2, staffKind: 'COMPANION' });
+  });
+
+  it('calls caseload preview transfer and restore endpoints', async () => {
+    mockedGet.mockResolvedValueOnce({
+      data: {
+        staff_id: 'cm-1',
+        staff_kind: 'CARE_MANAGER',
+        status: 'ACTIVE',
+        standing_senior_count: 2,
+        covered_senior_count: 0,
+        open_visit_count: 1,
+        can_restore: false,
+        transfer_supported: true,
+      },
+    } as never);
+    await fetchAdminCaseloadPreview('cm-1');
+    expect(mockedGet).toHaveBeenCalledWith('/care/cm-1/caseload', { params: undefined });
+
+    mockedRequest.mockResolvedValueOnce({
+      data: {
+        from_staff_id: 'cm-1',
+        to_staff_id: 'cm-2',
+        mode: 'TEMPORARY',
+        staff_kind: 'CARE_MANAGER',
+        seniors_moved: 2,
+        visits_moved: 1,
+        senior_ids: ['s1', 's2'],
+      },
+    } as never);
+    await transferAdminCaseload('cm-1', { substituteId: 'cm-2', mode: 'TEMPORARY' });
+    expect(mockedRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        method: 'post',
+        url: '/care/cm-1/transfer-caseload',
+        data: { substitute_id: 'cm-2', mode: 'TEMPORARY', transfer_visits: true },
+      }),
+    );
+
+    mockedRequest.mockResolvedValueOnce({
+      data: {
+        staff_id: 'cm-1',
+        staff_kind: 'CARE_MANAGER',
+        seniors_restored: 2,
+        visits_moved: 1,
+        senior_ids: ['s1', 's2'],
+      },
+    } as never);
+    await restoreAdminCaseload('cm-1');
+    expect(mockedRequest).toHaveBeenCalledWith(
+      expect.objectContaining({ method: 'post', url: '/care/cm-1/restore-caseload' }),
+    );
   });
 });

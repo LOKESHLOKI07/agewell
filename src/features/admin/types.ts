@@ -58,6 +58,39 @@ export interface AdminSenior {
   hasMembership: boolean;
   careManagerId: string | null;
   companionId: string | null;
+  careManagerPrimaryId: string | null;
+  companionPrimaryId: string | null;
+}
+
+export type CaseloadTransferMode = 'TEMPORARY' | 'PERMANENT';
+
+export interface AdminCaseloadPreview {
+  staffId: string;
+  staffKind: string;
+  status: string | null;
+  standingSeniorCount: number;
+  coveredSeniorCount: number;
+  openVisitCount: number;
+  canRestore: boolean;
+  transferSupported: boolean;
+}
+
+export interface AdminCaseloadTransferResult {
+  fromStaffId: string;
+  toStaffId: string;
+  mode: CaseloadTransferMode;
+  staffKind: string;
+  seniorsMoved: number;
+  visitsMoved: number;
+  seniorIds: string[];
+}
+
+export interface AdminCaseloadRestoreResult {
+  staffId: string;
+  staffKind: string;
+  seniorsRestored: number;
+  visitsMoved: number;
+  seniorIds: string[];
 }
 
 /** Admin seniors list filter segments. */
